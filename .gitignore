@@ -2,6 +2,7 @@
 ## folders (explicit) ##
 
 /autom4te.cache/
+/share/
 
 
 
@@ -22,6 +23,7 @@
 
 ## folders (global) ##
 .deps/
+.libs/
 
 
 
@@ -33,3 +35,5 @@ Makefile.in
 *.o
 *.lo
 *.la
+
+*~

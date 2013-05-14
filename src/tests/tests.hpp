@@ -15,6 +15,7 @@
 #include "spiral.hpp"
 #include "syngo.hpp"
 #include "ocltest.hpp"
+#include "ocldwttest.hpp"
 #include "iotest.hpp"
 #include "creators.hpp"
 #include "karb.hpp"

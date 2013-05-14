@@ -58,6 +58,7 @@ int main (int argc, char** argv) {
 		else if (!strcmp (test, "SHA256"))                sha256test   (con);
 		else if (!strcmp (test, "ISMRMRD"))               ismrmrdtest  (con);
 		else if (!strcmp (test, "ocl"))                   oclmatrixtest(con);
+		else if (!strcmp (test, "ocl_dwt"))				  ocldwttest   (con);
 		else                                              internaltest (con);
 
 		delete con;
