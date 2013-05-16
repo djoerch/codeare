@@ -24,21 +24,25 @@ ocldwttest (RRClient::Connector<T>* rc)
 
 
 	// create oclMatrix from input file
-	Matrix<elem_type> mat_in;
+	Matrix <elem_type> mat_in;
 	if (!Read (mat_in, rc->GetElement ("/config/data/in"), base))
 	{
 		std::cerr << " *!* Error while reading input matrix!" << std::endl << std::endl;
 		return false;
 	}
-
-	std::string ofname (base + std::string (rc->GetElement ("/config/data/out") -> Attribute ("fname")));
-	std::string odname (rc->GetElement ("/config/data/out") -> Attribute ("dname"));
+	oclMatrix <elem_type> ocl_mat_in (mat_in);
 
 
 	// do something
 
 
+
 	// output oclMatrix to output file
+
+	ocl_mat_in.getData ();
+
+	std::string ofname (base + std::string (rc->GetElement ("/config/data/out") -> Attribute ("fname")));
+	std::string odname (rc->GetElement ("/config/data/out") -> Attribute ("dname"));
 
 #ifdef HAVE_MAT_H
 	MATFile* mf = matOpen (ofname.c_str(), "w");
@@ -48,7 +52,7 @@ ocldwttest (RRClient::Connector<T>* rc)
 		return false;
 	}
 
-	MXDump     (mat_in, mf, odname);
+	MXDump     (ocl_mat_in, mf, odname);
 
 	if (matClose(mf) != 0) {
 		printf ("Error closing file %s\n", ofname.c_str());
