@@ -603,3 +603,34 @@ copy_buffer               ( __global A_type_n *      arg1,
   
 }
 
+
+
+/**
+ * @brief                 Discrete wavelet transform, forward.
+ *
+ * @param  arg1           Matrix.
+ * @param  arg2           DWT.
+ * @param  m              Number of rows.
+ * @param  n              Number of columns.
+ */
+__kernel
+void
+dwt_forward               ( __global A_type_n *      arg1,
+                            __global A_type_n *      arg2,
+                            __global      int *         m,
+                            __global      int *         n )
+{
+
+  int index, global_size, global_inc, local_position;
+
+  /* initialize parameters */
+  init_params (&index, &global_size, &global_inc, &local_position);
+
+  /* calculation */
+  for (int i = local_position; i < *m * *n / vec_len; i += global_inc)
+  {
+    arg2 [i] = arg1 [i];
+  }
+
+}
+

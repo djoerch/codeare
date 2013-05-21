@@ -311,7 +311,7 @@
       ~oclDataObject        ()
       {
       
-        print_optional ("Dtor: \"oclDataObject\" (%d)", m_gpu_obj_id, VERB_LOW);
+        print_optional ("Dtor: \"oclDataObject\" (%d)", m_gpu_obj_id, VERB_MIDDLE);
         
         // unregister data object at oclConnection
         oclConnection :: Instance () -> removeDataObject (this);

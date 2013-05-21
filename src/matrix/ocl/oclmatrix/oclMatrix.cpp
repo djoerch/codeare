@@ -1948,14 +1948,14 @@
   const
   {
   
-    print_optional (class_name.c_str (), " :: getData", VERB_LOW);
+    print_optional (class_name.c_str (), " :: getData", op_v_level);
   
     // check if data on CPU are up to date
     if (! this -> mp_oclData -> getSyncState ()
        && this -> mp_oclData -> getMemState ())
     {
   
-      print_optional (" getData for object: ", mp_oclData -> getID (), VERB_LOW);
+      print_optional (" getData for object: ", mp_oclData -> getID (), op_v_level);
   
       int i = 0;
       bool done = false;

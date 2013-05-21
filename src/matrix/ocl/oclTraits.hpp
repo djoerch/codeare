@@ -428,6 +428,45 @@
         delete args [3];
         free (args);
     
+      }
+
+
+      /**
+       * @brief                      execute specified kernel with 2 arguments and 2 scalars
+       */
+      static inline
+      const oclError &
+      ocl_basic_operator_kernel_22              ( const          char * const kernel_name,
+                                                        oclDataObject * const        arg1,
+                                                        oclDataObject * const        arg2,
+                                                                  int                arg3,
+                                                                  int                arg4 )
+      {
+
+        // number of kernel arguments
+        const int num_args = 4;
+
+        // create array of function arguments
+        oclDataObject ** args = (oclDataObject **) malloc (num_args * sizeof (oclDataObject *));
+        args [0] = arg1;
+        args [1] = arg2;
+        args [2] = new oclGPUDataObject <int> (& arg3, 1);
+        args [3] = new oclGPUDataObject <int> (& arg4, 1);
+
+        // create function object
+        oclFunctionObject * op_obj = oclConnection :: Instance ()
+                                        -> makeFunctionObject <elem_type, scalar_type>
+                                              (kernel_name, args, num_args, oclConnection::KERNEL, oclConnection::SYNC);
+
+        // execute function object
+        ocl_run_func_obj (op_obj);
+
+        // clear memory
+        delete op_obj;
+        delete args [2];
+        delete args [3];
+        free (args);
+
       }    
     
     
@@ -1429,6 +1468,30 @@
                                            trait2 :: print_elem_type (), "> :: ocl_operator_cast", op_v_level);
         ocl_basic_operator_kernel_2 ("cast", arg1, arg2, num_elems);
       
+      }
+
+
+
+      /**
+       * @brief                       Executes discrete wavelet transform on arg1.
+       *
+       * @param  arg1                 Matrix to be transformed.
+       * @param  arg2                 Matrix containing dwt of arg1.
+       * @param  m                    Number of rows in arg1.
+       * @param  n                    Number of columns in arg1.
+       */
+      static inline
+      const oclError &
+      ocl_function_dwt_forward        ( oclDataObject * const arg1,
+                                        oclDataObject * const arg2,
+                                                  int            m,
+                                                  int            n )
+      {
+
+          print_optional ("oclOperations <", trait1 :: print_elem_type (), ", ",
+                                             trait2 :: print_elem_type (), "> :: ocl_function_dwt_forward", op_v_level);
+          ocl_basic_operator_kernel_22 ("dwt_forward", arg1, arg2, m, n);
+
       }
     
     

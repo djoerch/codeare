@@ -157,7 +157,16 @@
   
   };
   
-    
+
+
+
+  /**************************
+   ** forward declarations **
+   **************************/
+  template <class T>
+  class oclDWT;
+
+
 
 
   /*********************
@@ -2047,7 +2056,7 @@
       
       // verbosity level for operators
       static
-      const VerbosityLevel op_v_level = VERB_LOW;
+      const VerbosityLevel op_v_level = VERB_MIDDLE;
       
       
       /********************************
@@ -2078,6 +2087,8 @@
       friend class oclMatrix <size_t>;
       friend class oclMatrix <cxfl>;
       friend class oclMatrix <cxdb>;
+
+      friend class oclDWT <double>;
 
       
   };

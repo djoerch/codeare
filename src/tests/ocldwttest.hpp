@@ -2,6 +2,7 @@
  ** includes **
  **************/
 # include "matrix/ocl/oclmatrix/oclMatrix.hpp"
+# include "matrix/ocl/oclDWT.hpp"
 
 
 /**********************
@@ -21,6 +22,7 @@ ocldwttest (RRClient::Connector<T>* rc)
 	std::cout << std::endl;
 	std::cout << " * Running test: \"ocl_dwt\"!";
 	std::cout << std::endl;
+	std::cout << std::endl;
 
 
 	// create oclMatrix from input file
@@ -34,7 +36,8 @@ ocldwttest (RRClient::Connector<T>* rc)
 
 
 	// do something
-
+	oclDWT <elem_type> dwt (WL_HAAR);
+	ocl_mat_in = dwt * ocl_mat_in;
 
 
 	// output oclMatrix to output file
@@ -64,6 +67,7 @@ ocldwttest (RRClient::Connector<T>* rc)
 	// Outro
 	std::cout << std::endl;
 	std::cout << " * Finished test: \"ocl_dwt\"!";
+	std::cout << std::endl;
 	std::cout << std::endl;
 
 }
