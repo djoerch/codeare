@@ -412,10 +412,12 @@ class DWT {
                         // copy part of image to _temp memory
                         copydouble (wcplo, tmp, sl1);
 
-                        // apply low pass filter on current line and write to result matrix
-                        downlo (tmp, sl1, wcplo);
-                        // apply high pass filter on current line and write to result matrix
-                        downhi (tmp, sl1, wcphi);
+//                        // apply low pass filter on current line and write to result matrix
+//                        downlo (tmp, sl1, wcplo);
+//                        // apply high pass filter on current line and write to result matrix
+//                        downhi (tmp, sl1, wcphi);
+
+                        down (tmp, sl1, wcphi, wcplo);
 
                     } // loop over lines along first dimension
 
@@ -434,10 +436,13 @@ class DWT {
                         // copy c1-th line of image to temp_mem
                         unpackdouble (& res [0], sl2, _sl1, c1_loc, tmp);
 
-                        // apply low pass filter on current line and write to _temp mem
-                        downlo (tmp, sl2, templo);
-                        // apply high pass filter on current line and write to _temp mem
-                        downhi (tmp, sl2, temphi);
+
+//                        // apply low pass filter on current line and write to _temp mem
+//                        downlo (tmp, sl2, templo);
+//                        // apply high pass filter on current line and write to _temp mem
+//                        downhi (tmp, sl2, temphi);
+
+                        down (tmp, sl2, temphi, templo);
 
                         // write temp lowpass result to result matrix
                         packdouble (templo, sl2 / 2, _sl1, c1_loc, & res [0]);
@@ -650,6 +655,154 @@ class DWT {
         }
 
 
+        void
+        down            (const T * const signal, const int side_length, T * const dwt_high, T * const dwt_low)
+        {
+
+            int j;
+            T s1, s2;
+
+            /* highpass version */
+
+            // half of side_length
+            const int n2 = side_length / 2;
+
+            // half of filter length
+            int mlo = _fl / 2 - 1;
+
+            // adjust lower bound if to low
+            if (2 * mlo + 1 - (_fl - 1) < 0)
+                mlo++;
+
+            // loop over pixels of dwt_high
+            for (int i = mlo; i < n2 /* && ii < mhi */; i++)
+            {
+
+                // result of convolution
+                s1 = 0.;
+                s2 = 0.;
+
+                j = 2 * i + 1;
+
+                // perform convolution
+                for (int h = 0; h < _fl; h++)
+                {
+                    s1 += _hpf_d [h] * signal [j - h];
+                    s2 += _lpf_d [_fl - 1 - h] * signal [j - h];
+                }
+
+                // assign result of convolution
+                dwt_high [i] = s1;
+                dwt_low [i - mlo] = s2;
+
+            } // loop over pixels of dwt_high
+
+            /***************************/
+
+            // upper bound for "normal" convolution
+            int mhi = n2 - _fl /2;
+
+            // upper bound to high
+            if (2 * mhi + (_fl - 1) >= side_length)
+                --mhi;
+            // upper bound to low
+            if (mhi < 0)
+                mhi = -1;
+
+//            // loop over pixels of dwt_low
+//            for (int i= 0; i <= mhi; i++)
+//            {
+//
+//                // result of convolution
+//                s1 = 0.;
+//
+//                j = 2 * i;
+//
+//                // apply low pass filter (convolution)
+//                for (int h = 0; h < _fl; h++)
+//                    s1 += _lpf_d [h] * signal [j + h];
+//
+//                // assign result of convolution
+//                dwt_low [i] = s1;
+//
+//            } // loop over pixels of dwt_low
+
+            /*****************************/
+
+            // case: filter_length > side_length => only edge values
+            if (mlo > n2)
+                mlo = n2;
+
+
+            /* fix up edge values */
+
+            // loop over edge values
+            for (int i = 0; i < mlo; i++)
+            {
+
+                // result of convolution
+                s1 = 0.;
+
+                // start signal index for convolution
+                j = 2 * i + 1;
+
+                // loop over filter elements
+                for (int h = 0; h < _fl; h++)
+                {
+
+                    // adjust index if it exceeds side_length
+                    if (j < 0)
+                        j += side_length;
+
+                    s1 += _hpf_d [h] * signal [j];
+
+                    // update index
+                    --j;
+
+                }
+
+                // assign result of convolution
+                dwt_high [i] = s1;
+
+            } // loop over edge values
+
+            /******************************/
+
+            /* fix up edge values */
+
+            // loop over edge values (periodic boundary)
+            for (int i = mhi + 1; i < n2; i++)
+            {
+
+                // result of convolution
+                s2 = 0.;
+
+                // start signal index for convolution
+                j = 2 * i;
+
+                // loop over filter elements
+                for (int h = 0; h < _fl; h++){
+
+                    // adjust index if it exceeds current side_length
+                    if (j >= side_length)
+                        j -= side_length;
+                    s2 += _lpf_d [h] * signal [j];
+
+                    // update index
+                    j++;
+
+                } // perform convolution
+
+                // assign result of convolution
+                dwt_low [i] = s2;
+
+            }
+
+            /******************************/
+
+        }
+
+
         /**
          * @brief               Perform highpass part of one level forward 1D DWT on signal with given side_length.
          *
@@ -683,9 +836,11 @@ class DWT {
                 // result of convolution
                 s = 0.;
 
+                j = 2 * i + 1;
+
                 // perform convolution
                 for (int h = 0; h < _fl; h++)
-                    s += _hpf_d [h] * signal [2 * i + 1 - h];
+                    s += _hpf_d [h] * signal [j - h];
 
                 // assign result of convolution
                 dwt_high [i] = s;
@@ -770,9 +925,13 @@ class DWT {
 
                 // result of convolution
                 s = 0.;
+
+                j = 2 * i;
+
                 // apply low pass filter (convolution)
                 for (int h = 0; h < _fl; h++)
-                    s += _lpf_d [h] * signal [2 * i + h];
+                    s += _lpf_d [h] * signal [j + h];
+
                 // assign result of convolution
                 dwt_low [i] = s;
 
@@ -886,8 +1045,8 @@ class DWT {
                         // assign address of current line's highpass part
                         wcphi = & img [c2_loc * _sl1 + sl1];
 
-                        // copy lowpass part to temporary memory
-                        copydouble (wcplo, tmp, sl1);
+//                        // copy lowpass part to temporary memory
+//                        copydouble (wcplo, tmp, sl1);
 
                         // perform lowpass reconstruction
                         uplo (wcplo, sl1, templo);
@@ -1023,7 +1182,7 @@ class DWT {
                         wcphi = & img [c2_glob + sl1];
 
                         // copy lowpass part to temporary memory
-                        copydouble (wcplo, tmp, sl1);
+//                        copydouble (wcplo, tmp, sl1);
 
                         // perform lowpass reconstruction
                         uplo (wcplo, sl1, templo);
@@ -1043,6 +1202,187 @@ class DWT {
                 } // loop over levels of backwards DWT
 
             } // omp parallel
+
+        }
+
+
+        void
+        up          (const T * const wc_low, const T * const wc_high, const int side_length, T * const signal)
+        {
+
+            int j;
+            T s1, s_odd1, s2, s_odd2;
+
+            memset (signal, 0, side_length * 2);
+
+            /*lowpass version */
+
+            /* away from edges */
+
+            // loop over regular signal indices
+            for (int i = _meven; i < side_length; i++)
+            {
+
+                // init convolution results
+                s1 = 0.;
+                s_odd1 = 0.;
+                s2 = 0.;
+                s_odd2 = 0.;
+
+                // perform convolution for even and odd filter indices
+                for (int h = 0; h < _modd; h++)
+                {
+
+                    // even filter index
+                    s1 += _lpf_r [2 * h] * wc_low [i - h];
+                    // odd filter index
+                    s_odd1 += _lpf_r [2 * h + 1] * wc_low [i - h];
+
+                    // even filter index
+                    s2 += _hpf_r [2 * h] * wc_high [i - _meven + h];
+                    // odd filter index
+                    s_odd2 += _hpf_r [2 * h + 1] * wc_high [i - _meven + h];
+
+                }
+                // case of odd filter_length (-> more even indices: start with index 0)
+                if (_meven > _modd)
+                {
+                    s1 += _lpf_r [2 * _meven] * wc_low [i - _meven];
+                    s2 += _hpf_r [2 * _meven] * wc_high [i];
+                }
+
+                // assign convolution results
+                signal [2 * i] += s1;
+                signal [2 * i + 1] += s_odd1;
+
+                signal [2 * (i - _meven) + 1] += s2;
+                signal [2 * (i - _meven)] += s_odd2;
+
+            } // loop over regular signal indices
+
+            /*************************************/
+
+//            /*hipass version */
+//
+//            /* away from edges */
+//
+//            // loop over regular signal indices
+//            for (int i = 0; i < side_length - _meven; i++)
+//            {
+//
+//                // init convolution results
+//                s2 = 0.;
+//                s_odd2 = 0.;
+//
+//                // perform convolution for even and odd filter indices
+//                for (int h = 0; h < _modd; h++)
+//                {
+//
+//
+//
+//                } // perform convolution
+//
+//                // case of odd filter_length
+//                if (_meven > _modd)
+//
+//                // assign convolution results
+//
+//            } // loop over regular signal indices
+
+            /*************************************/
+
+
+            /* fix up edge values */
+
+            // upper bound for filter indices
+            int mmax = _meven;
+            // possible correction if mmax greater than current side length
+            if (mmax > side_length)
+                mmax = side_length;
+
+            // loop over edge values
+            for (int i = 0; i < mmax; i++)
+            {
+
+                // init convolution results
+                s1 = 0.;
+                s_odd1 = 0.;
+                // set start index of wavelet coefficients
+                j = i;
+
+                 // perform convolution
+                for (int h = 0; h < _modd; h++)
+                {
+
+                    // correct current wavelet coeff's index if needed
+                    if (j < 0)
+                        j += side_length;
+
+                    // even part of convolution
+                    s1 += _lpf_r [2 * h] * wc_low [j];
+                    // odd part of convolution
+                    s_odd1 += _lpf_r [2 * h + 1] * wc_low [j];
+
+                    // update index
+                    --j;
+
+                } // perform convolution
+
+                // case of odd filter_length
+                if (_meven > _modd)
+                    s1 += _lpf_r [2 * _meven] * wc_low [j];
+
+                // assign convolution results
+                signal [2 * i] += s1;
+                signal [2 * i + 1] += s_odd1;
+
+            } // loop over edge values
+
+            /******************************/
+
+            /* fix up edge values */
+
+            // lower bound for indices of edge values
+            int mmin = side_length - _meven;
+            // possible correction if mmin less than zero
+            if (mmin < 0)
+                mmin = 0;
+
+            // loop over edge values
+            for (int i = mmin; i < side_length; i++)
+            {
+
+                // init convolution results
+                s2 = 0.;
+                s_odd2 = 0.;
+                // start index of wavelet coefficients
+                j = i;
+
+                // perform convolution for even and odd indices
+                for (int h = 0; h < _meven; h++)
+                {
+
+                    // correct current wavelet coeff's index if needed
+                    if (j >= side_length)
+                        j -= side_length;
+
+                    // even filter index
+                    s2 += _hpf_r [2 * h] * wc_high [j];
+                    // odd filter index
+                    s_odd2 += _hpf_r [2 * h + 1] * wc_high [j];
+
+                    // update current wc index
+                    j++;
+
+                } // perform convolution
+
+                // assign convolution results
+                signal [2 * i + 1] += s2;
+                signal [2 * i] += s_odd2;
+
+            } // loop over edge values
+
+            /******************************/
 
         }
 
