@@ -102,7 +102,7 @@ class DWT {
               _meven ((_fl+1)/2),
               _num_threads (num_threads),
               _temp (container <T> (_num_threads * MAX (6 * _sl3, MAX (6 * _sl2, 5 * sl1)))),
-              dpwt (_dim == 2 ? & DWT <T> :: dpwt2 : & DWT <T> :: dpwt3),
+              dpwt (_dim == 2 ? & DWT <T> :: dpwt2_dp : & DWT <T> :: dpwt3),
               idpwt (_dim == 2 ? & DWT <T> :: idpwt2 : & DWT <T> :: idpwt3)
         {
             setupWlFilters <T> (wl_fam, wl_mem, _lpf_d, _lpf_r, _hpf_d, _hpf_r);
@@ -139,7 +139,7 @@ class DWT {
           _meven ((_fl+1)/2),
           _num_threads (num_threads),
           _temp (container <T> (_num_threads * MAX (6 * _sl3, MAX (6 * _sl2, 5 * sl1)))),
-          dpwt (_dim == 2 ? & DWT <T> :: dpwt2 : & DWT <T> :: dpwt3),
+          dpwt (_dim == 2 ? & DWT <T> :: dpwt2_dp : & DWT <T> :: dpwt3),
           idpwt (_dim == 2 ? & DWT <T> :: idpwt2 : & DWT <T> :: idpwt3)
         {
             setupWlFilters <T> (wl_fam, wl_mem, _lpf_d, _lpf_r, _hpf_d, _hpf_r);
@@ -175,7 +175,7 @@ class DWT {
           _meven ((_fl+1)/2),
           _num_threads (num_threads),
           _temp (container <T> (_num_threads * MAX (6 * _sl3, MAX (6 * _sl2, 5 * sl1)))),
-          dpwt (_dim == 2 ? & DWT <T> :: dpwt2 : & DWT <T> :: dpwt3),
+          dpwt (_dim == 2 ? & DWT <T> :: dpwt2_dp : & DWT <T> :: dpwt3),
           idpwt (_dim == 2 ? & DWT <T> :: idpwt2 : & DWT <T> :: idpwt3)
         {
             setupWlFilters <T> (wl_fam, wl_mem, _lpf_d, _lpf_r, _hpf_d, _hpf_r);
@@ -365,6 +365,100 @@ class DWT {
         /**
          *  COPIED FROM WAVELAB IMPLEMENTATION
          */
+
+
+        /**
+         * @brief       Perform forward DWT (periodic boundaries) on 2D data.
+         *
+         * @param  sig  Signal to be transformed.
+         * @param  res  Decomposed signal.
+         */
+        void
+        dpwt2_dp       (const Matrix <T> & sig, Matrix <T> & res)
+        {
+
+            // assign signal to result matrix
+            res = sig;
+
+# pragma omp parallel default (shared) num_threads (_num_threads)
+            {
+
+                T * wcplo, * wcphi, * templo, * temphi, * tmp;
+
+                size_t stride;
+                int sl1 = _sl1,
+                    sl2 = _sl2;
+                const int t_num = omp_get_thread_num ();
+
+                // loop over levels of DWT
+                for (int j = _max_level - 1; j >= _min_level; --j)
+                {
+
+                    // update stride
+                    stride = sl1 * t_num;
+                    // update thread's temporary memory address
+                    tmp = & _temp [stride];
+
+//# pragma omp for schedule (OMP_SCHEDULE)
+                    // loop over lines along first dimension ('columns') of image
+                    for (int c2_loc = 0; c2_loc < sl2; c2_loc++)
+                    {
+
+                        // access to lowpass part of DWT
+                        wcplo = & res [c2_loc * _sl1];
+                        // access to highpass part of DWT
+                        wcphi = & res [c2_loc * _sl1 + sl1 / 2];
+
+                        // copy part of image to _temp memory
+# pragma omp single
+                        copydouble (wcplo, tmp, sl1);
+
+                        // apply low pass filter on current line and write to result matrix
+                        downlo (tmp, sl1, wcplo, t_num, _num_threads);
+                        // apply high pass filter on current line and write to result matrix
+                        downhi (tmp, sl1, wcphi, t_num, _num_threads);
+
+                    } // loop over lines along first dimension
+
+                    // update stride
+                    stride = 2 * sl2 * t_num;
+                    // update thread's temporary memory address
+                    tmp = & _temp [stride];
+                    templo = & _temp [      sl2 + stride];
+                    temphi = & _temp [1.5 * sl2 + stride];
+
+//# pragma omp for schedule (OMP_SCHEDULE)
+                    // loop over lines along second dimension ('rows') of image
+                    for (int c1_loc = 0; c1_loc < sl1; c1_loc++)
+                    {
+
+                        // copy c1-th line of image to temp_mem
+# pragma omp single
+                        unpackdouble (& res [0], sl2, _sl1, c1_loc, tmp);
+
+                        // apply low pass filter on current line and write to _temp mem
+                        downlo (tmp, sl2, templo, t_num, _num_threads);
+                        // apply high pass filter on current line and write to _temp mem
+                        downhi (tmp, sl2, temphi, t_num, _num_threads);
+
+                        // write temp lowpass result to result matrix
+# pragma omp single
+                        packdouble (templo, sl2 / 2, _sl1, c1_loc, & res [0]);
+                        // write temp highpass result to result matrix
+# pragma omp single
+                        packdouble (temphi, sl2 / 2, _sl1, c1_loc, & res [sl2 / 2 * _sl1]);
+
+                    } // loop over lines along second dimension
+
+                    // reduce dimensions for next level
+                    sl1 = sl1 / 2;
+                    sl2 = sl2 / 2;
+
+                } // loop over levels of DWT
+
+            } // omp parallel
+
+        }
 
 
         /**
@@ -647,6 +741,188 @@ class DWT {
         {
             for (int i = 0; i < n; ++i)
                 z[i] = x[i] + y[i];
+        }
+
+
+        /**
+         * @brief               Perform highpass part of one level forward 1D DWT on signal with given side_length.
+         *
+         * @param  signal       Signal to be transformed.
+         * @param  side_length  Side length of current DWT level.
+         * @param  dwt_high     Resulting DWT.
+         */
+        void
+        downhi          (const T * const signal, const int side_length, T * const dwt_high,
+                         const int t_num, const int num_threads)
+        {
+
+            int j;
+            T s;
+
+            /* highpass version */
+
+            // half of side_length
+            const int n2 = side_length / 2;
+
+            // half of filter length
+            int mlo = _fl / 2 - 1;
+
+            // adjust lower bound if to low
+            if (2 * mlo + 1 - (_fl - 1) < 0)
+                mlo++;
+
+            const int i_start = (t_num == 0 ? mlo : n2 / num_threads * t_num);
+            const int i_end = (t_num == num_threads - 1 ? n2 : n2 / num_threads * (t_num + 1));
+
+            // loop over pixels of dwt_high
+//            for (int i = mlo; i < n2; i++)
+            for (int i = i_start; i < i_end; i++)
+            {
+
+                // result of convolution
+                s = 0.;
+
+                // perform convolution
+                for (int h = 0; h < _fl; h++)
+                    s += _hpf_d [h] * signal [2 * i + 1 - h];
+
+                // assign result of convolution
+                dwt_high [i] = s;
+
+            } // loop over pixels of dwt_high
+
+            if (t_num == 0)
+            {
+
+                // case: filter_length > side_length => only edge values
+                if (mlo > n2)
+                    mlo = n2;
+
+
+                /* fix up edge values */
+
+                // loop over edge values
+                for (int i = 0; i < mlo; i++)
+                {
+
+                    // result of convolution
+                    s = 0.;
+
+                    // start signal index for convolution
+                    j = 2 * i + 1;
+
+                    // loop over filter elements
+                    for (int h = 0; h < _fl; h++)
+                    {
+
+                        // adjust index if it exceeds side_length
+                        if (j < 0)
+                            j += side_length;
+
+                        s += _hpf_d [h] * signal [j];
+
+                        // update index
+                        --j;
+
+                    }
+
+                    // assign result of convolution
+                    dwt_high [i] = s;
+
+                } // loop over edge values
+
+            }
+
+        }
+
+
+        /**
+         * @brief               Perform lowpass part of one level forward 1D DWT on signal with given side_length.
+         *
+         * @param  signal       Signal to be transformed.
+         * @param  side_length  Side length of current DWT level.
+         * @param  dwt_low      Resulting DWT.
+         */
+        void
+        downlo                  (const T * const signal, const int side_length, T * const dwt_low,
+                                 const int t_num, const int num_threads)
+        {
+
+            int j;
+            T s;
+
+            /*lowpass version */
+
+            // half of side_length (length of dwt_low)
+            const int n2 = side_length / 2;
+
+            // half of filter_length
+            const int mlo = _fl /2;
+
+            // upper bound for "normal" convolution
+            int mhi = n2 - mlo;
+
+            // upper bound to high
+            if (2 * mhi + (_fl - 1) >= side_length)
+                --mhi;
+            // upper bound to low
+            if (mhi < 0)
+                mhi = -1;
+
+            const int i_start = n2 / num_threads * t_num;
+            const int i_end = (t_num == num_threads - 1 ? mhi + 1 : n2 / num_threads * (t_num + 1));
+
+            // loop over pixels of dwt_low
+//            for (int i= 0; i <= mhi; i++)
+            for (int i = i_start; i < i_end; i++)
+            {
+
+                // result of convolution
+                s = 0.;
+                // apply low pass filter (convolution)
+                for (int h = 0; h < _fl; h++)
+                    s += _lpf_d [h] * signal [2 * i + h];
+                // assign result of convolution
+                dwt_low [i] = s;
+
+            } // loop over pixels of dwt_low
+
+
+            if (t_num == num_threads - 1)
+            {
+
+                /* fix up edge values */
+
+                // loop over edge values (periodic boundary)
+                for (int i = mhi + 1; i < n2; i++)
+                {
+
+                    // result of convolution
+                    s = 0.;
+
+                    // start signal index for convolution
+                    j = 2 * i;
+
+                    // loop over filter elements
+                    for (int h = 0; h < _fl; h++){
+
+                        // adjust index if it exceeds current side_length
+                        if (j >= side_length)
+                            j -= side_length;
+                        s += _lpf_d [h] * signal [j];
+
+                        // update index
+                        j++;
+
+                    } // perform convolution
+
+                    // assign result of convolution
+                    dwt_low [i] = s;
+
+                } // loop over edge values
+
+            }
+
         }
 
 
