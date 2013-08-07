@@ -22,8 +22,10 @@
 #define __CX_HPP__
 
 #include "Matrix.hpp"
+#include "Complex.hpp"
 #include "Creators.hpp"
 #include "Algos.hpp"
+#include "Trigonometry.hpp"
 
 /**
  * @brief    Absolute values 
@@ -34,11 +36,10 @@
 inline static Matrix<double> 
 abs (const Matrix<cxdb>& m) {
 
-	Matrix<double> res = zeros<double> (size(m));
-	
+	Matrix<double> res (size(m));
+
 #pragma omp parallel default (shared) 
 	{
-		
 #pragma omp for
 		
 		for (size_t i = 0; i < numel(m); i++)
@@ -399,6 +400,38 @@ conj (const Matrix<T>& m) {
 	return res;
 
 }
+
+
+using namespace codeare::matrix::arithmetic;
+
+template <class T, class S> inline static Matrix<std::complex<T> > 
+complex (const Matrix<T>& re, const Matrix<S>& im) {
+    assert (numel(re) == numel(im));
+    Matrix<std::complex<T> > ret (vsize(re));
+#pragma omp for
+    for (size_t i = 0; i < numel(re); ++i)
+        ret[i] = std::complex<T>(re[i],im[i]);
+    return ret;
+}
+
+template <class T, class S> inline static Matrix<std::complex<T> > 
+complex2 (const Matrix<T>& mag, const Matrix<S>& arg) {
+    assert (numel(mag) == numel(arg));
+    Matrix<std::complex<T> > ret (vsize(arg));
+#pragma omp for
+    for (size_t i = 0; i < numel(arg); ++i)
+        ret[i] = std::complex<T>(mag[i]*cos(arg[i]),mag[i]*sin(arg[i]));
+    return ret;
+}
+template <class T, class S> inline static Matrix<std::complex<T> > 
+complex2 (const T mag, const Matrix<S>& arg) {
+    Matrix<std::complex<T> > ret (vsize(arg));
+#pragma omp for
+    for (size_t i = 0; i < numel(arg); ++i)
+        ret[i] = std::complex<T>(mag*cos(arg[i]),mag*sin(arg[i]));
+    return ret;
+}
+
 
 #endif
 

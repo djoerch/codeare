@@ -2,8 +2,8 @@
 #define __INTERPOLATE_HPP__
 
 #include "PolyVal.hpp"
+#include "Algos.hpp"
 #include "Access.hpp"
-#include "IO.hpp" 
 
 /**
  * @brief            1D Interpolation 
@@ -24,7 +24,7 @@ interp1 (const Matrix<double>& x, const Matrix<T>& y, const Matrix<double>& xi, 
 	Matrix<T> yi (nxi,nd);
 	for (size_t j = 0; j < nd; j++) {
 		
-		PolyVal<T> pv (x, (T*) y.Data(j*nx), intm);
+		PolyVal<T> pv (x, (T*) y.Memory(j*nx), intm);
 		
 		for (size_t i = 0; i < nxi; i++)
 			yi [j * nxi + i] = pv.Lookup (xi[i]); 

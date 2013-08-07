@@ -91,7 +91,6 @@
   /* 12. */    OCL_ASYNC_FUNCTION_OBJECT,
   /* 13. */    OCL_ASYNC_VCL_OBJECT,
   /* 14. */    OCL_ASYNC_KERNEL_OBJECT,
-  /* 15. */    OCL_DWT,
     
     MAX_ID
   
@@ -104,7 +103,7 @@
    ** global vars **
    *****************/
 
-  VerbosityLevel verbosity = VERB_LOW;
+  VerbosityLevel verbosity = VERB_NONE; //VERB_HIGH;
   
   static const VerbosityLevel global_verbosity [MAX_ID] =
   {
@@ -114,7 +113,7 @@
   /* 3. */    VERB_HIGH,
   /* 4. */    VERB_HIGH,
   /* 5. */    VERB_HIGH,
-  /* 6. */    VERB_MIDDLE,
+  /* 6. */    VERB_LOW,
   /* 7. */    VERB_HIGH,
   /* 8. */    VERB_HIGH,
   /* 9. */    VERB_HIGH,
@@ -122,8 +121,7 @@
   /* 11. */   VERB_HIGH,
   /* 12. */   VERB_HIGH,
   /* 13. */   VERB_HIGH,
-  /* 14. */   VERB_HIGH,
-  /* 15. */   VERB_LOW
+  /* 14. */   VERB_HIGH
   
   };
 

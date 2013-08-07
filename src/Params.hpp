@@ -9,6 +9,8 @@
 #define PARAMS_HPP_
 
 #include "Toolbox.hpp"
+#include "Demangle.hpp"
+
 #include <boost/any.hpp>
 #include <assert.h>
 #include <map>
@@ -36,25 +38,16 @@ public:
 	~Params() {};
 
 
-	/**
-	 * @brief  Parameter entry
-	 */
-	typedef typename std::pair<std::string, boost::any> param;
-
-
-	/**
-	 * @brief  Parameter container
-	 */
-	typedef typename std::map<std::string, boost::any> plist;
-
 
 	/**
 	 * @brief  Access entry (lhs)
 	 */
 	inline boost::any& operator [](const std::string& key) {
-		plist::iterator pli = pl.find(key);
-		if (pl.find(key) == pl.end())
-			return Toolbox::Instance()->void_any;
+		std::map<std::string, boost::any>::iterator pli = pl.find(key);
+		if (pl.find(key) == pl.end()) {
+			pl.insert(std::pair<std::string, boost::any>(key, Toolbox::Instance()->void_any));
+            pli = pl.find(key);
+        }
 		return pli->second;
 	}
 
@@ -63,9 +56,12 @@ public:
 	 * @brief  Access entry (rhs)
 	 */
 	inline boost::any operator [](const std::string& key) const {
-		plist::const_iterator pi = pl.find(key);
-		assert (pi != pl.end());
-		return pi->second;
+		std::map<std::string, boost::any>::const_iterator pi = pl.find(key);
+		if (pi != pl.end())
+			return pi->second;
+		else
+			printf ("**WARNING**: operator[] failed for key %s\n", key.c_str());
+		return key;
 	}
 
 
@@ -82,10 +78,12 @@ public:
 		try {
 			return boost::any_cast<T>(ba);
 		} catch (const boost::bad_any_cast& e) {
-			printf ("Failed to retrieve %s - %s.\n Requested %s - have %s.\n",
-					key.c_str(), e.what(), typeid(T).name(), ba.type().name());
-			assert(false);
+			printf ("**WARNING**: Failed to retrieve %s - %s.\n             Requested %s - have %s.\n",
+					key.c_str(), e.what(),
+                    demangle(typeid(T).name()).c_str(),
+                    demangle(ba.type().name()).c_str());
 		}
+		return T(0);
 	}
 
 
@@ -133,7 +131,7 @@ public:
 	inline void Set (const std::string& key, const boost::any& val) {
 		if (pl.find(key) != pl.end())
 			pl.erase(key);
-		pl.insert(param(key, val));
+		pl.insert(std::pair<std::string, boost::any>(key, val));
 	}
 
 
@@ -158,8 +156,8 @@ public:
 
 		std::string sb;
 
-		for (plist::const_iterator i = pl.begin(); i != pl.end(); i++)
-			sb += i->first + "\t" + i->second.type().name() + "\n";
+		for (std::map<std::string, boost::any>::const_iterator i = pl.begin(); i != pl.end(); i++)
+			sb += i->first + "\t" + demangle(i->second.type().name()).c_str() + "\n";
 
 		return sb.c_str();
 
@@ -170,7 +168,7 @@ public:
 private:
 
 
-	plist pl; /**< @brief Parameter list */
+	std::map<std::string, boost::any> pl; /**< @brief Parameter list */
 
 };
 

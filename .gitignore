@@ -1,39 +1,88 @@
 
 ## folders (explicit) ##
-
 /autom4te.cache/
-/share/
-
-
+/doc/api/api
+/share
 
 ## files (explicit) ##
-
-/aclocal.m4
-
 /config.log
 /config.status
-/configure
-
 /libtool
-
 /.autotools
-/.cproject
-
-
+/.csettings
+/.settings
+/src/matrix/arithmetic/AVXTraits.hpp
+/src/matrix/arithmetic/t_acos
+/src/matrix/arithmetic/t_asin
+/src/matrix/arithmetic/t_atan
+/src/matrix/arithmetic/t_atan2
+/src/matrix/arithmetic/t_ceil
+/src/matrix/arithmetic/t_cos
+/src/matrix/arithmetic/t_cosh
+/src/matrix/arithmetic/t_eadd
+/src/matrix/arithmetic/t_ediv
+/src/matrix/arithmetic/t_emul
+/src/matrix/arithmetic/t_epow
+/src/matrix/arithmetic/t_esub
+/src/matrix/arithmetic/t_exp
+/src/matrix/arithmetic/t_floor
+/src/matrix/arithmetic/t_gtoreq
+/src/matrix/arithmetic/t_isnan
+/src/matrix/arithmetic/t_log
+/src/matrix/arithmetic/t_log10
+/src/matrix/arithmetic/t_nrmse
+/src/matrix/arithmetic/t_round
+/src/matrix/arithmetic/t_sin
+/src/matrix/arithmetic/t_sinh
+/src/matrix/arithmetic/t_size
+/src/matrix/arithmetic/t_tan
+/src/matrix/arithmetic/t_tanh
+/src/matrix/arithmetic/t_complex
+src/matrix/interp/tests/t_medfilt2
+/src/matrix/dwt/tests/t_dwt
+/src/matrix/dwt/tests/t_dwt2
+/src/matrix/ft/tests/t_dft
+/src/matrix/linalg/tests/t_chol
+/src/matrix/linalg/tests/t_dot
+/src/matrix/linalg/tests/t_eig
+/src/matrix/linalg/tests/t_gemm
+/src/matrix/linalg/tests/t_gemv
+/src/matrix/linalg/tests/t_inv
+/src/matrix/linalg/tests/t_norm
+/src/matrix/linalg/tests/t_pinv
+/src/matrix/linalg/tests/t_svd
+/src/matrix/arithmetic/t_fliplr
+/src/matrix/arithmetic/t_flipud
+/src/matrix/arithmetic/t_resize
+src/pTXRFPulse0.ini.sag_ap
+src/pTXRFPulse0.ini.tra_ap
+src/matrix/io/tests/t_hdf5
+src/matrix/io/tests/t_matlab
+src/matrix/io/tests/t_nifti
+src/matrix/io/tests/t_codeare
+src/matrix/io/tests/test*
+src/matrix/io/tests/t_iocontext
 
 ## folders (global) ##
 .deps/
 .libs/
-
-
+.dirstamp
+.DS_Store
 
 ## files (global) ##
+out.txt
+tests/pTXRFPulse0.ini.sag_ap
+tests/pTXRFPulse0.ini.tra_ap
+test
+test.cpp
+.\#*
+\#*
+*.html
+*.log
+*~
 
 Makefile
-Makefile.in
 
 *.o
 *.lo
 *.la
-
-*~

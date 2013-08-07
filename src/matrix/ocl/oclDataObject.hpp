@@ -19,8 +19,8 @@
   # include "oclConnection.hpp"
 
   // ViennaCL
-  # include "/usr/include/viennacl/vector.hpp"
-  # include "/usr/include/viennacl/matrix.hpp"
+  # include "/usr/local/include/viennacl/vector.hpp"
+  # include "/usr/local/include/viennacl/matrix.hpp"
 
 
 
@@ -311,7 +311,7 @@
       ~oclDataObject        ()
       {
       
-        print_optional ("Dtor: \"oclDataObject\" (%d)", m_gpu_obj_id, VERB_MIDDLE);
+        print_optional ("Dtor: \"oclDataObject\" (%d)", m_gpu_obj_id, VERB_LOW);
         
         // unregister data object at oclConnection
         oclConnection :: Instance () -> removeDataObject (this);

@@ -21,11 +21,42 @@
 #ifndef __COMPLEX_HPP__
 #define __COMPLEX_HPP__
 
-#include <stdlib.h>
-#include <complex>
+#include "TypeTraits.hpp"
 
-typedef std::complex<float>  cxfl;
-typedef std::complex<double> cxdb;
+#include <stdlib.h>
+
+template<class T>
+static inline bool fp_type (const T t) {
+	return (typeid(T) == typeid(float) || typeid(T) == typeid(double) ||
+			typeid(T) ==  typeid(cxfl) || typeid(T) ==   typeid(cxdb) );
+}
+
+template<class T>
+static inline bool is_complex (const T t) {
+	return (typeid(T) == typeid(cxfl) || typeid(T) == typeid(cxdb) );
+}
+
+template<class T>
+static inline bool is_singlep (const T t) {
+	return (typeid(T) == typeid(cxfl) || typeid(T) == typeid(float) );
+}
+
+template<class T>
+static inline bool is_doublep (const T t) {
+	return (typeid(T) == typeid(cxdb) || typeid(T) == typeid(double) );
+}
+
+template<class T>
+static inline bool i_type (const T t) {
+	return (typeid(T) == typeid(short) || typeid(T) == typeid(long) ||
+			typeid(T) ==  typeid(bool) || typeid(T) ==   typeid(int) );
+}
+
+template<class T>
+static inline bool is_unsigned (const T t) {
+	return (typeid(T) == typeid(unsigned int) || typeid(T) == typeid(unsigned short) ||
+			typeid(T) == typeid(unsigned long) || typeid(T) == typeid(size_t));
+}
 
 inline double cconj (double d) {return d;}
 inline float  cconj (float  f) {return f;}
@@ -55,6 +86,7 @@ inline double cabs  (double d) {return fabs(d);}
 inline float  cabs  (float  f) {return fabs(f);}
 inline short  cabs  (short  s) {return fabs(s);}
 inline long   cabs  (long   l) {return fabs(l);}
+inline long   cabs  (int    i) {return fabs(i);}
 inline long   cabs  (size_t s) {return s;}
 inline double cabs  (cxdb  cd) {return std::abs(cd);}
 inline float  cabs  (cxfl  cf) {return std::abs(cf);}
@@ -66,5 +98,93 @@ inline long   carg  (long   l) {return 0;}
 inline long   carg  (size_t s) {return 0;}
 inline double carg  (cxdb  cd) {return std::arg(cd);}
 inline float  carg  (cxfl  cf) {return std::arg(cf);}
+
+template<class T>
+struct CompTraits;
+
+template<>
+struct CompTraits<float> {
+
+	typedef float type;
+
+	inline static bool less_or_equal    (const type& a, const type& b) { return a <= b; }
+	inline static bool less             (const type& a, const type& b) { return a <  b; }
+	inline static bool greater_or_equal (const type& a, const type& b) { return a >= b; }
+	inline static bool greater          (const type& a, const type& b) { return a >  b; }
+	inline static bool logical_or       (const type& a, const type& b) { return a || b; }
+	inline static bool logical_and      (const type& a, const type& b) { return a && b; }
+
+};
+
+template<>
+struct CompTraits<double> {
+
+	typedef double type;
+
+	inline static bool less_or_equal    (const type& a, const type& b) { return a <= b; }
+	inline static bool less             (const type& a, const type& b) { return a <  b; }
+	inline static bool greater_or_equal (const type& a, const type& b) { return a >= b; }
+	inline static bool greater          (const type& a, const type& b) { return a >  b; }
+	inline static bool logical_or       (const type& a, const type& b) { return a || b; }
+	inline static bool logical_and      (const type& a, const type& b) { return a && b; }
+
+};
+
+template<>
+struct CompTraits<cxfl> {
+
+	typedef cxfl type;
+
+	inline static bool less_or_equal    (const type& a, const type& b) { return std::abs(a) <= std::abs(b); }
+	inline static bool less             (const type& a, const type& b) { return std::abs(a) <  std::abs(b); }
+	inline static bool greater_or_equal (const type& a, const type& b) { return std::abs(a) >= std::abs(b); }
+	inline static bool greater          (const type& a, const type& b) { return std::abs(a) >  std::abs(b); }
+	inline static bool logical_or       (const type& a, const type& b) { return std::abs(a) || std::abs(b); }
+	inline static bool logical_and      (const type& a, const type& b) { return std::abs(a) && std::abs(b); }
+
+};
+
+template<>
+struct CompTraits<cxdb> {
+
+	typedef cxdb type;
+
+	inline static bool less_or_equal    (const type& a, const type& b) { return std::abs(a) <= std::abs(b); }
+	inline static bool less             (const type& a, const type& b) { return std::abs(a) <  std::abs(b); }
+	inline static bool greater_or_equal (const type& a, const type& b) { return std::abs(a) >= std::abs(b); }
+	inline static bool greater          (const type& a, const type& b) { return std::abs(a) >  std::abs(b); }
+	inline static bool logical_or       (const type& a, const type& b) { return std::abs(a) || std::abs(b); }
+	inline static bool logical_and      (const type& a, const type& b) { return std::abs(a) && std::abs(b); }
+
+};
+
+template<>
+struct CompTraits<unsigned char> {
+
+	typedef unsigned char type;
+
+	inline static bool less_or_equal    (const type& a, const type& b) { return a <= b; }
+	inline static bool less             (const type& a, const type& b) { return a <  b; }
+	inline static bool greater_or_equal (const type& a, const type& b) { return a >= b; }
+	inline static bool greater          (const type& a, const type& b) { return a >  b; }
+	inline static bool logical_or       (const type& a, const type& b) { return a || b; }
+	inline static bool logical_and      (const type& a, const type& b) { return a && b; }
+
+};
+
+template<>
+struct CompTraits<size_t> {
+
+	typedef size_t type;
+
+	inline static bool less_or_equal    (const type& a, const type& b) { return a <= b; }
+	inline static bool less             (const type& a, const type& b) { return a <  b; }
+	inline static bool greater_or_equal (const type& a, const type& b) { return a >= b; }
+	inline static bool greater          (const type& a, const type& b) { return a >  b; }
+	inline static bool logical_or       (const type& a, const type& b) { return a || b; }
+	inline static bool logical_and      (const type& a, const type& b) { return a && b; }
+
+};
+
 
 #endif

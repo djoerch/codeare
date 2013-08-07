@@ -18,7 +18,7 @@
   # include "oclSettings.hpp"
   
   // ViennaCl
-  # include "/usr/include/viennacl/linalg/prod.hpp"
+  # include "/usr/local/include/viennacl/linalg/prod.hpp"
 
 
 

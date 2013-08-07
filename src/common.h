@@ -45,7 +45,11 @@ enum error_code   {
 	FILE_READ_FAILED,
 	FILE_WRITE_FAILED,
 	NULL_FILE_HANDLE,
-	UNIMPLEMENTED_METHOD
+	UNIMPLEMENTED_METHOD,
+	HDF5_ERROR_FOPEN,
+	HDF5_ERROR_FCLOSE,
+	HDF5_ERROR_FFLUSH,
+	GENERAL_IO_ERROR
 
 };
 
@@ -75,6 +79,8 @@ enum data_type {
 	T_BOOL
 };
 
+
+
 /**
  * Some constants
  */
@@ -89,7 +95,7 @@ enum data_type {
 
 // Gamma in Hz
 #ifndef GAMMA
-    #define GAMMA 42.576
+    #define GAMMA 42.57748
 #endif
 
 // Gamma in radians
@@ -103,7 +109,8 @@ enum data_type {
 #define GB    1073741824;
 #define TB 1099511627776;
 
-
+#define IZERO 0
+#define IONE  1
 
 
 #endif //__COMMON_H__

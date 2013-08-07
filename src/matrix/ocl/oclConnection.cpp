@@ -123,11 +123,11 @@ init_program_kernels    (oclConnection * const con)
   }
   catch (cl::Error cle)
   {
-    std::cout << " Type: " << ocl_precision_trait <T, S> :: getTypeString () << std::endl;
-    std::cout << "Error while building program: " << cle.what ()                                            << std::endl;
-    std::cout << "Build Status: "                 << prog.getBuildInfo<CL_PROGRAM_BUILD_STATUS>  (con -> m_devs [0]) << std::endl;
-    std::cout << "Build Options:\t"               << prog.getBuildInfo<CL_PROGRAM_BUILD_OPTIONS> (con -> m_devs [0]) << std::endl;
-    std::cout << "Build Log:\t "                  << prog.getBuildInfo<CL_PROGRAM_BUILD_LOG>     (con -> m_devs [0]) << std::endl;
+    cout << " Type: " << ocl_precision_trait <T, S> :: getTypeString () << std::endl;
+    cout << "Error while building program: " << cle.what ()                                            << endl;
+    cout << "Build Status: "                 << prog.getBuildInfo<CL_PROGRAM_BUILD_STATUS>  (con -> m_devs [0]) << endl;
+    cout << "Build Options:\t"               << prog.getBuildInfo<CL_PROGRAM_BUILD_OPTIONS> (con -> m_devs [0]) << endl;
+    cout << "Build Log:\t "                  << prog.getBuildInfo<CL_PROGRAM_BUILD_LOG>     (con -> m_devs [0]) << endl;
     std::cout << " Error flag: " << cle.err () << " (" << con -> errorString (cle.err ()) << ")" << std::endl;
     throw -1;
   }
@@ -157,7 +157,7 @@ oclConnection ( const char      * filename_A_type,
   // platform
   clPlatforms tmp_platforms;
   m_error = clPlatform::get (& tmp_platforms);
-  print_optional (" ** # of platforms: %d", tmp_platforms.size(), m_verbose);
+  print_optional (" ** # of platforms: %d", tmp_platforms.size(), VERB_LOW);
   if (tmp_platforms.size() > 0)
     m_plat = tmp_platforms [0];    // choose first available device
   else
@@ -165,9 +165,9 @@ oclConnection ( const char      * filename_A_type,
 
   // devices
   m_error = m_plat.getDevices (device_type, &m_devs);
-  print_optional (" ** # of devices on platform: %d", m_devs.size(), m_verbose);
+  print_optional (" ** # of devices on platform: %d", m_devs.size(), VERB_LOW);
   std::string vendor;
-  print_optional (" ** device type (0): ", (m_devs [0].getInfo (CL_DEVICE_VENDOR, &vendor), vendor.c_str ()), m_verbose);
+  print_optional (" ** device type (0): ", (m_devs [0].getInfo (CL_DEVICE_VENDOR, &vendor), vendor.c_str ()), VERB_LOW);
   if (m_devs.size() == 0)
     throw oclError ("No devices available on this platform", "oclConnection :: CTOR");
 
