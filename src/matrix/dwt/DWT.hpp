@@ -40,22 +40,6 @@
 # define WL_SCALE 4
 
 
-/**
- * @brief  Supported wavelet families
- */
-enum wlfamily {
-
-	ID = -1,                  /**< Identity transform*/
-	WL_DAUBECHIES,
-	WL_DAUBECHIES_CENTERED,
-	WL_HAAR,
-	WL_HAAR_CENTERED,
-	WL_BSPLINE,
-	WL_BSPLINE_CENTERED
-
-};
-
-
 # include "Matrix.hpp"
 # include "Wavelet.hpp"
 

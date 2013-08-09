@@ -41,6 +41,7 @@
 src/matrix/interp/tests/t_medfilt2
 /src/matrix/dwt/tests/t_dwt
 /src/matrix/dwt/tests/t_dwt2
+/src/matrix/dwt/tests/t_ocldwt
 /src/matrix/ft/tests/t_dft
 /src/matrix/linalg/tests/t_chol
 /src/matrix/linalg/tests/t_dot

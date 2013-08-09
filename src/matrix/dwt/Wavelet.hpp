@@ -3,7 +3,20 @@
 # define __WAVELET_HPP__
 
 
-# include "DWT.hpp"
+/**
+ * @brief  Supported wavelet families
+ */
+enum wlfamily {
+
+    ID = -1,                  /**< Identity transform*/
+    WL_DAUBECHIES,
+    WL_DAUBECHIES_CENTERED,
+    WL_HAAR,
+    WL_HAAR_CENTERED,
+    WL_BSPLINE,
+    WL_BSPLINE_CENTERED
+
+};
 
 
 /**
