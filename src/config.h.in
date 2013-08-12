@@ -46,6 +46,9 @@
 /* Define to 1 if you have the <c_asm.h> header file. */
 #undef HAVE_C_ASM_H
 
+/* defined if abi::__cxa_demangle is available */
+#undef HAVE_DEMANGLE
+
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #undef HAVE_DLFCN_H
 
@@ -177,6 +180,9 @@
 
 /* Define to 1 if you have the <nifti1_io.h> header file. */
 #undef HAVE_NIFTI1_IO_H
+
+/* Define to 1 if you have the <nifti/nifti1_io.h> header file. */
+#undef HAVE_NIFTI_NIFTI1_IO_H
 
 /* Define to 1 if you have the <omniORB4/CORBA.h> header file. */
 #undef HAVE_OMNIORB4_CORBA_H

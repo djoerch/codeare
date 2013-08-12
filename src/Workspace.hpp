@@ -24,6 +24,9 @@ typedef map<string, boost::any> store;
 typedef pair<string, boost::any> entry;
 
 
+template<class T> struct PrintTraits;
+
+
 /**
  * @brief Global workspace. Singleton.
  */
@@ -261,19 +264,9 @@ class Workspace {
      *
      * @return       String representation of workspace content
      */
-    const char*
-    c_str            () const {
+    void
+    Print           (std::ostream& os) const;
     
-        std::string sb;
-        
-        for (reflist::const_iterator i = m_ref.begin(); i != m_ref.end(); i++)
-            sb += i->first + "\t" + i->second[0] + "\t" + i->second[1] + "\n";
-        
-        return sb.c_str();
-        
-    }
-
-
     /**
      * @brief        Get casted parameter
      *
@@ -356,7 +349,7 @@ static Workspace& wspace = Workspace::Instance();
  */
 inline static std::ostream&
 operator<< (std::ostream& os, const Workspace& w) {
-	os << w.c_str();
+	w.Print(os);
     return os;
 }
 

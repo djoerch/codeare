@@ -33,10 +33,6 @@
 
 #include <numeric>
 
-inline size_t multiply (size_t x, size_t y) {
-    return x*y;
-}
-
 /**
  * @brief Non-Cartesian SENSE<br/>
  *        According Pruessmann et al. (2001). MRM, 46(4), 638-51.
@@ -107,9 +103,9 @@ public:
 			ms[i] = size(m_sm,i);
 
         container<size_t> sizesm = vsize(m_sm);
-        m_nx.push_back(sizesm.back()); // NC
+        m_nx.push_back(sizesm.back());             // NC
         m_nx.push_back(numel(ws.Get<T>(m_wname))); // NK
-        m_nx.push_back(std::accumulate(sizesm.begin(), sizesm.end(), 1, multiply)/m_nx[1]); //NR
+        m_nx.push_back(std::accumulate(sizesm.begin(), sizesm.end(), 1, c_multiply<size_t>)/m_nx[1]); //NR
 
 		m_cgiter  = params.Get<size_t>("cgiter");
 		m_cgeps   = params.Get<double>("cgeps");
@@ -134,7 +130,7 @@ public:
 		printf ("  FT: eps(%.3e) iter(%li) m(%li) alpha(%.3e)\n", fteps, ftiter, m, alpha);
 
 		for (size_t i = 0; i < m_np; i++) // FFTW planning not thread-safe
-			m_fts.push_back(new NFFT<T> (ms, m_nx[2], m, alpha, b0, m_pc, fteps, ftiter));
+			m_fts.push_back(NFFT<T> (ms, m_nx[2], m, alpha, b0, m_pc, fteps, ftiter));
 		
 		m_ic     = IntensityMap (m_sm);
 		m_initialised = true;
@@ -148,13 +144,14 @@ public:
 	 */ 
 	virtual ~NCSENSE () {
 		
-		if (m_initialised)
-			for (size_t i = 0; i < m_np; i++)
-				delete m_fts[i];
-		
+		do {
+			m_fts.pop_back();
+		} while (m_fts.size());
+
 	}
 	
 	
+
 	/**
 	 * @brief      Assign k-space trajectory
 	 * 
@@ -165,7 +162,7 @@ public:
 		
 #pragma omp parallel 
 		{
-            m_fts[omp_get_thread_num()]->KSpace(k);
+            m_fts[omp_get_thread_num()].KSpace(k);
 		}
 		
 	}
@@ -181,7 +178,7 @@ public:
 		
 #pragma omp parallel 
 		{
-            m_fts[omp_get_thread_num()]->Weights(w);
+            m_fts[omp_get_thread_num()].Weights(w);
 		}
 		
 	}
@@ -196,8 +193,7 @@ public:
 	virtual Matrix<CT>
 	Trafo       (const Matrix<CT>& m) const {
 
-		Matrix<CT> tmp = m / m_ic;
-		return E (tmp, m_sm, m_nx, m_fts);
+		return E (m, m_sm, m_nx, m_fts);
 
 	}
 
@@ -214,7 +210,7 @@ public:
 	virtual Matrix<CT>
 	Trafo       (const Matrix<CT>& m, const Matrix<CT>& sens, const bool& recal = true) const {
 
-		return E (m / ((recal) ? IntensityMap (sens) : m_ic), sens, m_nx, m_fts);
+		return E (m, sens, m_nx, m_fts);
 
 	}
 
@@ -245,60 +241,52 @@ public:
 	virtual Matrix<CT>
 	Adjoint (const Matrix<CT>& m,
 			 const Matrix<CT>& sens,
-			 const bool recal = true) const {
+			 const bool recal = false) const {
 
-		CT ts;
-        T rn, rno, xn;
+        T rn, rno, xn, ts;
 		Matrix<CT> p, r, x, q;
 		vector<T> res;
         std::vector< Matrix<cxfl> > vc;
 
-        if (recal)
-        	IntensityMap (sens);
-
 		p  = EH (m, sens, m_nx, m_fts) * m_ic;
 		r  = p;
 		x  = zeros<CT>(size(p));
-		
-        if (m_verbose)
-            vc.push_back (p/m_ic);
-
-        xn = pow(norm(p), 2.0);
+        xn = creal(p.dotc(p));
         rn = xn;
+        if (m_verbose)
+            vc.push_back (p);
 
 		for (size_t i = 0; i < m_cgiter; i++) {
-			
 			res.push_back(rn/xn);
-			
 			if (std::isnan(res.at(i)) || res.at(i) <= m_cgeps)  break;
  			printf ("    %03lu %.7f\n", i, res.at(i)); fflush (stdout);
-
-			q  = EH (E  (p * m_ic, sens, m_nx, m_fts), sens, m_nx, m_fts) * m_ic;
-
+			q  = EH(E(p * m_ic, sens, m_nx, m_fts), sens, m_nx, m_fts) * m_ic;
 			if (m_lambda)
 				q  += m_lambda * p;
-
-            ts  = rn / p.dotc(q);
+            ts  = rn / creal(p.dotc(q));
 			x  += ts * p;
 			r  -= ts * q;
 			rno = rn;
-			rn  = pow(norm(r), 2.0);
+			rn  = creal(r.dotc(r));
 			p  *= rn / rno;
 			p  += r;
-
             if (m_verbose)
-                vc.push_back (x * m_ic);
-
+                vc.push_back(x * m_ic);
 		}
 
         if (m_verbose) {
             size_t cpsz = numel(x);
-            x = zeros<CT> (size(x,0), size(x,1), (m_nx[0] == 3) ? size(x,2) : 1, vc.size());
-            for (size_t i = 0; i < vc.size(); i++)
-                memcpy (&x[i*cpsz], &(vc[i][0]), cpsz*sizeof(CT));
-            return x;
-        } else        
-            return x;
+            x = Matrix<CT> (size(x,0), size(x,1), (m_nx[0] == 3) ? size(x,2) : 1, vc.size());
+            typename container<CT>::iterator ti = x.Begin();
+            for (size_t i = 0; i < vc.size(); i++) {
+                std::copy (vc[i].Begin(), vc[i].End(), ti);
+                ti += cpsz;
+            }
+            vc.clear();
+        } else
+            x *= m_ic;
+
+        return x;
 
 	}
 	
@@ -330,12 +318,12 @@ public:
 	
 private:
 
-    std::vector<NFFT<T>*> m_fts;         /**< Non-Cartesian FT operators (Multi-Core?) */
-	bool      m_initialised; /**< All initialised? */
-    bool      m_verbose;
+    std::vector<NFFT<T> > m_fts;         /**< Non-Cartesian FT operators (Multi-Core?) */
+	bool       m_initialised; /**< All initialised? */
+    bool       m_verbose;
 
 	Matrix<CT> m_sm;          /**< Sensitivities */
-	Matrix<T> m_ic;     /**< Intensity correction I(r) */
+	Matrix<T>  m_ic;     /**< Intensity correction I(r) */
 	Matrix<CT> m_pc; /**< @brief Correction phase */
 
 	std::string m_smname;
@@ -343,11 +331,11 @@ private:
 
     std::vector<size_t> m_nx;
     
-	size_t    m_cgiter;         /**< Max # CG iterations */
-	double    m_cgeps;          /**< Convergence limit */
-	double    m_lambda;         /**< Tikhonov weight */
+	size_t     m_cgiter;         /**< Max # CG iterations */
+	double     m_cgeps;          /**< Convergence limit */
+	double     m_lambda;         /**< Tikhonov weight */
 	
-	int       m_np;
+	int        m_np;
 
 };
 

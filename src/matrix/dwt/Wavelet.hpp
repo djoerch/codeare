@@ -215,7 +215,6 @@ class WaveletTraits <T, WL_DAUBECHIES, 8>
 };
 
 
-
 /**
  * @brief				Setup given filter matrices for specified wavlet.
  */

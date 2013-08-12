@@ -403,8 +403,8 @@ EXTRA_DIST = GPUSimulator.cl
 # Rules for recon strategies
 lib_LTLIBRARIES = DummyRecon.la DumpToFile.la GenericRegrid.la \
 	MedianFilter_OMP.la SystemCmd.la SpatialDomain.la KTPoints.la \
-	RelativeSensitivities.la GRAPPA.la DirectMethod.la AFI.la \
-	SENSE.la CompressedSensing.la $(am__append_1)
+	GRAPPA.la DirectMethod.la AFI.la SENSE.la CompressedSensing.la \
+	RelativeSensitivities.la $(am__append_1)
 
 # Common linker flags
 COMMON_la_LDFLAGS = -module -avoid-version @PLUGIN_LDFLAGS@

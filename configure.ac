@@ -88,6 +88,7 @@ case $host in
 	CXXFLAGS="${CXXFLAGS} ${SIMD_FLAGS}"
      ;;
 esac
+CXXFLAGS="${CXXFLAGS} -Wno-psabi"
 
 # Get size of void*
 AC_CHECK_SIZEOF(void*)
@@ -346,7 +347,8 @@ AC_CHECK_HEADERS([nfft3util.h],      [],
 AC_CHECK_HEADERS([H5Cpp.h],          [], 
    [AC_MSG_RESULT([cannot find H5Cpp.h, hdf5 dump / read functionality unavailable!])])
 AC_CHECK_HEADERS([nifti1_io.h],      [], 
-   [AC_MSG_RESULT([cannot find nifti1_io.h, NIFTI dump / read functionality unavailable!])])
+   [AC_CHECK_HEADERS([nifti/nifti1_io.h],      [], 
+   [AC_MSG_RESULT([cannot find nifti1_io.h, NIFTI dump / read functionality unavailable!])])])
 AC_CHECK_HEADERS([sys/time.h c_asm.h intrinsics.h mach/mach_time.h sys/sysctl.h])
 AC_CHECK_HEADERS([openssl/evp.h], [HAVE_CRYPTO=1], 
    [AC_MSG_ERROR([cannot find openssl headers, bailing out])])
@@ -498,6 +500,26 @@ else
 fi
 echo ""
 
+## Name demangling?
+AC_MSG_CHECKING([for abi::__cxa_demangle])
+AC_COMPILE_IFELSE([
+  #include <typeinfo>
+  using namespace std;
+  #include <cxxabi.h>
+  int main(int c,char **v) {
+   int dstat;
+   char *demangled = abi::__cxa_demangle(typeid(dstat).name(),0,0,&dstat);
+   return 0;
+  }
+ ],[
+  AC_MSG_RESULT([yes])
+  AC_DEFINE([HAVE_DEMANGLE],,[defined if abi::__cxa_demangle is available])
+ ],[
+  AC_MSG_RESULT([no])
+ ]
+)
+
+
 # Time & Co for FFTW cycle
 AC_CHECK_TYPE([hrtime_t],[AC_DEFINE(HAVE_HRTIME_T, 1, [Define to 1 if hrtime_t is defined in <sys/time.h>])],,[
 #if HAVE_SYS_TIME_H
@@ -568,7 +590,7 @@ if test x"$with_ismrmrdroot" != x"no" ; then
 
 	AC_MSG_CHECKING([for IsmrmrdDataset in -lismrmrd])
 
-	LIBS="${LIBS} -L${ISMRMRD_LIB_PATH} -lismrmrd -lismrmrd_xsd -Wl,-rpath,${ISMRMRD_LIB_PATH}"
+	LIBS="${LIBS} -L${ISMRMRD_LIB_PATH} -lismrmrd -Wl,-rpath,${ISMRMRD_LIB_PATH}"
 
 	AC_TRY_LINK([#include <ismrmrd_hdf5.h>],
 	  [ISMRMRD::IsmrmrdDataset d("","");],
@@ -901,7 +923,7 @@ AC_FUNC_MMAP
 
 AH_TEMPLATE([HAVE_SCALAPACK], [Define to 1 if we could link against scalapack])
 ACX_SCALAPACK
-AM_CONDITIONAL([USE_SCALAPACK],    [test "$HAVE_SCALAPACK" -eq 1])
+AM_CONDITIONAL([USE_SCALAPACK],    [test x"$HAVE_SCALAPACK" = x1])
 
 
 # Generate files
@@ -911,6 +933,6 @@ AC_CONFIG_FILES([src/Loader.hpp Makefile src/Makefile src/modules/Makefile src/t
  src/matrix/linalg/tests/Makefile src/matrix/ft/Makefile src/matrix/ft/tests/Makefile 
  src/matrix/dwt/Makefile src/matrix/dwt/tests/Makefile src/matrix/io/tests/Makefile
  src/matrix/mpi/Makefile src/matrix/mpi/tests/Makefile src/matrix/interp/Makefile
- src/matrix/interp/tests/Makefile])
+ src/matrix/interp/tests/Makefile src/mongoose/Makefile])
 AC_OUTPUT
 

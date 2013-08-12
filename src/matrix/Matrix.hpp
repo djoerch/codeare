@@ -45,15 +45,12 @@
 #include <stdio.h>
 #include <time.h>
 #include <limits.h>
+#include <numeric>
 
 #include <ostream>
 #include <string>
 #include <cstring>
 #include <algorithm>
-
-#ifdef HAVE_MAT_H
-#include "mat.h"
-#endif
 
 /**
  * @brief Is matrix is a vector.
@@ -399,7 +396,7 @@ public:
     
     
     /**
-     * @brief           Get reference to pth element.
+     * @brief           Get reference to p-th element.
      *
      * Usage:
      * @code{.cpp}
@@ -1189,16 +1186,12 @@ protected:
      */
     inline size_t
     DimProd () const {
-        
-        long size = 1;
-        
-        for (size_t i = 0; i < _dim.size(); ++i)
-            size *= _dim[i];
-        
-        return size;
-        
+        return std::accumulate(_dim.begin(), _dim.end(), 1, c_multiply<size_t>);
     }
 
+    /**
+     * @brief          Allocate RAM
+     */
     inline void
     Allocate () {
 

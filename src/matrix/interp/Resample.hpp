@@ -51,7 +51,7 @@ enum InterpMethod {
  * @return     Resampled data
  */
 template<class T> static Matrix<T> 
-Resample (const Matrix<T>& M, const Matrix<double>& f, const InterpMethod& im) {
+resample (const Matrix<T>& M, const Matrix<double>& f, const InterpMethod& im) {
 	
 
 	Matrix <T> res = M;
@@ -65,8 +65,6 @@ Resample (const Matrix<T>& M, const Matrix<double>& f, const InterpMethod& im) {
 	typedef typename itk::ResampleImageFilter< InputImageType, InputImageType > ResampleFilterType;
 	
 	typename InterpolatorType::Pointer linterp = InterpolatorType::New();
-	
-	std::cout << "No interpolation attempted. Interpolation method unknown!" << std::endl;
 	
 	TransformType::Pointer trafo = TransformType::New();
 	trafo->SetIdentity();
@@ -154,11 +152,11 @@ Resample (const Matrix<T>& M, const Matrix<double>& f, const InterpMethod& im) {
  * @return     Resampled data
  */
 template<class T> static Matrix<T>
-Resample (const Matrix<T>& M, const double& f, const InterpMethod& im) {
+resample (const Matrix<T>& M, const double& f, const InterpMethod& im) {
 	
 	Matrix<double> mf (3,1);
 	mf = f;
-	return Resample(M, mf, im);
+	return resample(M, mf, im);
 	
 }
 
