@@ -20,6 +20,23 @@ enum wlfamily {
 
 
 /**
+ * @brief               Construct mirror filter of given low pass filter.
+ */
+template <class T>
+static inline
+void
+mirrorfilt (T * lpf, T * hpf, const int fl)
+{
+    int isign = 1;
+    for (int i = 0; i < fl; i++)
+    {
+        hpf [i] = isign * lpf [i];
+        isign *= -1;
+    }
+}
+
+
+/**
  * @brief           Templated base class for supported wavelets.
  */
 template <class T, wlfamily wl_fam, int wl_mem>
@@ -197,22 +214,6 @@ class WaveletTraits <T, WL_DAUBECHIES, 8>
 
 };
 
-
-/**
- * @brief               Construct mirror filter of given low pass filter.
- */
-template <class T>
-static inline
-void
-mirrorfilt (T * lpf, T * hpf, const int fl)
-{
-    int isign = 1;
-    for (int i = 0; i < fl; i++)
-    {
-        hpf [i] = isign * lpf [i];
-        isign *= -1;
-    }
-}
 
 
 /**

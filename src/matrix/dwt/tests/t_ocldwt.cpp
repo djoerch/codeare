@@ -3,7 +3,7 @@
  **************/
 # include "Matrix.hpp"
 # include "io/IOContext.hpp"
-# include "oclDWT.hpp"
+# include "dwt/oclDWT.hpp"
 # include "Configurable.hpp"
 # include <sstream>
 
