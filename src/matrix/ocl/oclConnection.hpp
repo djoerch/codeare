@@ -187,7 +187,7 @@ modify_kernel        ( std::string const &       source,
           m_error = m_comqs [0] . enqueueReadBuffer (*buffer, CL_TRUE, 0, size, cpu_arg, NULL, NULL);
         
         }
-        catch (cl::Error cle)
+        catch (cl::Error & cle)
         {
           
           throw oclError (cle.err(), "oclConnection :: loadToCPU");
@@ -307,13 +307,7 @@ modify_kernel        ( std::string const &       source,
       /******************
        ** constructors **
        ******************/
-      oclConnection         (const char *,
-                             const char *,
-                             const char *,
-                             const char *,
-                             const char *,
-                             const char *,
-                             cl_device_type device_type = CL_DEVICE_TYPE_GPU,
+      oclConnection         (cl_device_type device_type = CL_DEVICE_TYPE_GPU,
                              VerbosityLevel verbose = VERB_NONE);
       
       oclConnection         (oclConnection &) { /*TODO*/};
@@ -349,7 +343,6 @@ modify_kernel        ( std::string const &       source,
   struct oclConnection :: ocl_precision_trait <cxfl, float>
   {
  
- 
     public:
   
       typedef cxfl elem_type;
@@ -363,9 +356,10 @@ modify_kernel        ( std::string const &       source,
       const std::vector <std::string>
       getFilenames  ()
       {
+        std::string base = "/opt/djoergens/projects/CoDEARE/src/matrix/ocl/kernels/";
         std::vector <std::string> filenames;
-        filenames.push_back (std::string ("./src/matrix/ocl/kernels/mixed_A_kernels.cl"));
-        filenames.push_back (std::string ("./src/matrix/ocl/kernels/mixed_AB_kernels.cl"));
+        filenames.push_back (base + std::string ("mixed_A_kernels.cl"));
+        filenames.push_back (base + std::string ("mixed_AB_kernels.cl"));
         return filenames;
       }
           
@@ -373,11 +367,11 @@ modify_kernel        ( std::string const &       source,
       const char *
       modify_source (void * buf, int * size)
       {
-        std::string * tmp_str = new string ( modify_kernel (std::string ((const char *) buf),
-                                                            std::string ("cl_khr_fp64: disable"),
-                                                            std::string ("float2"),
-                                                            std::string ("float"),
-                                                                      8 ) );
+        std::string * tmp_str = new std::string ( modify_kernel (std::string ((const char *) buf),
+                                                                 std::string ("cl_khr_fp64: disable"),
+                                                                 std::string ("float2"),
+                                                                 std::string ("float"),
+                                                                           8 ) );
         *size = tmp_str -> size () * sizeof (char);
         return tmp_str->c_str ();
       }
@@ -403,8 +397,7 @@ modify_kernel        ( std::string const &       source,
   template <>
   struct oclConnection :: ocl_precision_trait <cxfl, cxfl>
   {
- 
- 
+
     public:
   
       typedef cxfl elem_type;
@@ -418,9 +411,10 @@ modify_kernel        ( std::string const &       source,
       const std::vector <std::string>
       getFilenames  ()
       {
+        std::string base = "/opt/djoergens/projects/CoDEARE/src/matrix/ocl/kernels/";
         std::vector <std::string> filenames;
-        filenames.push_back (std::string ("./src/matrix/ocl/kernels/complex_A_kernels.cl"));
-        filenames.push_back (std::string ("./src/matrix/ocl/kernels/complex_AB_kernels.cl"));
+        filenames.push_back (base + std::string ("complex_A_kernels.cl"));
+        filenames.push_back (base + std::string ("complex_AB_kernels.cl"));
         return filenames;
       }
           
@@ -428,10 +422,10 @@ modify_kernel        ( std::string const &       source,
       const char *
       modify_source (void * buf, int * size)
       {
-        std::string * tmp_str = new string ( modify_kernel (std::string ((const char *) buf),
-                                                            std::string ("cl_khr_fp64: disable"),
-                                                            std::string ("float2"),
-                                                            std::string ("float2") ) );
+        std::string * tmp_str = new std::string ( modify_kernel (std::string ((const char *) buf),
+                                                                 std::string ("cl_khr_fp64: disable"),
+                                                                 std::string ("float2"),
+                                                                 std::string ("float2") ) );
         *size = tmp_str -> size () * sizeof (char);
         return tmp_str->c_str ();
       }
@@ -471,9 +465,10 @@ modify_kernel        ( std::string const &       source,
       const std::vector <std::string>
       getFilenames  ()
       {
+        std::string base = "/opt/djoergens/projects/CoDEARE/src/matrix/ocl/kernels/";
         std::vector <std::string> filenames;
-        filenames.push_back (std::string ("./src/matrix/ocl/kernels/A_kernels.cl"));
-        filenames.push_back (std::string ("./src/matrix/ocl/kernels/AB_kernels.cl"));
+        filenames.push_back (base + std::string ("A_kernels.cl"));
+        filenames.push_back (base + std::string ("AB_kernels.cl"));
         return filenames;
       }
 
@@ -525,9 +520,10 @@ modify_kernel        ( std::string const &       source,
       const std::vector <std::string>
       getFilenames  ()
       {
+        std::string base = "/opt/djoergens/projects/CoDEARE/src/matrix/ocl/kernels/";
         std::vector <std::string> filenames;
-        filenames.push_back (std::string ("./src/matrix/ocl/kernels/A_kernels.cl"));
-        filenames.push_back (std::string ("./src/matrix/ocl/kernels/AB_kernels.cl"));
+        filenames.push_back (base + std::string ("A_kernels.cl"));
+        filenames.push_back (base + std::string ("AB_kernels.cl"));
         return filenames;
       }
 
@@ -580,9 +576,10 @@ modify_kernel        ( std::string const &       source,
       const std::vector <std::string>
       getFilenames  ()
       {
+        std::string base = "/opt/djoergens/projects/CoDEARE/src/matrix/ocl/kernels/";
         std::vector <std::string> filenames;
-        filenames.push_back (std::string ("./src/matrix/ocl/kernels/mixed_A_kernels.cl"));
-        filenames.push_back (std::string ("./src/matrix/ocl/kernels/mixed_AB_kernels.cl"));
+        filenames.push_back (base + std::string ("mixed_A_kernels.cl"));
+        filenames.push_back (base + std::string ("mixed_AB_kernels.cl"));
         return filenames;
       }
 
@@ -635,9 +632,10 @@ modify_kernel        ( std::string const &       source,
       const std::vector <std::string>
       getFilenames  ()
       {
+        std::string base = "/opt/djoergens/projects/CoDEARE/src/matrix/ocl/kernels/";
         std::vector <std::string> filenames;
-        filenames.push_back (std::string ("./src/matrix/ocl/kernels/complex_A_kernels.cl"));
-        filenames.push_back (std::string ("./src/matrix/ocl/kernels/complex_AB_kernels.cl"));
+        filenames.push_back (base + std::string ("complex_A_kernels.cl"));
+        filenames.push_back (base + std::string ("complex_AB_kernels.cl"));
         return filenames;
       }
 
@@ -781,13 +779,7 @@ modify_kernel        ( std::string const &       source,
   {
   
     if (mp_inst == NULL)
-      mp_inst = new oclConnection ( "./src/matrix/ocl/kernels/A_kernels.cl",
-                                    "./src/matrix/ocl/kernels/AB_kernels.cl",
-                                    "./src/matrix/ocl/kernels/complex_A_kernels.cl",
-                                    "./src/matrix/ocl/kernels/complex_AB_kernels.cl",
-                                    "./src/matrix/ocl/kernels/mixed_A_kernels.cl",
-                                    "./src/matrix/ocl/kernels/mixed_AB_kernels.cl",
-                                    CL_DEVICE_TYPE_GPU,
+      mp_inst = new oclConnection ( CL_DEVICE_TYPE_GPU,
                                     global_verbosity [OCL_CONNECTION] );
       
     return mp_inst;

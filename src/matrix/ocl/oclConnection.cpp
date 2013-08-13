@@ -139,13 +139,7 @@ init_program_kernels    (oclConnection * const con)
 
 // constructor
 oclConnection::
-oclConnection ( const char      * filename_A_type,
-                const char      * filename_AB_type,
-                const char      * filename_A_cx_type,
-                const char      * filename_AB_cx_type,
-                const char      * filename_A_mx_type,
-                const char      * filename_AB_mx_type,
-                cl_device_type    device_type,
+oclConnection ( cl_device_type    device_type,
                 VerbosityLevel    verbose )
               : m_current_ocl_objects (),
                 m_current_buffers (),

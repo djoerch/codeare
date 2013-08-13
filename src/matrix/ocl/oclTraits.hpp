@@ -306,6 +306,55 @@
 
 
       /**
+       * @brief                       execute specified kernel with 3 arguments and 4 scalars
+       */
+      static inline
+      const oclError &
+      ocl_basic_operator_kernel_44             ( const          char * const kernel_name,
+                                                       oclDataObject * const        arg1,
+                                                       oclDataObject * const        arg2,
+                                                       oclDataObject * const        arg3,
+                                                       oclDataObject * const      result,
+                                                                 int                  s1,
+                                                                 int                  s2,
+                                                                 int                  s3,
+                                                                 int                  s4 )
+      {
+
+        // number of kernel arguments
+        const int num_args = 8;
+
+        // create array of function arguments
+        oclDataObject ** args = (oclDataObject **) malloc (num_args * sizeof (oclDataObject *));
+        args [0] = arg1;
+        args [1] = arg2;
+        args [2] = arg3;
+        args [3] = result;
+        args [4] = new oclGPUDataObject <int> (& s1, 1);
+        args [5] = new oclGPUDataObject <int> (& s2, 1);
+        args [6] = new oclGPUDataObject <int> (& s3, 1);
+        args [7] = new oclGPUDataObject <int> (& s4, 1);
+
+        // create function object
+        oclFunctionObject * op_obj = oclConnection :: Instance ()
+                                        -> makeFunctionObject <elem_type, scalar_type>
+                                              (kernel_name, args, num_args, oclConnection::KERNEL, oclConnection::SYNC);
+
+        // execute function object
+        ocl_run_func_obj (op_obj);
+
+        // clear memory
+        delete op_obj;
+        delete args [4];
+        delete args [5];
+        delete args [6];
+        delete args [7];
+        free (args);
+
+      }
+
+
+      /**
        * @brief                       execute specified kernel with 3 arguments and 5 scalars
        */
       static inline
@@ -774,7 +823,41 @@
        * @name                        operators
        */
       //@{
-    
+
+
+
+      /**
+       * @brief                       3D Discrete Wavelet Transform.
+       *
+       * @param  arg1                 Address of signal (n x m x k).
+       * @param  arg2                 Address of resulting DWT (n x m x k).
+       * @param  n                    First dimension.
+       * @param  m                    Second dimension.
+       * @param  k                    Third dimension.
+       * @param  filter               Convolution kernel.
+       * @param  fl                   Length of convolution kernel.
+       * ...
+       */
+      static inline
+      const oclError &
+      ocl_operator_dwt                ( oclDataObject * const arg1,
+                                                  int            n,
+                                                  int            m,
+                                                  int            k,
+                                        oclDataObject * const  lpf,
+                                        oclDataObject * const  hpf,
+                                                  int           fl,
+                                        oclDataObject * const arg2 )
+      {
+
+          print_optional ("oclOperations <", trait1 :: print_elem_type (), ", ",
+                                             trait2 :: print_elem_type (), "> :: ocl_operator_dwt", op_v_level);
+
+          ocl_basic_operator_kernel_44 ("dwt", arg1, lpf, hpf, arg2, n, m, k, fl);
+
+      }
+
+
 
       /**
        * @brief                       Matrix product.

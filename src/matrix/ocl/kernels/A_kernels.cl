@@ -37,6 +37,10 @@
   
 # endif // __OCL_KERNEL_HEADER__
 
+  
+  
+# include "/opt/djoergens/projects/CoDEARE/src/matrix/dwt/dwt.cl"
+  
 
 
 /**

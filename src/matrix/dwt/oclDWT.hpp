@@ -43,6 +43,8 @@
 # include "Wavelet.hpp"
 
 # include "ocl/oclConnection.hpp"
+# include "ocl/oclDataWrapper.hpp"
+# include "ocl/oclTraits.hpp"
 
 
 // OpenCL
@@ -78,7 +80,8 @@ class oclDWT {
               _min_sl (_dim == 2 ? MIN (_sl1, _sl2) : MIN (MIN (_sl1, _sl2),_sl3)),
               _min_level (wl_scale),
               _max_level (MaxLevel ()),
-              _wl_fam(wl_fam)
+              _wl_fam(wl_fam),
+              _fl (wl_mem)
         {
             setupWlFilters <T> (wl_fam, wl_mem, _lpf_d, _lpf_r, _hpf_d, _hpf_r);
         }
@@ -103,7 +106,8 @@ class oclDWT {
           _min_sl (_dim == 2 ? MIN (_sl1, _sl2) : MIN (MIN (_sl1, _sl2),_sl3)),
           _min_level (wl_scale),
           _max_level (MaxLevel ()),
-          _wl_fam(wl_fam)
+          _wl_fam(wl_fam),
+          _fl (wl_mem)
         {
             setupWlFilters <T> (wl_fam, wl_mem, _lpf_d, _lpf_r, _hpf_d, _hpf_r);
         }
@@ -126,7 +130,8 @@ class oclDWT {
           _min_sl (_dim == 2 ? MIN (_sl1, _sl2) : MIN (MIN (_sl1, _sl2),_sl3)),
           _min_level (wl_scale),
           _max_level (MaxLevel ()),
-          _wl_fam(wl_fam)
+          _wl_fam(wl_fam),
+          _fl (wl_mem)
         {
             setupWlFilters <T> (wl_fam, wl_mem, _lpf_d, _lpf_r, _hpf_d, _hpf_r);
         }
@@ -154,8 +159,14 @@ class oclDWT {
                     && m.Dim () == res.Dim ());
 
             /* TODO: call kernel */
-            res = m;
-
+            oclDataWrapper <T> * p_ocl_m   = oclOperations <T> :: make_GPU_Obj (&m.Container()[0], m.Size ());
+            oclDataWrapper <T> * p_ocl_res = oclOperations <T> :: make_GPU_Obj (&res[0], res.Size ());
+            oclDataWrapper <T> * p_ocl_lpf = oclOperations <T> :: make_GPU_Obj (_lpf_d, _fl);
+            oclDataWrapper <T> * p_ocl_hpf = oclOperations <T> :: make_GPU_Obj (_hpf_d, _fl);
+            oclOperations <T> :: ocl_operator_dwt (p_ocl_m, m.Dim(0), m.Dim(1), m.Dim(2),
+                                                   p_ocl_lpf, p_ocl_hpf, _fl,
+                                                   p_ocl_res);
+            p_ocl_res->getData();
         }
 
 
@@ -254,6 +265,8 @@ class oclDWT {
 
         // wavelet family
         const wlfamily _wl_fam;
+
+        const int _fl;
 
         // low pass filters
         RT * _lpf_d;
