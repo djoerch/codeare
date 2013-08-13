@@ -38,14 +38,15 @@
 # define WL_SCALE 4
 
 
-// OpenCL
-# include <CL/cl.hpp>
 
 # include "Matrix.hpp"
 # include "Wavelet.hpp"
 
 # include "ocl/oclConnection.hpp"
 
+
+// OpenCL
+# include <CL/cl.hpp>
 
 
 /**
