@@ -73,6 +73,8 @@ main            (int argc, char ** args)
     if (!strcmp (range, "no"))
         init_num_threads = num_threads;
 
+    oclConnection::Instance();
+
     // headline of table
     fs << "## OpenCL DWT ##" << std::endl;
     fs << "## No. of threads  --  per transform:  --  single forward:  --  single backwards:  --  S(p)" << std::endl;
@@ -96,7 +98,7 @@ main            (int argc, char ** args)
         s_time_b = omp_get_wtime () - s_time_b;
 
         // make sure input data is correct for iteration ;) !!!
-//      mat_out_dwt_recon = mat_in;
+//        mat_out_dwt_recon = mat_in;
 
         double time = omp_get_wtime ();
         for (int i = 0; i < iterations; i++)

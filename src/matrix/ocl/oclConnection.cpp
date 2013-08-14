@@ -115,13 +115,17 @@ init_program_kernels    (oclConnection * const con)
   
     // build program
     con -> m_error = prog.build (con -> m_devs);
+    if (con -> m_error != CL_SUCCESS)
+        throw new cl::Error (con -> m_error, "Error while building program!");
 
     // create kernels
     con -> m_error = prog.createKernels (&kernels);
+    if (con -> m_error != CL_SUCCESS)
+        throw new cl::Error (con -> m_error, "Error while creating kernels!");
     *(ocl_precision_trait <T, S> :: getKernels (con)) = kernels;
 
   }
-  catch (cl::Error cle)
+  catch (cl::Error & cle)
   {
     cout << " Type: " << ocl_precision_trait <T, S> :: getTypeString () << std::endl;
     cout << "Error while building program: " << cle.what ()                                            << endl;
@@ -174,6 +178,7 @@ oclConnection ( cl_device_type    device_type,
     m_comqs.push_back (clCommandQueue (m_cont, *it));
   }
 
+  clUnloadCompiler();
   init_program_kernels < float,  float> (this);
   init_program_kernels <double, double> (this);
   init_program_kernels <  cxfl,  float> (this);
@@ -257,7 +262,7 @@ runKernel             (const cl::NDRange  & global_dims,
     
       m_error = (*it).enqueueNDRangeKernel (*mp_actKernel, cl::NullRange, global_dims, local_dims);
 
-    } catch (cl::Error cle) {
+    } catch (cl::Error & cle) {
 
       throw oclError (cle.err (), "oclConnection :: runKernel");
 

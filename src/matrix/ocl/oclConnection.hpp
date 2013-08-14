@@ -465,10 +465,11 @@ modify_kernel        ( std::string const &       source,
       const std::vector <std::string>
       getFilenames  ()
       {
-        std::string base = "/opt/djoergens/projects/CoDEARE/src/matrix/ocl/kernels/";
+        std::string base = "/opt/djoergens/projects/CoDEARE/src/matrix/";
         std::vector <std::string> filenames;
-        filenames.push_back (base + std::string ("A_kernels.cl"));
-        filenames.push_back (base + std::string ("AB_kernels.cl"));
+        filenames.push_back (base + std::string ("ocl/kernels/A_kernels.cl"));
+        filenames.push_back (base + std::string ("ocl/kernels/AB_kernels.cl"));
+        filenames.push_back (base + std::string ("dwt/dwt.cl"));
         return filenames;
       }
 
@@ -520,10 +521,11 @@ modify_kernel        ( std::string const &       source,
       const std::vector <std::string>
       getFilenames  ()
       {
-        std::string base = "/opt/djoergens/projects/CoDEARE/src/matrix/ocl/kernels/";
+        std::string base = "/opt/djoergens/projects/CoDEARE/src/matrix/";
         std::vector <std::string> filenames;
-        filenames.push_back (base + std::string ("A_kernels.cl"));
-        filenames.push_back (base + std::string ("AB_kernels.cl"));
+        filenames.push_back (base + std::string ("ocl/kernels/A_kernels.cl"));
+        filenames.push_back (base + std::string ("ocl/kernels/AB_kernels.cl"));
+        filenames.push_back (base + std::string ("dwt/dwt.cl"));
         return filenames;
       }
 
@@ -632,10 +634,10 @@ modify_kernel        ( std::string const &       source,
       const std::vector <std::string>
       getFilenames  ()
       {
-        std::string base = "/opt/djoergens/projects/CoDEARE/src/matrix/ocl/kernels/";
+        std::string base = "/opt/djoergens/projects/CoDEARE/src/matrix/";
         std::vector <std::string> filenames;
-        filenames.push_back (base + std::string ("complex_A_kernels.cl"));
-        filenames.push_back (base + std::string ("complex_AB_kernels.cl"));
+        filenames.push_back (base + std::string ("ocl/kernels/complex_A_kernels.cl"));
+        filenames.push_back (base + std::string ("ocl/kernels/complex_AB_kernels.cl"));
         return filenames;
       }
 

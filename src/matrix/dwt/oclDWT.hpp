@@ -167,6 +167,11 @@ class oclDWT {
                                                    p_ocl_lpf, p_ocl_hpf, _fl,
                                                    p_ocl_res);
             p_ocl_res->getData();
+
+            delete p_ocl_m;
+            delete p_ocl_res;
+            delete p_ocl_lpf;
+            delete p_ocl_hpf;
         }
 
 

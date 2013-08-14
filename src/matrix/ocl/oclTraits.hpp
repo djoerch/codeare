@@ -258,7 +258,7 @@
         
           stringstream msg;
           msg << "oclOperations <" << trait1 :: print_elem_type () << ", "
-                                   << trait2 :: print_elem_type () << "> :: ocl_basic_operator_kernel_3";
+                                   << trait2 :: print_elem_type () << "> :: ocl_run_func_obj";
         
           throw oclError (oclError (err, msg.str ().c_str ()));
         
