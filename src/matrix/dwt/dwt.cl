@@ -20,6 +20,7 @@ init_params_dwt           ( int * index,
 
 }
 
+typedef float A_type;
 
 /**
  * @brief                 3D DWT.

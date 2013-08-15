@@ -3,8 +3,8 @@
  **************/
 
 // ocl
-# include "oclConnection.hpp"
-
+//# include "oclConnection.hpp"
+# include "/usr/local/include/viennacl/ocl/backend.hpp"
 
 
 /**************************
@@ -113,6 +113,8 @@ init_program_kernels    (oclConnection * const con)
     prog = clProgram (con -> m_cont, sources, & con -> m_error);
     *(ocl_precision_trait <T, S> :: getProgram (con)) = prog;
   
+    std::cout << " after program constructor ! " << std::endl;
+
     // build program
     con -> m_error = prog.build (con -> m_devs);
     if (con -> m_error != CL_SUCCESS)
@@ -162,10 +164,16 @@ oclConnection ( cl_device_type    device_type,
     throw oclError ("No platform available", "oclConnection :: CTOR");
 
   // devices
-  m_error = m_plat.getDevices (device_type, &m_devs);
+  try {
+	  m_error = m_plat.getDevices (device_type, &m_devs);
+  } catch (cl::Error & cle)
+  {
+	  std::cerr << oclError (cle.err(), " Error while requesting device ids! ") << std::endl;
+  	  std::cerr << cle.what () << std::endl;
+  }
   print_optional (" ** # of devices on platform: %d", m_devs.size(), VERB_LOW);
   std::string vendor;
-  print_optional (" ** device type (0): ", (m_devs [0].getInfo (CL_DEVICE_VENDOR, &vendor), vendor.c_str ()), VERB_LOW);
+  print_optional (" ** device type [0]: ", (m_devs [0].getInfo (CL_DEVICE_VENDOR, &vendor), vendor.c_str ()), VERB_LOW);
   if (m_devs.size() == 0)
     throw oclError ("No devices available on this platform", "oclConnection :: CTOR");
 
@@ -178,7 +186,6 @@ oclConnection ( cl_device_type    device_type,
     m_comqs.push_back (clCommandQueue (m_cont, *it));
   }
 
-  clUnloadCompiler();
   init_program_kernels < float,  float> (this);
   init_program_kernels <double, double> (this);
   init_program_kernels <  cxfl,  float> (this);
