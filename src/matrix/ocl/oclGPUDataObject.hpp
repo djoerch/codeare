@@ -52,7 +52,7 @@
       {
       
         print_optional ("Ctor: \"oclGPUDataObject\" (id: %d)", oclDataObject :: getID (), v_level);
-        
+
       }
       
       

@@ -111,19 +111,15 @@ init_program_kernels    (oclConnection * const con)
 
     // create program
     prog = clProgram (con -> m_cont, sources, & con -> m_error);
-    *(ocl_precision_trait <T, S> :: getProgram (con)) = prog;
-  
-    std::cout << " after program constructor ! " << std::endl;
 
     // build program
-    con -> m_error = prog.build (con -> m_devs);
-    if (con -> m_error != CL_SUCCESS)
-        throw new cl::Error (con -> m_error, "Error while building program!");
+	con -> m_error = prog.build (con -> m_devs, "-cl-std=CL1.2");
 
     // create kernels
     con -> m_error = prog.createKernels (&kernels);
-    if (con -> m_error != CL_SUCCESS)
-        throw new cl::Error (con -> m_error, "Error while creating kernels!");
+
+    // assign created objects to type specific storage
+    *(ocl_precision_trait <T, S> :: getProgram (con)) = prog;
     *(ocl_precision_trait <T, S> :: getKernels (con)) = kernels;
 
   }
@@ -187,11 +183,11 @@ oclConnection ( cl_device_type    device_type,
   }
 
   init_program_kernels < float,  float> (this);
-  init_program_kernels <double, double> (this);
-  init_program_kernels <  cxfl,  float> (this);
-  init_program_kernels <  cxfl,   cxfl> (this);
-  init_program_kernels <  cxdb, double> (this);
-  init_program_kernels <  cxdb,   cxdb> (this);
+//  init_program_kernels <double, double> (this);
+//  init_program_kernels <  cxfl,  float> (this);
+//  init_program_kernels <  cxfl,   cxfl> (this);
+//  init_program_kernels <  cxdb, double> (this);
+//  init_program_kernels <  cxdb,   cxdb> (this);
 
   // set current kernel!
   num_kernel = 0;
@@ -268,6 +264,8 @@ runKernel             (const cl::NDRange  & global_dims,
     try {
     
       m_error = (*it).enqueueNDRangeKernel (*mp_actKernel, cl::NullRange, global_dims, local_dims);
+
+      (*it).finish ();
 
     } catch (cl::Error & cle) {
 

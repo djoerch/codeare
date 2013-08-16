@@ -184,7 +184,11 @@
     {
 
       // create buffer object
-      oclConnection :: Instance () -> createBuffer (mp_cpu_data, oclDataObject :: getSize (), oclDataObject :: getID ());
+      try {
+    	  oclConnection :: Instance () -> createBuffer (mp_cpu_data, oclDataObject :: getSize (), oclDataObject :: getID ());
+      } catch (oclError & oe) {
+    	  throw oclError (oe, "oclDataWrapper :: loadToGPU ()");
+      }
     
       // update memory state
       oclDataObject :: setLoaded ();
@@ -272,7 +276,7 @@
         std::cout << mp_cpu_data [i] << " ";
       std::cout << std::endl;
     }
-  
+
   }
 
   

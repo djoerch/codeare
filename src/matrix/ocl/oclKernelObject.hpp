@@ -140,7 +140,7 @@
     
     // activate kernel
     oclCon -> activateKernel (m_kernel_name);
-    
+
     // prepare kernel arguments (load to gpu)
     for (int i = 0; i < m_num_args; i++)
     {

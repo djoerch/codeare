@@ -20,7 +20,6 @@ init_params_dwt           ( int * index,
 
 }
 
-typedef float A_type;
 
 /**
  * @brief                 3D DWT.
@@ -57,10 +56,11 @@ dwt                       ( __global A_type *   arg1,
     
   /* calculation */
   /* COLUMN MAJOR */
-  
-  for (int i = local_position; i < num_elems; i += global_inc)
+  if (index == 1)
   {
-    arg2 [i] = arg1 [i];
-  }
-   
+    for (int i = 0; i < num_elems; i++)
+    {
+        arg2 [i] = arg1 [i];
+    }
+  }   
 }

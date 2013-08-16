@@ -177,12 +177,9 @@ modify_kernel        ( std::string const &       source,
         
         try
         {
-        
-          // create new buffer
-          clBuffer * p_tmp_buffer = new clBuffer(m_cont, CL_MEM_READ_WRITE, size, cpu_arg, &m_error);
           
           print_optional (" -- size: %d Bytes", size, VERB_LOW); //m_verbose);
-          
+
           // read data from given buffer
           m_error = m_comqs [0] . enqueueReadBuffer (*buffer, CL_TRUE, 0, size, cpu_arg, NULL, NULL);
         
@@ -465,7 +462,7 @@ modify_kernel        ( std::string const &       source,
       const std::vector <std::string>
       getFilenames  ()
       {
-        std::string base = "/opt/djoergens/projects/CoDEARE/src/matrix/";
+        std::string base = "/localdata/djoergens/projects/CoDEARE/src/matrix/";
         std::vector <std::string> filenames;
         filenames.push_back (base + std::string ("ocl/kernels/A_kernels.cl"));
         filenames.push_back (base + std::string ("ocl/kernels/AB_kernels.cl"));
@@ -481,7 +478,7 @@ modify_kernel        ( std::string const &       source,
                                                             std::string ("cl_khr_fp64: disable"),
                                                             std::string ("float"),
                                                             std::string ("float"),
-                                                                      8 ) );
+                                                                      2 ) );
         *size = tmp_str -> size () * sizeof (char);
         return tmp_str->c_str ();
       }
@@ -709,15 +706,18 @@ modify_kernel        ( std::string const &       source,
   /*******************
    ** includes (II) **
    *******************/
-   
+
   // ocl
+//# include "oclViennaClObject.hpp"
   # include "oclFunctionObject.hpp"
   # include "oclDataObject.hpp"
   # include "oclKernelObject.hpp"
-  # include "oclViennaClObject.hpp"
   # include "oclAsyncKernelObject.hpp"
   # include "oclAMDBlasObject.hpp"
   
+  template <class T, class S>
+  class oclViennaClObject;
+
   
 
   /**************************************
@@ -1095,7 +1095,15 @@ modify_kernel        ( std::string const &       source,
     }
 
     // create buffer object
-    p_tmp_obj -> setBuffer (new clBuffer (m_cont, CL_MEM_READ_WRITE, size, cpu_arg, &m_error));
+    try {
+    	p_tmp_obj -> setBuffer (new clBuffer (m_cont, CL_MEM_READ_WRITE, size, NULL, &m_error));
+    }
+    catch (cl::Error & cle)
+    {
+    	if (cpu_arg == NULL)
+    		std::cout << " jojojo NULL " << std::endl;
+    	throw oclError (cle.err(), "oclConnection :: createBuffer");
+    }
     print_optional (" -!-> createBuffer: ", errorString (m_error), m_verbose);
       
     // add to buffer list

@@ -764,12 +764,12 @@
       make_GPU_Obj                    (      elem_type * const   cpu_arg,
                                        const    size_t &       num_elems)
       {
-    
-        print_optional ("make_GPU_Obj <", trait1 :: print_elem_type (),
+
+    	print_optional ("make_GPU_Obj <", trait1 :: print_elem_type (),
                                           trait2 :: print_elem_type (), "> (create new)", VERB_HIGH);
     
         return new oclGPUDataObject <elem_type> (cpu_arg, num_elems);
-      
+
       }
     
     
