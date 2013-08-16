@@ -4,6 +4,7 @@
 
 // ViennaCL
 # include "/usr/local/include/viennacl/ocl/backend.hpp"
+#include "oclConnection.hpp"
 
 
 /**************************
@@ -167,12 +168,16 @@ oclConnection ( cl_device_type    device_type,
   	  std::cerr << cle.what () << std::endl;
   }
   print_optional (" ** # of devices on platform: %d", m_devs.size(), VERB_LOW);
-  std::string vendor;
-  print_optional (" ** device type [0]: ", (m_devs [0].getInfo (CL_DEVICE_VENDOR, &vendor), vendor.c_str ()), VERB_LOW);
-  print_optional (" ** device extensions [0]: ", (m_devs [0].getInfo (CL_DEVICE_EXTENSIONS, &vendor), vendor.c_str ()), VERB_MIDDLE);
+  std::string info_string;
+  print_optional (" ** device type [0]: ", (m_devs [0].getInfo (CL_DEVICE_VENDOR, &info_string), info_string.c_str ()), VERB_LOW);
+  print_optional (" ** device extensions [0]: ", (m_devs [0].getInfo (CL_DEVICE_EXTENSIONS, &info_string), info_string.c_str ()), VERB_MIDDLE);
+  print_optional (" ** device max WG size [0]: %d", (m_devs [0].getInfo (CL_DEVICE_MAX_WORK_GROUP_SIZE, &m_max_wg_size), m_max_wg_size), VERB_LOW);
+  print_optional (" ** device max WI dim [0]: %d", (m_devs [0].getInfo (CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, &m_max_wi_dim), m_max_wi_dim), VERB_LOW);
+  m_devs [0].getInfo (CL_DEVICE_MAX_WORK_ITEM_SIZES, &m_max_wi_sizes);
+  print_optional (" ** device max WI sizes [0]: %zu, %zu, %zu", m_max_wi_sizes[0], m_max_wi_sizes[1], m_max_wi_sizes[2], VERB_LOW);
   if (m_devs.size() == 0)
     throw oclError ("No devices available on this platform", "oclConnection :: CTOR");
-
+  
   // context /** ViennaCL **/ /* TODO */
   m_cont = clContext ( viennacl::ocl::current_context () . handle () . get ()); //clContext (m_devs);       // same context for all devices
   
@@ -262,7 +267,7 @@ runKernel             (const cl::NDRange  & global_dims,
   for (clCommandQueues::iterator it = m_comqs.begin(); it < m_comqs.end(); ++it)
   {
     try {
-    
+
       m_error = (*it).enqueueNDRangeKernel (*mp_actKernel, cl::NullRange, global_dims, local_dims);
 
       (*it).finish ();

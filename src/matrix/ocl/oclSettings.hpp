@@ -319,6 +319,35 @@
   
   }
   
+  
+  
+    /**
+   * @brief               print given message and three integers
+   *
+   * @param               msg - !formatted! string
+   */
+  inline
+  void
+  print_optional          ( const           char *     msg,
+                                             int         i,
+                                             int         j,
+                                             int         k,
+                                  VerbosityLevel   v_level )
+  {
+  
+    /* check verbosity level */
+    if (v_level <= verbosity)
+    {
+    
+      /* create string containing interger */
+      sprintf (buffer, msg, i, j, k);
+    
+      std::cout << buffer << std::endl;
+    
+    }
+  
+  }
+  
 
 
   

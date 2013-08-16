@@ -1,30 +1,11 @@
 
-# pragma OPENCL EXTENSION cl_amd_printf: enable
+#pragma OPENCL EXTENSION cl_amd_printf: enable
 
-int printf (constant char * restrict format, ...);
+int printf(constant char * restrict format, ...);
 
 //typedef float A_type;
 
-bool
-init_params_dwt           ( int * index,
-                            int * global_size,
-                            int * global_inc,
-                            int * local_position )
-{
-
-  if (get_work_dim () == 1)
-    *index = get_local_id (0);
-  else
-    return false;
-
-  *global_size    = get_global_size (0);
-  *global_inc     = *global_size;
-  *local_position = *index;
-
-  return true;
-
-}
-
+# define LENGTH 512
 
 /**
  * @brief                 3D DWT.
@@ -40,32 +21,58 @@ init_params_dwt           ( int * index,
  */
 __kernel
 void
-dwt                       ( __global A_type *   arg1,
-                            __global A_type   *    lpf,
-                            __global A_type   *    hpf,
-                            __global A_type *   arg2,
-                            __global      int *      n,
-                            __global      int *      m,
-                            __global      int *      k,
-                            __global      int *     fl )
+dwt(__global A_type * arg1,
+        __global A_type * lpf,
+        __global A_type * hpf,
+        __global A_type * arg2,
+        __global int * n,
+        __global int * m,
+        __global int * k,
+        __global int * fl)
 {
 
-  int index, global_size, global_inc, local_position;
-  
-  /* initialize parameters */
-  init_params_dwt (&index, &global_size, &global_inc, &local_position);
+  const int num_groups = get_num_groups (0);
+  const int group_id = get_group_id (0);
 
-  const int num_elems = *n * *m * *k;
-  
-  const int chunk_size = num_elems / global_size; 
-    
+  const int local_index = get_local_id (0);
+  const int local_size  = get_local_size (0);
+
+  const int amount_each = *n / local_size;
+
+  __local float tmp [LENGTH];
+  __local float tmp2 [LENGTH];
+
   /* calculation */
   /* COLUMN MAJOR */
-  if (index == 1)
+  for (int j = group_id; j < *m; j += num_groups)
   {
-    for (int i = 0; i < num_elems; i++)
+    
+    // copy to local memory (work_group)
+    for (int i = local_index * amount_each; i < (local_index + 1) * amount_each; i++)
     {
-        arg2 [i] = arg1 [i];
+      tmp [i] = arg1 [j * *n + i];
     }
-  }   
+    
+    barrier (CLK_LOCAL_MEM_FENCE);
+    
+    // work on local memory (work_group)
+    float sum;
+    for (int i = max (local_index * amount_each, *fl); i < (local_index + 1) * amount_each; i++)
+    {
+        sum = 0;
+        for (int j = *fl-1; j >= 0; j--)
+          sum += tmp [i-j] * hpf [j];
+        tmp2 [i] = sum;        
+    }
+    
+    barrier (CLK_LOCAL_MEM_FENCE);
+    
+    // copy from local memory (work_group)
+    for (int i = local_index * amount_each; i < (local_index + 1) * amount_each; i++)
+    {
+      arg2 [j * *n + i] = tmp2 [i];
+    }    
+    
+  }
+
 }

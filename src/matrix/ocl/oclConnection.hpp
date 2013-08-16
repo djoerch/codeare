@@ -258,6 +258,11 @@ modify_kernel        ( std::string const &       source,
       clDevices                m_devs;       // vector of available devices on m_plat
       clContext                m_cont;       // context used associated with m_devs
       clCommandQueues          m_comqs;      // each command queue is associated with corresponding device from m_devs
+      
+      size_t                   m_max_wg_size;
+      size_t                   m_max_wi_dim;
+      size_t                   m_max_wi_sizes [3];
+      
       clProgram              * mp_prog,
                                m_prog_ff,     // program containing whole source code (single precision)
                                m_prog_dd,     // program containing whole source code (double precision)

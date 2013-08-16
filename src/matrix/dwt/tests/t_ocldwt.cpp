@@ -103,8 +103,8 @@ main            (int argc, char ** args)
         double time = omp_get_wtime ();
         for (int i = 0; i < iterations; i++)
         {
-            dwt.Trafo (mat_out_dwt_recon, mat_out_dwt);
-            dwt.Adjoint (mat_out_dwt, mat_out_dwt_recon);
+//            dwt.Trafo (mat_out_dwt_recon, mat_out_dwt);
+//            dwt.Adjoint (mat_out_dwt, mat_out_dwt_recon);
         }
         time = omp_get_wtime () - time;
 
