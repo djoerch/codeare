@@ -1,4 +1,9 @@
 
+# pragma OPENCL EXTENSION cl_amd_printf: enable
+
+int printf (constant char * restrict format, ...);
+
+//typedef float A_type;
 
 bool
 init_params_dwt           ( int * index,
