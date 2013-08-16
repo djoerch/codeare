@@ -113,7 +113,7 @@ init_program_kernels    (oclConnection * const con)
     prog = clProgram (con -> m_cont, sources, & con -> m_error);
 
     // build program
-	con -> m_error = prog.build (con -> m_devs, "-cl-std=CL1.2");
+	con -> m_error = prog.build (con -> m_devs, "-cl-std=CL1.1");
 
     // create kernels
     con -> m_error = prog.createKernels (&kernels);
