@@ -44,6 +44,8 @@ dwt(__global A_type * arg1,
 
   /* calculation */
   /* COLUMN MAJOR */
+
+  // COLUMNS
   for (int j = group_id; j < *m; j += num_groups)
   {
     
@@ -56,15 +58,21 @@ dwt(__global A_type * arg1,
     barrier (CLK_LOCAL_MEM_FENCE);
     
     // work on local memory (work_group)
-    float sum;
-    for (int i = max (local_index * amount_each, *fl); i < (local_index + 1) * amount_each; i++)
+    float sum1, sum2;
+    // lowpass & highpass
+    for (int i = max (local_index * amount_each/2, *fl); i < (local_index + 1) * amount_each/2; i++)
     {
-        sum = 0;
+        sum1 = 0;
+        sum2 = 0;
         for (int j = *fl-1; j >= 0; j--)
-          sum += tmp [i-j] * hpf [j];
-        tmp2 [i] = sum;        
+        {
+          sum1 += tmp [2*i  -j] * lpf [j];
+          sum2 += tmp [2*i+1-j] * hpf [j];
+        }
+        tmp2 [         i] = sum1;
+        tmp2 [LENGTH/2+i] = sum2;
     }
-    
+
     barrier (CLK_LOCAL_MEM_FENCE);
     
     // copy from local memory (work_group)
@@ -74,5 +82,44 @@ dwt(__global A_type * arg1,
     }    
     
   }
+
+  // ROWS
+  for (int j = group_id; j < *m; j += num_groups)
+  {
+    
+    // copy to local memory (work_group)
+    for (int i = local_index * amount_each; i < (local_index + 1) * amount_each; i++)
+    {
+      tmp [i] = arg2 [i * *m + j];
+    }
+    
+    barrier (CLK_LOCAL_MEM_FENCE);
+    
+    // work on local memory (work_group)
+    float sum1, sum2;
+    // lowpass & highpass
+    for (int i = max (local_index * amount_each/2, *fl); i < (local_index + 1) * amount_each/2; i++)
+    {
+        sum1 = 0;
+        sum2 = 0;
+        for (int j = *fl-1; j >= 0; j--)
+        {
+          sum1 += tmp [2*i  -j] * lpf [j];
+          sum2 += tmp [2*i+1-j] * hpf [j];
+        }
+        tmp2 [         i] = sum1;
+        tmp2 [LENGTH/2+i] = sum2;
+    }
+
+    barrier (CLK_LOCAL_MEM_FENCE);
+    
+    // copy from local memory (work_group)
+    for (int i = local_index * amount_each; i < (local_index + 1) * amount_each; i++)
+    {
+      arg2 [i * *m + j] = tmp2 [i];
+    }    
+    
+  }
+
 
 }
