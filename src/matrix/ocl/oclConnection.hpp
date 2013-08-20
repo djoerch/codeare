@@ -803,10 +803,10 @@ modify_kernel        ( std::string const &       source,
   setKernelArg            (      int              num,
                            const oclDataObject *  p_arg)
   {
-  
+
     // register kernel argument
-    m_error = mp_actKernel -> setArg (num, * p_arg -> getBuffer ());
-    
+    m_error = mp_actKernel -> setArg (num, p_arg -> getUploadSize(), p_arg -> getBuffer ());
+
     print_optional (" -!-> setKernelArg: ", errorString (m_error), m_verbose);
   
   }

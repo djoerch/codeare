@@ -115,6 +115,14 @@
       size_t
       getSize               () const;
       
+      
+      /**
+       * @brief             return size for kernel argument
+       */
+      virtual
+      size_t
+      getUploadSize         () const;
+      
      
       /**
        * @brief             return sync status (GPU <-> CPU memory)
@@ -634,6 +642,21 @@ protected:
   {
     
     return m_size;
+    
+  }
+  
+
+
+  /**
+   * @brief               getter of object size
+   */
+  size_t
+  oclDataObject ::
+  getUploadSize                 ()
+  const
+  {
+    
+    return sizeof (cl_mem);
     
   }
   

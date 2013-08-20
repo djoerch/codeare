@@ -154,8 +154,8 @@
     }
     
     // run kernel
-    cl::NDRange global_dims (512);
-    cl::NDRange local_dims = cl::NullRange;
+    cl::NDRange global_dims (512, 512);
+    cl::NDRange local_dims (512, 1);
     oclCon -> runKernel (global_dims, local_dims);
 
     // perhaps get data
@@ -163,7 +163,7 @@
     {
       mpp_args [i] -> finish ();
     }
-    
+        
   }
   
   

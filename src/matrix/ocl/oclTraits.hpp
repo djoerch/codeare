@@ -17,6 +17,7 @@
   
   // ocl
   # include "oclGPUDataObject.hpp"
+  # include "oclLocalMemObject.hpp"
   # include "oclSettings.hpp"
   
   // AMD BLAS
@@ -310,19 +311,21 @@
        */
       static inline
       const oclError &
-      ocl_basic_operator_kernel_44             ( const          char * const kernel_name,
+      ocl_basic_operator_kernel_55             ( const          char * const kernel_name,
                                                        oclDataObject * const        arg1,
                                                        oclDataObject * const        arg2,
                                                        oclDataObject * const        arg3,
                                                        oclDataObject * const      result,
+                                                       oclDataObject * const     loc_mem,
                                                                  int                  s1,
                                                                  int                  s2,
                                                                  int                  s3,
-                                                                 int                  s4 )
+                                                                 int                  s4,
+                                                                 int         loc_mem_size)
       {
 
         // number of kernel arguments
-        const int num_args = 8;
+        const int num_args = 10;
 
         // create array of function arguments
         oclDataObject ** args = (oclDataObject **) malloc (num_args * sizeof (oclDataObject *));
@@ -330,11 +333,13 @@
         args [1] = arg2;
         args [2] = arg3;
         args [3] = result;
-        args [4] = new oclGPUDataObject <int> (& s1, 1);
-        args [5] = new oclGPUDataObject <int> (& s2, 1);
-        args [6] = new oclGPUDataObject <int> (& s3, 1);
-        args [7] = new oclGPUDataObject <int> (& s4, 1);
-
+        args [4] = loc_mem;
+        args [5] = new oclGPUDataObject <int> (& s1, 1);
+        args [6] = new oclGPUDataObject <int> (& s2, 1);
+        args [7] = new oclGPUDataObject <int> (& s3, 1);
+        args [8] = new oclGPUDataObject <int> (& s4, 1);
+        args [9] = new oclGPUDataObject <int> (& loc_mem_size, 1);
+        
         // create function object
         oclFunctionObject * op_obj = oclConnection :: Instance ()
                                         -> makeFunctionObject <elem_type, scalar_type>
@@ -345,10 +350,11 @@
 
         // clear memory
         delete op_obj;
-        delete args [4];
         delete args [5];
         delete args [6];
         delete args [7];
+        delete args [8];
+        delete args [9];
         free (args);
 
       }
@@ -847,14 +853,20 @@
                                         oclDataObject * const  lpf,
                                         oclDataObject * const  hpf,
                                                   int           fl,
-                                        oclDataObject * const arg2 )
+                                        oclDataObject * const arg2,
+                                                  int         num_loc_mem_elems)
       {
 
           print_optional ("oclOperations <", trait1 :: print_elem_type (), ", ",
                                              trait2 :: print_elem_type (), "> :: ocl_operator_dwt", op_v_level);
 
-          ocl_basic_operator_kernel_44 ("dwt", arg1, lpf, hpf, arg2, n, m, k, fl);
-
+          // dynamically allocate local memory
+          oclDataObject * loc_mem = new oclLocalMemObject <elem_type> (num_loc_mem_elems);
+          
+          ocl_basic_operator_kernel_55 ("dwt", arg1, lpf, hpf, arg2, loc_mem, n, m, k, fl, num_loc_mem_elems);
+          
+          delete loc_mem;
+          
       }
 
 

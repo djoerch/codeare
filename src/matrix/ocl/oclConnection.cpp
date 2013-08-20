@@ -171,10 +171,10 @@ oclConnection ( cl_device_type    device_type,
   std::string info_string;
   print_optional (" ** device type [0]: ", (m_devs [0].getInfo (CL_DEVICE_VENDOR, &info_string), info_string.c_str ()), VERB_LOW);
   print_optional (" ** device extensions [0]: ", (m_devs [0].getInfo (CL_DEVICE_EXTENSIONS, &info_string), info_string.c_str ()), VERB_MIDDLE);
-  print_optional (" ** device max WG size [0]: %d", (m_devs [0].getInfo (CL_DEVICE_MAX_WORK_GROUP_SIZE, &m_max_wg_size), m_max_wg_size), VERB_LOW);
-  print_optional (" ** device max WI dim [0]: %d", (m_devs [0].getInfo (CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, &m_max_wi_dim), m_max_wi_dim), VERB_LOW);
+  print_optional (" ** device max WG size [0]: %d", (m_devs [0].getInfo (CL_DEVICE_MAX_WORK_GROUP_SIZE, &m_max_wg_size), m_max_wg_size), VERB_NONE);
+  print_optional (" ** device max WI dim [0]: %d", (m_devs [0].getInfo (CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, &m_max_wi_dim), m_max_wi_dim), VERB_NONE);
   m_devs [0].getInfo (CL_DEVICE_MAX_WORK_ITEM_SIZES, &m_max_wi_sizes);
-  print_optional (" ** device max WI sizes [0]: %zu, %zu, %zu", m_max_wi_sizes[0], m_max_wi_sizes[1], m_max_wi_sizes[2], VERB_LOW);
+  print_optional (" ** device max WI sizes [0]: %zu, %zu, %zu", m_max_wi_sizes[0], m_max_wi_sizes[1], m_max_wi_sizes[2], VERB_NONE);
   if (m_devs.size() == 0)
     throw oclError ("No devices available on this platform", "oclConnection :: CTOR");
   
@@ -184,7 +184,7 @@ oclConnection ( cl_device_type    device_type,
   // command queues
   for (clDevices::iterator it = m_devs.begin(); it < m_devs.end(); ++it)  // iterate over all devices and create a command queue for each
   {
-    m_comqs.push_back (clCommandQueue (m_cont, *it));
+    m_comqs.push_back (clCommandQueue (m_cont, *it, CL_QUEUE_PROFILING_ENABLE));
   }
 
   init_program_kernels < float,  float> (this);
@@ -263,15 +263,31 @@ runKernel             (const cl::NDRange  & global_dims,
                        const cl::NDRange  & local_dims  )
 {
 
+  cl_ulong start, end;
+    
   // execute activated kernel on all available devices 
   for (clCommandQueues::iterator it = m_comqs.begin(); it < m_comqs.end(); ++it)
   {
     try {
 
-      m_error = (*it).enqueueNDRangeKernel (*mp_actKernel, cl::NullRange, global_dims, local_dims);
-
+      cl::Event event;
+      
+      m_error = (*it).enqueueNDRangeKernel (*mp_actKernel, cl::NullRange, global_dims, local_dims, NULL, &event);
+      
       (*it).finish ();
 
+      // read timing information
+      clGetEventProfilingInfo(event(), CL_PROFILING_COMMAND_START, sizeof (cl_ulong), &start, NULL);
+      clGetEventProfilingInfo(event(), CL_PROFILING_COMMAND_END, sizeof (cl_ulong), &end, NULL);
+
+      float time_seconds = (end - start) * 1.0e-9f;
+      
+      std::cout << " Time in seconds: " << time_seconds << " s " << std::endl;
+      
+      float effective_bw = ((float) 512 * 512 * 4 * 2 /* * 2 */) * 1.0e-9f / time_seconds;
+      
+      std::cout << " Effective bandwidth (on device): " << effective_bw << " GB/s " << std::endl;
+      
     } catch (cl::Error & cle) {
 
       throw oclError (cle.err (), "oclConnection :: runKernel");
