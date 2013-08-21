@@ -64,6 +64,12 @@
       virtual
       void
       run () = 0;
+      
+      
+      virtual
+      const ProfilingInformation
+      getProfilingInformation (const int)
+      const = 0;
 
   
     protected:

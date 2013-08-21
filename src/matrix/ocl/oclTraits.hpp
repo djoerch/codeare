@@ -310,7 +310,7 @@
        * @brief                     execute specified kernel with 3 arguments and 4 scalars
        */
       static inline
-      const oclError &
+      std::vector <ProfilingInformation>
       ocl_basic_operator_kernel_55  ( const   std::vector <std::string> &       kernel_names,
                                             oclDataObject               * const         arg1,
                                             oclDataObject               * const         arg2,
@@ -347,6 +347,11 @@
 
         // execute function object
         ocl_run_func_obj (op_obj);
+        
+        // retrieve profiling information
+        std::vector <ProfilingInformation> vec_pi;
+        for (int i = 0; i < kernel_names.size (); i++)
+          vec_pi.push_back (op_obj -> getProfilingInformation(i));
 
         // clear memory
         delete op_obj;
@@ -357,6 +362,8 @@
         delete args [9];
         free (args);
 
+        return vec_pi;
+        
       }
 
 
@@ -867,7 +874,16 @@
           kernel_names.push_back (std::string ("dwt_cols"));
           kernel_names.push_back (std::string ("dwt_rows"));
           
-          ocl_basic_operator_kernel_55 (kernel_names, arg1, lpf, hpf, arg2, loc_mem, n, m, k, fl, num_loc_mem_elems);
+          std::vector <ProfilingInformation> vec_pi = ocl_basic_operator_kernel_55 (kernel_names, arg1, lpf, hpf, arg2, loc_mem, n, m, k, fl, num_loc_mem_elems);
+          
+          for (int i = 0; i < kernel_names.size (); i++)
+          {
+            float time_seconds = vec_pi[i].time_end - vec_pi[i].time_start;
+            std::cout << " **> Kernel: " << kernel_names [i] << " <**" << std::endl;
+            std::cout << " Time in seconds: " << time_seconds << " s " << std::endl;
+            float effective_bw = ((float) 512 * 512 * 4 * 2) * 1.0e-9f / time_seconds;
+            std::cout << " Effective bandwidth (on device): " << effective_bw << " GB/s " << std::endl;
+          }
           
           delete loc_mem;
           

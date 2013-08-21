@@ -123,6 +123,15 @@
       run                   ();
       
       
+      /**
+       * @brief             Retrieve profiling information on kernel execution.
+       */
+      virtual
+      const ProfilingInformation
+      getProfilingInformation (const int i)
+      const;
+      
+      
 
     private:
     
@@ -188,15 +197,9 @@
       
     }
     
-    for (std::vector <cl::Event> :: const_iterator it_event = m_events.begin (); it_event != m_events.end (); it_event++)
+    for (int i = 0; i < m_events.size (); i++)
     {
-      it_event -> wait ();
-      // get profiling information
-      const ProfilingInformation pi = oclCon -> getProfilingInformation(*it_event);
-      float time_seconds = pi.time_end - pi.time_start;
-      std::cout << " Time in seconds: " << time_seconds << " s " << std::endl;
-      float effective_bw = ((float) 512 * 512 * 4 * 2) * 1.0e-9f / time_seconds;
-      std::cout << " Effective bandwidth (on device): " << effective_bw << " GB/s " << std::endl;
+      m_events [i].wait ();
     }
     
     // perhaps get data
@@ -205,6 +208,15 @@
       mpp_args [i] -> finish ();
     }
         
+  }
+  
+  
+  const ProfilingInformation
+  oclKernelObject ::
+  getProfilingInformation     (const int i)
+  const
+  {
+    return oclConnection :: Instance () -> getProfilingInformation (m_events [i]);
   }
   
   

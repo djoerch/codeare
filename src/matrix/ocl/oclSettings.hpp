@@ -140,8 +140,8 @@
    */
   struct ProfilingInformation
   {
-    const double time_start;
-    const double time_end;
+    double time_start;
+    double time_end;
   };
   
 
