@@ -307,21 +307,21 @@
 
 
       /**
-       * @brief                       execute specified kernel with 3 arguments and 4 scalars
+       * @brief                     execute specified kernel with 3 arguments and 4 scalars
        */
       static inline
       const oclError &
-      ocl_basic_operator_kernel_55             ( const          char * const kernel_name,
-                                                       oclDataObject * const        arg1,
-                                                       oclDataObject * const        arg2,
-                                                       oclDataObject * const        arg3,
-                                                       oclDataObject * const      result,
-                                                       oclDataObject * const     loc_mem,
-                                                                 int                  s1,
-                                                                 int                  s2,
-                                                                 int                  s3,
-                                                                 int                  s4,
-                                                                 int         loc_mem_size)
+      ocl_basic_operator_kernel_55  ( const   std::vector <std::string> &       kernel_names,
+                                            oclDataObject               * const         arg1,
+                                            oclDataObject               * const         arg2,
+                                            oclDataObject               * const         arg3,
+                                            oclDataObject               * const       result,
+                                            oclDataObject               * const      loc_mem,
+                                                      int                                 s1,
+                                                      int                                 s2,
+                                                      int                                 s3,
+                                                      int                                 s4,
+                                                      int                       loc_mem_size)
       {
 
         // number of kernel arguments
@@ -343,7 +343,7 @@
         // create function object
         oclFunctionObject * op_obj = oclConnection :: Instance ()
                                         -> makeFunctionObject <elem_type, scalar_type>
-                                              (kernel_name, args, num_args, oclConnection::KERNEL, oclConnection::SYNC);
+                                              (kernel_names, args, num_args, oclConnection::KERNEL, oclConnection::SYNC);
 
         // execute function object
         ocl_run_func_obj (op_obj);
@@ -863,7 +863,11 @@
           // dynamically allocate local memory
           oclDataObject * loc_mem = new oclLocalMemObject <elem_type> (num_loc_mem_elems);
           
-          ocl_basic_operator_kernel_55 ("dwt", arg1, lpf, hpf, arg2, loc_mem, n, m, k, fl, num_loc_mem_elems);
+          std::vector <std::string> kernel_names;
+          kernel_names.push_back (std::string ("dwt_cols"));
+          kernel_names.push_back (std::string ("dwt_rows"));
+          
+          ocl_basic_operator_kernel_55 (kernel_names, arg1, lpf, hpf, arg2, loc_mem, n, m, k, fl, num_loc_mem_elems);
           
           delete loc_mem;
           

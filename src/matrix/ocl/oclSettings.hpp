@@ -127,7 +127,23 @@
 
   /* buffer for writing verbosity messages */
   char buffer [100];
+  
+  
+  
+  /***********************
+   ** class definitions **
+   ***********************/
 
+  
+  /**
+   * @brief  Struct containing profiling information.
+   */
+  struct ProfilingInformation
+  {
+    const double time_start;
+    const double time_end;
+  };
+  
 
 
 

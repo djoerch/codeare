@@ -98,7 +98,13 @@ modify_kernel        ( std::string const &       source,
       makeFunctionObject    (const string & kernel_name,
                              oclDataObject * const * const args, const int & num_args,
                              const KernelType kernel_type, const SyncType sync_type);
-                        
+                
+      template <class T, class S>
+      oclFunctionObject * const
+      makeFunctionObject    (const std::vector <std::string> & kernel_name,
+                             oclDataObject * const * const args, const int & num_args,
+                             const KernelType kernel_type, const SyncType sync_type);
+      
       template <class T, class S>     
       oclFunctionObject * const
       makeFunctionObject    (const vclAlgoType & algo_name,
@@ -126,6 +132,7 @@ modify_kernel        ( std::string const &       source,
                           
       void
       run                   (oclFunctionObject * const func_obj) const;
+      
 
       // getters for OpenCL objects
       const clPlatform      getPlatform       () const { return m_plat; }
@@ -200,10 +207,17 @@ modify_kernel        ( std::string const &       source,
       activateKernel        (const std::string kernelname);
     
       // run kernel with given dimensions
-      int
+      const cl::Event
       runKernel             (const cl::NDRange & global_dims,
                              const cl::NDRange & local_dims);
   
+      // wait for event
+      void
+      waitForEvent          (const cl::Event & event) const;
+      
+      // get profiling info
+      const ProfilingInformation
+      getProfilingInformation (const cl::Event & event) const;
       
       
       /**
@@ -979,6 +993,38 @@ modify_kernel        ( std::string const &       source,
       else
       {
         kernel_obj = new oclAsyncKernelObject (kernel_name, args, num_args);
+      }
+
+    }
+    
+    return kernel_obj;
+    
+  }
+  
+  
+    // create function object for running an OpenCL kernel
+  template <class T, class S>
+  oclFunctionObject * const
+  oclConnection ::
+  makeFunctionObject    (const std::vector  <std::string> &               kernel_names,
+                               oclDataObject              * const * const         args,
+                         const           int              &                   num_args,
+                         const    KernelType                               kernel_type,
+                         const      SyncType                                 sync_type)
+  {
+    
+    oclFunctionObject * kernel_obj;
+   
+    if (kernel_type == KERNEL)
+    {
+    
+      if (sync_type == SYNC)
+      {
+        kernel_obj = new oclKernelObject (kernel_names, args, num_args);
+      }
+      else
+      {
+        kernel_obj = new oclAsyncKernelObject (kernel_names[1], args, num_args);
       }
 
     }

@@ -254,17 +254,41 @@ activateKernel            (const std::string kernelname)
 }
 
 
+void
+oclConnection::
+waitForEvent          (const cl::Event & event)
+const
+{
+  event.wait ();
+}
+
+
+const ProfilingInformation
+oclConnection::
+getProfilingInformation (const cl::Event & event)
+const
+{
+  
+  cl_ulong start, end;
+  
+  event.wait ();
+  
+  // read timing information
+  clGetEventProfilingInfo(event(), CL_PROFILING_COMMAND_START, sizeof (cl_ulong), &start, NULL);
+  clGetEventProfilingInfo(event(), CL_PROFILING_COMMAND_END, sizeof (cl_ulong), &end, NULL);
+  
+  return {start*1.e-9, end*1.e-9};
+  
+}
 
 
 // run active kernel with given dimensions for work groups and work items
-int
+const cl::Event
 oclConnection::
 runKernel             (const cl::NDRange  & global_dims,
                        const cl::NDRange  & local_dims  )
 {
 
-  cl_ulong start, end;
-    
   // execute activated kernel on all available devices 
   for (clCommandQueues::iterator it = m_comqs.begin(); it < m_comqs.end(); ++it)
   {
@@ -273,20 +297,8 @@ runKernel             (const cl::NDRange  & global_dims,
       cl::Event event;
       
       m_error = (*it).enqueueNDRangeKernel (*mp_actKernel, cl::NullRange, global_dims, local_dims, NULL, &event);
-      
-      (*it).finish ();
 
-      // read timing information
-      clGetEventProfilingInfo(event(), CL_PROFILING_COMMAND_START, sizeof (cl_ulong), &start, NULL);
-      clGetEventProfilingInfo(event(), CL_PROFILING_COMMAND_END, sizeof (cl_ulong), &end, NULL);
-
-      float time_seconds = (end - start) * 1.0e-9f;
-      
-      std::cout << " Time in seconds: " << time_seconds << " s " << std::endl;
-      
-      float effective_bw = ((float) 512 * 512 * 4 * 2 /* * 2 */) * 1.0e-9f / time_seconds;
-      
-      std::cout << " Effective bandwidth (on device): " << effective_bw << " GB/s " << std::endl;
+      return event;
       
     } catch (cl::Error & cle) {
 
