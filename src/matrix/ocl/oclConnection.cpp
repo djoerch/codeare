@@ -84,11 +84,29 @@ ReadSource            (std::string   fname,
 }
 
 
+template <class T, class S>
+oclError &
+oclConnection ::
+rebuildWithSource       (const std::string & filename)
+{
+  init_program_kernels <T, S> (this, std::vector <std::string> (1, filename));
+}
+
 
 template <class T, class S>
 oclError &
 oclConnection ::
-init_program_kernels    (oclConnection * const con)
+rebuildWithSources      (const std::vector <std::string> & filenames)
+{
+  init_program_kernels <T, S> (this, filenames);
+}
+
+
+
+template <class T, class S>
+oclError &
+oclConnection ::
+init_program_kernels    (oclConnection * const con, const std::vector <std::string> & add_filenames)
 {
 
   print_optional (" ** Initializing oclConnection for types ", ocl_precision_trait <T, S> :: getTypeString (), con -> m_verbose);
@@ -96,6 +114,8 @@ init_program_kernels    (oclConnection * const con)
   // get sources
   int size;
   std::vector <std::pair <const char *, ::size_t> > sources;
+
+  // read standard sources from precision trait
   const std::vector <std::string> filenames = ocl_precision_trait <T, S> :: getFilenames ();
   for (std::vector <std::string> ::const_iterator it = filenames.begin (); it != filenames.end (); ++it)
   {
@@ -103,9 +123,19 @@ init_program_kernels    (oclConnection * const con)
     sources.push_back (std::pair <const char*, ::size_t> (tmp_src, size));
   }
   
+  // read additional sources
+  if (add_filenames.size ())
+  {
+    for (std::vector <std::string> :: const_iterator it = add_filenames.begin (); it != add_filenames.end (); ++it)
+    {
+      const char * tmp_src = ReadSource <T, S> (*it, &size);
+      sources.push_back (std::pair <const char *, ::size_t> (tmp_src, size));
+    }
+  }
+  
   clProgram prog;
   clKernels kernels;
-  
+    
   try
   {
 
@@ -113,11 +143,11 @@ init_program_kernels    (oclConnection * const con)
     prog = clProgram (con -> m_cont, sources, & con -> m_error);
 
     // build program
-	con -> m_error = prog.build (con -> m_devs, "-cl-std=CL1.1");
+	  con -> m_error = prog.build (con -> m_devs, "-cl-std=CL1.1");
 
     // create kernels
     con -> m_error = prog.createKernels (&kernels);
-
+        
     // assign created objects to type specific storage
     *(ocl_precision_trait <T, S> :: getProgram (con)) = prog;
     *(ocl_precision_trait <T, S> :: getKernels (con)) = kernels;
@@ -188,11 +218,11 @@ oclConnection ( cl_device_type    device_type,
   }
 
   init_program_kernels < float,  float> (this);
-//  init_program_kernels <double, double> (this);
-//  init_program_kernels <  cxfl,  float> (this);
-//  init_program_kernels <  cxfl,   cxfl> (this);
-//  init_program_kernels <  cxdb, double> (this);
-//  init_program_kernels <  cxdb,   cxdb> (this);
+//  init_program_kernels <double, double> ();
+//  init_program_kernels <  cxfl,  float> ();
+//  init_program_kernels <  cxfl,   cxfl> ();
+//  init_program_kernels <  cxdb, double> ();
+//  init_program_kernels <  cxdb,   cxdb> ();
 
   // set current kernel!
   num_kernel = 0;

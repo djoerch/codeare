@@ -247,7 +247,16 @@ modify_kernel        ( std::string const &       source,
         return (m_comqs [0]) ();
       
       }
+      
+      
+      template <class T, class S>
+      oclError &
+      rebuildWithSources      (const std::vector <std::string> &);
 
+      template <class T, class S>
+      oclError &
+      rebuildWithSource       (const std::string &);
+      
 
     
     /*************
@@ -283,7 +292,8 @@ modify_kernel        ( std::string const &       source,
                                m_prog_cfcf,
                                m_prog_cff,
                                m_prog_cdcd,
-                               m_prog_cdd;
+                               m_prog_cdd,
+                               m_prog_alt;  // program for alternatively build kernels (not at construction time!)
       clKernels              * mp_kernels,
                                m_kernels_ff,  // kernels available in m_prog_f
                                m_kernels_dd,  // kernels available in m_prog_d
@@ -317,9 +327,9 @@ modify_kernel        ( std::string const &       source,
       template <class T, class S>
       static
       oclError &
-      init_program_kernels    (oclConnection * const);
+      init_program_kernels    (oclConnection * const, const std::vector <std::string> & = std::vector <std::string> (0));
 
-  
+      
       /******************
        ** constructors **
        ******************/
@@ -485,7 +495,6 @@ modify_kernel        ( std::string const &       source,
         std::vector <std::string> filenames;
         filenames.push_back (base + std::string ("ocl/kernels/A_kernels.cl"));
         filenames.push_back (base + std::string ("ocl/kernels/AB_kernels.cl"));
-        filenames.push_back (base + std::string ("dwt/dwt.cl"));
         return filenames;
       }
 
@@ -541,7 +550,6 @@ modify_kernel        ( std::string const &       source,
         std::vector <std::string> filenames;
         filenames.push_back (base + std::string ("ocl/kernels/A_kernels.cl"));
         filenames.push_back (base + std::string ("ocl/kernels/AB_kernels.cl"));
-        filenames.push_back (base + std::string ("dwt/dwt.cl"));
         return filenames;
       }
 

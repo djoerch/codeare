@@ -84,6 +84,7 @@ class oclDWT {
               _fl (wl_mem)
         {
             setupWlFilters <T> (wl_fam, wl_mem, _lpf_d, _lpf_r, _hpf_d, _hpf_r);
+            oclOperations <T> :: addKernelSource (std::string ("/localdata/djoergens/projects/CoDEARE/src/matrix/dwt/dwt.cl"));
         }
 
 
@@ -110,6 +111,7 @@ class oclDWT {
           _fl (wl_mem)
         {
             setupWlFilters <T> (wl_fam, wl_mem, _lpf_d, _lpf_r, _hpf_d, _hpf_r);
+            oclOperations <T> :: addKernelSource (std::string ("/localdata/djoergens/projects/CoDEARE/src/matrix/dwt/dwt.cl"));
         }
 
 
@@ -134,6 +136,7 @@ class oclDWT {
           _fl (wl_mem)
         {
             setupWlFilters <T> (wl_fam, wl_mem, _lpf_d, _lpf_r, _hpf_d, _hpf_r);
+            oclOperations <T> :: addKernelSource (std::string ("/localdata/djoergens/projects/CoDEARE/src/matrix/dwt/dwt.cl"));
         }
 
 

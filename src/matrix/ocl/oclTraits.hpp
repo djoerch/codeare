@@ -830,7 +830,23 @@
     
     
       //@}
-    
+      
+      
+      static inline
+      void
+      addKernelSource                 (const std::string & filename)
+      {
+        oclConnection :: Instance () -> rebuildWithSource <T, S> (filename);
+      }
+
+      
+      static inline
+      void
+      addKernelSources                (const std::vector <std::string> & filenames)
+      {
+        oclConnection :: Instance () -> rebuildWithSources <T, S> (filenames);
+      }
+      
     
       /**
        * @name                        operators
@@ -872,7 +888,7 @@
           
           std::vector <std::string> kernel_names;
           kernel_names.push_back (std::string ("dwt_cols"));
-          kernel_names.push_back (std::string ("dwt_rows"));
+//          kernel_names.push_back (std::string ("dwt_rows"));
           
           std::vector <ProfilingInformation> vec_pi = ocl_basic_operator_kernel_55 (kernel_names, arg1, lpf, hpf, arg2, loc_mem, n, m, k, fl, num_loc_mem_elems);
           
