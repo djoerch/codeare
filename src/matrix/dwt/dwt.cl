@@ -5,7 +5,9 @@
 
 //typedef float A_type;
 
-# define LENGTH 512
+# define GROUP_SIZE 128
+# define LINE_LENGTH 512
+# define FL 4
 
 /**
  * @brief                 One DWT step for columns.
@@ -45,9 +47,9 @@ dwt_cols (__global A_type * arg1,
 //  const int global_size2 = get_global_size (1); // number of columns
 
   __local A_type * tmp  = & loc_mem [0];
-  __local A_type * tmp2 = & loc_mem [*n];
+  __local A_type * tmp2 = & loc_mem [LINE_LENGTH];
 
-  const int column_offset = global_c2 * *m;
+  const int column_offset = global_c2 * LINE_LENGTH;
 
 
   /* calculation */
@@ -55,35 +57,40 @@ dwt_cols (__global A_type * arg1,
 
   // COLUMNS
 
-  // copy column to local memory
-  tmp [local_c1] = arg1 [column_offset + global_c1];
-  
-  A_type sum = 0;
-  barrier (CLK_LOCAL_MEM_FENCE);
+  for (int ind_col = local_c1; ind_col < LINE_LENGTH; ind_col++)
+  {
 
-  // partitioning for highpass and lowpass filtering
-  if (local_c1 < *n/2)
-  {
-    // work on local memory (work_group)
-    // lowpass & highpass
-    # pragma unroll
-    for (int j = *fl-1; j >= 0; j--)
-    {
-      sum += tmp [(2*local_c1-j)&(*n-1)] * _lpf [j];
-    }
-    tmp2 [local_c1] = sum;
-  }
-  else
-  {
-    // work on local memory (work_group)
-    // lowpass & highpass
-    # pragma unroll
-    for (int j = *fl-1; j >= 0; j--)
-    {
-      sum += tmp [(2*(local_c1-*n/2)+1-j)&(*n-1)] * _hpf [j];
-    }
-    tmp2 [local_c1] = sum;
-  }
+  // copy column to local memory
+  # pragma unroll
+  for (int i = 0; i < LINE_LENGTH / GROUP_SIZE; i++)
+    tmp [ind_col + i * GROUP_SIZE] = arg1 [column_offset + ind_col + i * GROUP_SIZE];
+  
+//  A_type sum = 0;
+  barrier (CLK_LOCAL_MEM_FENCE);
+//
+//  // partitioning for highpass and lowpass filtering
+//  if (local_c1 < LINE_LENGTH/2)
+//  {
+//    // work on local memory (work_group)
+//    // lowpass & highpass
+//    # pragma unroll
+//    for (int j = FL-1; j >= 0; j--)
+//    {
+//      sum += tmp [(2*local_c1-j)&(LINE_LENGTH-1)] * _lpf [j];
+//    }
+//    tmp2 [local_c1] = sum;
+//  }
+//  else
+//  {
+//    // work on local memory (work_group)
+//    // lowpass & highpass
+//    # pragma unroll
+//    for (int j = FL-1; j >= 0; j--)
+//    {
+//      sum += tmp [(2*(local_c1-LINE_LENGTH/2)+1-j)&(LINE_LENGTH-1)] * _hpf [j];
+//    }
+//    tmp2 [local_c1] = sum;
+//  }
 
 
 
@@ -91,7 +98,11 @@ dwt_cols (__global A_type * arg1,
 
 
   // copy column back to global memory
-  arg2 [column_offset + global_c1] = tmp2 [local_c1];
+  # pragma unroll
+  for (int i = 0; i < LINE_LENGTH / GROUP_SIZE; i++)
+    arg2 [column_offset + ind_col + i * GROUP_SIZE] = tmp [ind_col + i * GROUP_SIZE];
+
+  }
 
 }
 
