@@ -189,8 +189,8 @@
       }
 
       // run kernel
-      cl::NDRange global_dims(512, 512);
-      cl::NDRange local_dims(512, 1);
+      cl::NDRange global_dims(128, 512);
+      cl::NDRange local_dims(128, 1);
       cl::Event event = oclCon -> runKernel(global_dims, local_dims);
 
       m_events.push_back (event);
