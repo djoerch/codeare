@@ -144,6 +144,25 @@
     double time_end;
   };
   
+  
+  /**
+   * @brief  Struct containing information on kernel launches.
+   */
+  struct LaunchInformation
+  {
+    int local_x;
+    int local_y;
+    int global_x;
+    int global_y;
+    LaunchInformation (const int loc_x, const int loc_y, const int glob_x, const int glob_y)
+    {
+      local_x = loc_x;
+      local_y = loc_y;
+      global_x = glob_x;
+      global_y = glob_y;
+    }
+  };
+  
 
 
 

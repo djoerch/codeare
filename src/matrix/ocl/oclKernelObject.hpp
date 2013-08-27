@@ -120,7 +120,7 @@
        */
       virtual
       void
-      run                   ();
+      run                   (const LaunchInformation &);
       
       
       /**
@@ -162,7 +162,7 @@
    */
   void
   oclKernelObject ::
-  run                       ()
+  run                       (const LaunchInformation & lc)
   {
   
     // oclConnection for reuse in this function
@@ -189,8 +189,8 @@
       }
 
       // run kernel
-      cl::NDRange global_dims(128, 512);
-      cl::NDRange local_dims(128, 1);
+      cl::NDRange global_dims(lc.global_x, lc.global_y);
+      cl::NDRange local_dims(lc.local_x, lc.local_y);
       cl::Event event = oclCon -> runKernel(global_dims, local_dims);
 
       m_events.push_back (event);

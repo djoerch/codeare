@@ -241,7 +241,8 @@
        */
       static inline
       const oclError &
-      ocl_run_func_obj                (oclFunctionObject * const func_obj)
+      ocl_run_func_obj            (      oclFunctionObject * const func_obj,
+                                   const LaunchInformation               lc = LaunchInformation (128, 1, 128, 1))
       {
       
         try
@@ -251,13 +252,13 @@
           oclConnection :: Instance () -> activate <elem_type, scalar_type> ();
 
           // execute function object
-          func_obj -> run ( );
+          func_obj -> run (lc);
 
         }
         catch (oclError & err)
         {
         
-          stringstream msg;
+          std::stringstream msg;
           msg << "oclOperations <" << trait1 :: print_elem_type () << ", "
                                    << trait2 :: print_elem_type () << "> :: ocl_run_func_obj";
         
@@ -321,7 +322,8 @@
                                                       int                                 s2,
                                                       int                                 s3,
                                                       int                                 s4,
-                                                      int                       loc_mem_size)
+                                                      int                       loc_mem_size,
+                                      const LaunchInformation                             lc)
       {
 
         // number of kernel arguments
@@ -346,7 +348,7 @@
                                               (kernel_names, args, num_args, oclConnection::KERNEL, oclConnection::SYNC);
 
         // execute function object
-        ocl_run_func_obj (op_obj);
+        ocl_run_func_obj (op_obj, lc);
         
         // retrieve profiling information
         std::vector <ProfilingInformation> vec_pi;
@@ -839,6 +841,15 @@
         oclConnection :: Instance () -> rebuildWithSource <T, S> (filename);
       }
 
+
+      static inline
+      void
+      addKernelSource                 (const std::string               & filename,
+                                       const std::vector <std::string> & makros)
+      {
+        oclConnection :: Instance () -> rebuildWithSource <T, S> (filename, makros);
+      }
+
       
       static inline
       void
@@ -846,6 +857,16 @@
       {
         oclConnection :: Instance () -> rebuildWithSources <T, S> (filenames);
       }
+
+      
+      static inline
+      void
+      addKernelSources                (const std::vector <std::string> & filenames,
+                                       const std::vector <std::string> & makros)
+      {
+        oclConnection :: Instance () -> rebuildWithSources <T, S> (filenames, makros);
+      }
+
       
     
       /**
@@ -877,7 +898,10 @@
                                         oclDataObject * const  hpf,
                                                   int           fl,
                                         oclDataObject * const arg2,
-                                                  int         num_loc_mem_elems)
+                                                  int         num_loc_mem_elems,
+                                                  int   const group_size,
+                                                  int   const global_x,
+                                                  int   const global_y)
       {
 
           print_optional ("oclOperations <", trait1 :: print_elem_type (), ", ",
@@ -890,12 +914,14 @@
           kernel_names.push_back (std::string ("dwt_cols"));
 //          kernel_names.push_back (std::string ("dwt_rows"));
           
-          std::vector <ProfilingInformation> vec_pi = ocl_basic_operator_kernel_55 (kernel_names, arg1, lpf, hpf, arg2, loc_mem, n, m, k, fl, num_loc_mem_elems);
+          std::vector <ProfilingInformation> vec_pi = ocl_basic_operator_kernel_55 (kernel_names, arg1, lpf, hpf, arg2, loc_mem, n, m, k, fl, num_loc_mem_elems, LaunchInformation (group_size, 1, global_x, global_y));
           
           for (int i = 0; i < kernel_names.size (); i++)
           {
             float time_seconds = vec_pi[i].time_end - vec_pi[i].time_start;
             std::cout << " **> Kernel: " << kernel_names [i] << " <**" << std::endl;
+            std::cout << " local size: " << group_size << " x 1" << std::endl;
+            std::cout << " global size: " << global_x << " x " << global_y << std::endl;
             std::cout << " Time in seconds: " << time_seconds << " s " << std::endl;
             float effective_bw = ((float) 512 * 512 * 4 * 2) * 1.0e-9f / time_seconds;
             std::cout << " Effective bandwidth (on device): " << effective_bw << " GB/s " << std::endl;

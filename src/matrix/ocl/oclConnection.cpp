@@ -13,7 +13,7 @@
 
 
 /** 
- * @brief                  Create a double precision kernel out of a single precision kernel.
+ * @brief                  Modify kernel source code by adding predefined makro definitions.
  *
  * @param  source          The source string.
  * @param  fp_extension    An info string that specifies the OpenCL double precision extension.
@@ -48,12 +48,38 @@ modify_kernel              ( std::string const &       source,
 }
 
 
+/**
+ * @brief                 Add arbitrary makro definition at the front of the
+ *                        given kernel source code.
+ * 
+ * @param  source         Kernel source code.
+ * @param  vec_makros     Vector of makro definitions (without keyword).
+ * 
+ * @return                Modified kernel source code.
+ */
+std::string
+modify_kernel             ( const std::string               & source,
+                            const std::vector <std::string> & vec_makros )
+{
+  
+  std::stringstream ss;
+  for (std::vector <std::string> :: const_iterator it = vec_makros.begin ();
+          it != vec_makros.end (); it++)
+    ss << "# define " << *it << std::endl;
+  
+  ss << source << std::endl;
+  
+  return ss.str ();
+  
+}
+
+
 
 template <class T, class S>
 const char*
 oclConnection::
 ReadSource            (std::string   fname,
-                               int * size  )
+                               int *  size)
 {
 
   // open file
@@ -79,7 +105,11 @@ ReadSource            (std::string   fname,
   ((char*)buf)[*size] = '\0';
 
   /* source code !and! size may change with different precision */
-  return ocl_precision_trait <T, S> :: modify_source (buf, size); 
+  const char * tmp_src = ocl_precision_trait <T, S> :: modify_source (buf, size); 
+  
+  free (buf);
+  
+  return tmp_src;
 
 }
 
@@ -96,17 +126,36 @@ rebuildWithSource       (const std::string & filename)
 template <class T, class S>
 oclError &
 oclConnection ::
+rebuildWithSource       (const std::string & filename,
+                         const std::vector <std::string> & makros)
+{
+  init_program_kernels <T, S> (this, std::vector <std::string> (1, filename), makros);
+}
+
+
+template <class T, class S>
+oclError &
+oclConnection ::
 rebuildWithSources      (const std::vector <std::string> & filenames)
 {
   init_program_kernels <T, S> (this, filenames);
 }
 
 
+template <class T, class S>
+oclError &
+oclConnection ::
+rebuildWithSources      (const std::vector <std::string> & filenames,
+                         const std::vector <std::string> & makros)
+{
+  init_program_kernels <T, S> (this, filenames, makros);
+}
+
 
 template <class T, class S>
 oclError &
 oclConnection ::
-init_program_kernels    (oclConnection * const con, const std::vector <std::string> & add_filenames)
+init_program_kernels    (oclConnection * const con, const std::vector <std::string> & add_filenames, const std::vector <std::string> & add_makros)
 {
 
   print_optional (" ** Initializing oclConnection for types ", ocl_precision_trait <T, S> :: getTypeString (), con -> m_verbose);
@@ -129,6 +178,12 @@ init_program_kernels    (oclConnection * const con, const std::vector <std::stri
     for (std::vector <std::string> :: const_iterator it = add_filenames.begin (); it != add_filenames.end (); ++it)
     {
       const char * tmp_src = ReadSource <T, S> (*it, &size);
+      if (add_makros.size ())
+      {
+        std::string * p_tmp_src = new std::string (modify_kernel(std::string (tmp_src), add_makros));
+        size = p_tmp_src -> size () * sizeof (char);
+        tmp_src = p_tmp_src -> c_str ();
+      }
       sources.push_back (std::pair <const char *, ::size_t> (tmp_src, size));
     }
   }

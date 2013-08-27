@@ -5,9 +5,17 @@
 
 //typedef float A_type;
 
-# define GROUP_SIZE 128
-# define LINE_LENGTH 512
-# define FL 4
+# ifndef GROUP_SIZE
+  # define GROUP_SIZE 128
+# endif
+
+# ifndef LINE_LENGTH
+  # define LINE_LENGTH 512
+# endif
+
+# ifndef FL
+  # define FL 4
+# endif
 
 /**
  * @brief                 One DWT step for columns.

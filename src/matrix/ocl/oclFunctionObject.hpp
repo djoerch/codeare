@@ -63,7 +63,7 @@
 
       virtual
       void
-      run () = 0;
+      run (const LaunchInformation &) = 0;
       
       
       virtual

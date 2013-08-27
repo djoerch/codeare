@@ -255,8 +255,17 @@ modify_kernel        ( std::string const &       source,
 
       template <class T, class S>
       oclError &
+      rebuildWithSources      (const std::vector <std::string> &,
+                               const std::vector <std::string> &);
+
+      template <class T, class S>
+      oclError &
       rebuildWithSource       (const std::string &);
       
+      template <class T, class S>
+      oclError &
+      rebuildWithSource       (const std::string &,
+                               const std::vector <std::string> &);
 
     
     /*************
@@ -327,7 +336,10 @@ modify_kernel        ( std::string const &       source,
       template <class T, class S>
       static
       oclError &
-      init_program_kernels    (oclConnection * const, const std::vector <std::string> & = std::vector <std::string> (0));
+      init_program_kernels (oclConnection * const,
+                            const std::vector <std::string> & = std::vector <std::string> (0),
+                            const std::vector <std::string> & = std::vector <std::string> (0)
+                            );
 
       
       /******************

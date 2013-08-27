@@ -37,6 +37,12 @@
 # define WL_MEM 4
 # define WL_SCALE 4
 
+/**
+ * @brief OpenCL related makros
+ */
+# define OPENCL_GROUP_SIZE 128
+# define OPENCL_NUM_GROUPS 128
+
 
 
 # include "Matrix.hpp"
@@ -58,6 +64,22 @@ template<class T>
 class oclDWT {
 
 
+    private:
+
+      inline void
+      setupOpenCL           (const int group_size,
+                             const int fl,
+                             const int side_length)
+      {
+        std::stringstream ss;
+            std::vector <std::string> makros;
+            makros.push_back ((ss << "GROUP_SIZE " << group_size, ss.str ())); ss.str ("");
+            makros.push_back ((ss << "FL " << fl, ss.str ())); ss.str ("");
+            makros.push_back ((ss << "LINE_LENGTH " << side_length, ss.str ())); ss.str ("");
+            oclOperations <T> :: addKernelSource (std::string ("/localdata/djoergens/projects/CoDEARE/src/matrix/dwt/dwt.cl"), makros);
+      }
+      
+  
     public:
 
 
@@ -72,7 +94,7 @@ class oclDWT {
          * @param  wl_scale     Decomposition until side length equals 2^wl_scale.
          */
         oclDWT (const size_t sl1, const size_t sl2, const size_t sl3,
-             const wlfamily wl_fam = WL_FAM, const int wl_mem = WL_MEM, const int wl_scale = WL_SCALE)
+             const wlfamily wl_fam = WL_FAM, const int wl_mem = WL_MEM, const int wl_scale = WL_SCALE, const int group_size = OPENCL_GROUP_SIZE, const int num_groups = OPENCL_NUM_GROUPS)
             : _sl1 (sl1),
               _sl2 (sl2),
               _sl3 (sl3),
@@ -81,10 +103,12 @@ class oclDWT {
               _min_level (wl_scale),
               _max_level (MaxLevel ()),
               _wl_fam(wl_fam),
-              _fl (wl_mem)
+              _fl (wl_mem),
+              _group_size (group_size),
+          _num_groups (num_groups)
         {
             setupWlFilters <T> (wl_fam, wl_mem, _lpf_d, _lpf_r, _hpf_d, _hpf_r);
-            oclOperations <T> :: addKernelSource (std::string ("/localdata/djoergens/projects/CoDEARE/src/matrix/dwt/dwt.cl"));
+            setupOpenCL (group_size, wl_mem, _min_sl);
         }
 
 
@@ -99,7 +123,7 @@ class oclDWT {
          */
         oclDWT (const size_t sl1, const size_t sl2,
              const wlfamily wl_fam = WL_FAM, const int wl_mem = WL_MEM, const int wl_scale = WL_SCALE,
-             const int num_threads = NUM_THREADS_DWT)
+             const int num_threads = NUM_THREADS_DWT, const int group_size = OPENCL_GROUP_SIZE, const int num_groups = OPENCL_NUM_GROUPS)
         : _sl1 (sl1),
           _sl2 (sl2),
           _sl3 (1),
@@ -108,10 +132,12 @@ class oclDWT {
           _min_level (wl_scale),
           _max_level (MaxLevel ()),
           _wl_fam(wl_fam),
-          _fl (wl_mem)
+          _fl (wl_mem),
+          _group_size (group_size),
+          _num_groups (num_groups)
         {
             setupWlFilters <T> (wl_fam, wl_mem, _lpf_d, _lpf_r, _hpf_d, _hpf_r);
-            oclOperations <T> :: addKernelSource (std::string ("/localdata/djoergens/projects/CoDEARE/src/matrix/dwt/dwt.cl"));
+            setupOpenCL (group_size, wl_mem, _min_sl);
         }
 
 
@@ -124,7 +150,7 @@ class oclDWT {
          * @param  wl_scale     Decomposition until side length equals 2^wl_scale.
          */
         oclDWT (const size_t sl1,
-             const wlfamily wl_fam = WL_FAM, const int wl_mem = WL_MEM, const int wl_scale = WL_SCALE)
+             const wlfamily wl_fam = WL_FAM, const int wl_mem = WL_MEM, const int wl_scale = WL_SCALE, const int group_size = OPENCL_GROUP_SIZE, const int num_groups = OPENCL_NUM_GROUPS)
         : _sl1 (sl1),
           _sl2 (_sl1),
           _sl3 (1),
@@ -133,10 +159,12 @@ class oclDWT {
           _min_level (wl_scale),
           _max_level (MaxLevel ()),
           _wl_fam(wl_fam),
-          _fl (wl_mem)
+          _fl (wl_mem),
+          _group_size (group_size),
+          _num_groups (num_groups)
         {
             setupWlFilters <T> (wl_fam, wl_mem, _lpf_d, _lpf_r, _hpf_d, _hpf_r);
-            oclOperations <T> :: addKernelSource (std::string ("/localdata/djoergens/projects/CoDEARE/src/matrix/dwt/dwt.cl"));
+            setupOpenCL (group_size, wl_mem, _min_sl);
         }
 
 
@@ -168,7 +196,9 @@ class oclDWT {
             oclDataWrapper <T> * p_ocl_hpf = oclOperations <T> :: make_GPU_Obj (_hpf_d, _fl);
             oclOperations <T> :: ocl_operator_dwt (p_ocl_m, m.Dim(0), m.Dim(1), m.Dim(2),
                                                    p_ocl_lpf, p_ocl_hpf, _fl,
-                                                   p_ocl_res, 1024+2*_fl);
+                                                   p_ocl_res, 1024+2*_fl,
+                                                   _group_size,
+                                                   _group_size, _num_groups);
             p_ocl_res->getData();
 
             delete p_ocl_m;
@@ -275,6 +305,9 @@ class oclDWT {
         const wlfamily _wl_fam;
 
         const int _fl;
+        
+        const int _group_size;
+        const int _num_groups;
 
         // low pass filters
         RT * _lpf_d;

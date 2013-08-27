@@ -62,6 +62,9 @@ main            (int argc, char ** args)
     const char * of_name_base =       conf.GetElement ("/config")->Attribute ("ofname");
     const char * range        =       conf.GetElement ("/config")->Attribute ("range");
 
+    const int     group_size  = atoi (conf.GetElement ("/config")->Attribute ("group_size"));
+    const int     num_groups  = atoi (conf.GetElement ("/config")->Attribute ("num_groups"));
+    
     // open measurement output file
     ss.clear (), ss.str (std::string ());
     ss << base << of_name_base << "_wl_fam_" << wl_fam << "_wl_mem_" << wl_mem << "_wl_scale_" << wl_scale << ".txt";
@@ -89,7 +92,7 @@ main            (int argc, char ** args)
     {
 
         // do something
-        oclDWT <elem_type> dwt (mat_in.Dim (0), mat_in.Dim (1), mat_in.Dim (2), wl_fam, wl_mem, wl_scale);
+        oclDWT <elem_type> dwt (mat_in.Dim (0), mat_in.Dim (1), mat_in.Dim (2), wl_fam, wl_mem, wl_scale, group_size, num_groups);
         double s_time_f = omp_get_wtime ();
         dwt.Trafo (mat_in, mat_out_dwt);
         s_time_f = omp_get_wtime () - s_time_f;
