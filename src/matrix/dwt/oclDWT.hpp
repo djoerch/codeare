@@ -74,9 +74,10 @@ class oclDWT {
         std::stringstream ss;
             std::vector <std::string> makros;
             makros.push_back ((ss << "GROUP_SIZE " << group_size, ss.str ())); ss.str ("");
+            makros.push_back ((ss << "NUM_GROUPS " << _num_groups, ss.str ())); ss.str ("");
             makros.push_back ((ss << "FL " << fl, ss.str ())); ss.str ("");
             makros.push_back ((ss << "LINE_LENGTH " << side_length, ss.str ())); ss.str ("");
-            oclOperations <T> :: addKernelSource (std::string ("/localdata/djoergens/projects/CoDEARE/src/matrix/dwt/dwt.cl"), makros);
+            oclOperations <T> :: addKernelSource (std::string ("/localdata/djoergens/projects/CoDEARE/src/matrix/dwt/dwt2.cl"), makros);
       }
       
   
@@ -188,7 +189,7 @@ class oclDWT {
                     && m.Dim (1) == _sl2
                     && (_dim == 2 || m.Dim (2) == _sl3)
                     && m.Dim () == res.Dim ());
-
+            
             /* TODO: call kernel */
             oclDataWrapper <T> * p_ocl_m   = oclOperations <T> :: make_GPU_Obj (&m.Container()[0], m.Size ());
             oclDataWrapper <T> * p_ocl_res = oclOperations <T> :: make_GPU_Obj (&res[0], res.Size ());
@@ -196,11 +197,12 @@ class oclDWT {
             oclDataWrapper <T> * p_ocl_hpf = oclOperations <T> :: make_GPU_Obj (_hpf_d, _fl);
             oclOperations <T> :: ocl_operator_dwt (p_ocl_m, m.Dim(0), m.Dim(1), m.Dim(2),
                                                    p_ocl_lpf, p_ocl_hpf, _fl,
-                                                   p_ocl_res, 1024+2*_fl,
+                                                   p_ocl_res, pow (m.Dim (0) / _num_groups + _fl, 2) + pow (m.Dim (0) / _num_groups, 2),
                                                    _group_size,
-                                                   _group_size, _num_groups);
+                                                   _group_size * _num_groups,
+                                                   _group_size * _num_groups);
             p_ocl_res->getData();
-
+            
             delete p_ocl_m;
             delete p_ocl_res;
             delete p_ocl_lpf;

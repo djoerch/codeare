@@ -17,6 +17,50 @@
   # define FL 4
 # endif
 
+
+void
+filtering           (int local_c1,
+                     __local A_type * tmp, __local A_type * tmp2,
+                     __constant A_type * _lpf, __constant A_type * _hpf)
+{
+
+    // partitioning for highpass and lowpass filtering
+    if (local_c1 < GROUP_SIZE/2)
+    {
+      // work on local memory (work_group)
+      for (int i = 0; i < LINE_LENGTH/GROUP_SIZE; i++)
+      {
+        A_type sum = 0;
+        const int index = 2*local_c1+i*GROUP_SIZE;
+        // lowpass
+        # pragma unroll
+        for (int j = FL-1; j >= 0; j--)
+        {
+          sum += tmp [(index-j)&(LINE_LENGTH-1)] * _lpf [j];
+        }
+        tmp2 [local_c1+GROUP_SIZE/2*i] = sum;
+      }
+    }
+    else
+    {
+      // work on local memory (work_group)
+      for (int i = 0; i < LINE_LENGTH/GROUP_SIZE; i++)
+      {
+        A_type sum = 0;
+        const int index = 2*(local_c1-GROUP_SIZE/2)+i*GROUP_SIZE+1;
+        // highpass
+        # pragma unroll
+        for (int j = FL-1; j >= 0; j--)
+        {
+          sum += tmp [(index-j)&(LINE_LENGTH-1)] * _hpf [j];
+        }
+        tmp2 [LINE_LENGTH/2 + GROUP_SIZE/2*(i-1) + local_c1] = sum;
+      }
+    }
+
+}
+
+
 /**
  * @brief                 One DWT step for columns.
  *
@@ -74,41 +118,7 @@ dwt_cols (__global A_type * arg1,
       tmp [local_c1 + i * GROUP_SIZE] = arg1 [column_offset + local_c1 + i * GROUP_SIZE];
   
     barrier (CLK_LOCAL_MEM_FENCE);
-
-    // partitioning for highpass and lowpass filtering
-    if (local_c1 < GROUP_SIZE/2)
-    {
-      // work on local memory (work_group)
-      for (int i = 0; i < LINE_LENGTH/GROUP_SIZE; i++)
-      {
-        A_type sum = 0;
-        const int index = 2*local_c1+i*GROUP_SIZE;
-        // lowpass
-        # pragma unroll
-        for (int j = FL-1; j >= 0; j--)
-        {
-          sum += tmp [(index-j)&(LINE_LENGTH-1)] * _lpf [j];
-        }
-        tmp2 [local_c1+GROUP_SIZE/2*i] = sum;
-      }
-    }
-    else
-    {
-      // work on local memory (work_group)
-      for (int i = 0; i < LINE_LENGTH/GROUP_SIZE; i++)
-      {
-        A_type sum = 0;
-        const int index = 2*(local_c1-GROUP_SIZE/2)+i*GROUP_SIZE+1;
-        // highpass
-        # pragma unroll
-        for (int j = FL-1; j >= 0; j--)
-        {
-          sum += tmp [(index-j)&(LINE_LENGTH-1)] * _hpf [j];
-        }
-        tmp2 [LINE_LENGTH/2 + GROUP_SIZE/2*(i-1) + local_c1] = sum;
-      }
-    }
-
+    filtering (local_c1, tmp, tmp2, _lpf, _hpf);
     barrier (CLK_LOCAL_MEM_FENCE);
 
     // copy column back to global memory
@@ -151,15 +161,15 @@ dwt_rows (__global A_type * arg1,
 //  const int group_id = get_group_id (0);
 
   const int local_c1     = get_local_id (0);     // current row
-  const int local_size1  = get_local_size (0);   // number of rows
+//  const int local_size1  = get_local_size (0);   // number of rows
 
-  const int global_c1    = get_global_id (0);   // current row
+//  const int global_c1    = get_global_id (0);   // current row
 //  const int global_size1 = get_global_size (0); // number of rows
   const int global_c2    = get_global_id (1);   // current column
-//  const int global_size2 = get_global_size (1); // number of columns
+  const int global_size2 = get_global_size (1); // number of columns
 
   __local A_type * tmp  = & loc_mem [0];
-  __local A_type * tmp2 = & loc_mem [*n];
+  __local A_type * tmp2 = & loc_mem [LINE_LENGTH];
 
 
   /* calculation */
@@ -168,41 +178,64 @@ dwt_rows (__global A_type * arg1,
 
   // ROWS
 
-  // copy row to local memory
-  tmp [local_c1] = arg2 [global_c2 + *m * local_c1];
-  
-  
-  A_type sum = 0;
-  barrier (CLK_LOCAL_MEM_FENCE);
 
-  // partitioning for highpass and lowpass filtering
-  if (local_c1 < *n/2)
+  for (int row_group = 0; row_group < LINE_LENGTH/global_size2; row_group++)
   {
-    // work on local memory (work_group)
-    // lowpass & highpass
+
+    const int row_offset = global_c2 + row_group * global_size2;
+
+    // copy column to local memory
     # pragma unroll
-    for (int j = *fl-1; j >= 0; j--)
-    {
-      sum += tmp [(2*local_c1-j)&(*n-1)] * _lpf [j];
-    }
-    tmp2 [local_c1] = sum;
-  }
-  else
-  {
-    // work on local memory (work_group)
-    // lowpass & highpass
+    for (int i = 0; i < LINE_LENGTH / GROUP_SIZE; i++)
+      tmp [local_c1 + i * GROUP_SIZE] = arg1 [row_offset + local_c1*LINE_LENGTH + i * GROUP_SIZE*LINE_LENGTH];
+  
+    barrier (CLK_LOCAL_MEM_FENCE);
+    filtering (local_c1, tmp, tmp2, _lpf, _hpf);
+    barrier (CLK_LOCAL_MEM_FENCE);
+
+    // copy column back to global memory
     # pragma unroll
-    for (int j = *fl-1; j >= 0; j--)
-    {
-      sum += tmp [(2*(local_c1-*n/2)+1-j)&(*n-1)] * _hpf [j];
-    }
-    tmp2 [local_c1] = sum;
+    for (int i = 0; i < LINE_LENGTH / GROUP_SIZE; i++)
+      arg2 [row_offset + local_c1*LINE_LENGTH + i * GROUP_SIZE*LINE_LENGTH] = tmp2 [local_c1 + i * GROUP_SIZE];
+
   }
 
+
+//  // copy row to local memory
+//  tmp [local_c1] = arg2 [global_c2 + *m * local_c1];
+//  
+//  
+//  A_type sum = 0;
 //  barrier (CLK_LOCAL_MEM_FENCE);
-
-
-  // copy column back to global memory
-  arg2 [global_c2 + local_c1 * *m] = tmp2 [local_c1];
+//
+//  // partitioning for highpass and lowpass filtering
+//  if (local_c1 < *n/2)
+//  {
+//    // work on local memory (work_group)
+//    // lowpass & highpass
+//    # pragma unroll
+//    for (int j = *fl-1; j >= 0; j--)
+//    {
+//      sum += tmp [(2*local_c1-j)&(*n-1)] * _lpf [j];
+//    }
+//    tmp2 [local_c1] = sum;
+//  }
+//  else
+//  {
+//    // work on local memory (work_group)
+//    // lowpass & highpass
+//    # pragma unroll
+//    for (int j = *fl-1; j >= 0; j--)
+//    {
+//      sum += tmp [(2*(local_c1-*n/2)+1-j)&(*n-1)] * _hpf [j];
+//    }
+//    tmp2 [local_c1] = sum;
+//  }
+//
+////  barrier (CLK_LOCAL_MEM_FENCE);
+//
+//
+//  // copy column back to global memory
+//  arg2 [global_c2 + local_c1 * *m] = tmp2 [local_c1];
 
 }

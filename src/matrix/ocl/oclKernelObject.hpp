@@ -156,7 +156,6 @@
    **************************/
 
 
-  
   /**
    * @brief                 prepare arguments, run kernel, finish arguments
    */

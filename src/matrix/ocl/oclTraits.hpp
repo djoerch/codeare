@@ -205,7 +205,7 @@
    ** struct: oclOperations **
    **   (base struct)       **
    ***************************/
-  template <class      T,                        class      S =                   T,
+  template <class      T,                        class      S =                T,
             class trait1 = elem_type_traits <T>, class trait2 = elem_type_traits <S> >
   struct oclOperations
   {
@@ -910,23 +910,43 @@
           // dynamically allocate local memory
           oclDataObject * loc_mem = new oclLocalMemObject <elem_type> (num_loc_mem_elems);
           
-          std::vector <std::string> kernel_names;
-          kernel_names.push_back (std::string ("dwt_cols"));
-//          kernel_names.push_back (std::string ("dwt_rows"));
+          std::vector <std::string> kernel_names_cols;
+          kernel_names_cols.push_back (std::string ("dwt2"));
           
-          std::vector <ProfilingInformation> vec_pi = ocl_basic_operator_kernel_55 (kernel_names, arg1, lpf, hpf, arg2, loc_mem, n, m, k, fl, num_loc_mem_elems, LaunchInformation (group_size, 1, global_x, global_y));
+          std::vector <ProfilingInformation> vec_pi = ocl_basic_operator_kernel_55 (kernel_names_cols, arg1, lpf, hpf, arg2, loc_mem, n, m, k, fl, num_loc_mem_elems, LaunchInformation (group_size, group_size, global_x, global_y));
           
-          for (int i = 0; i < kernel_names.size (); i++)
+          for (int i = 0; i < kernel_names_cols.size (); i++)
           {
             float time_seconds = vec_pi[i].time_end - vec_pi[i].time_start;
-            std::cout << " **> Kernel: " << kernel_names [i] << " <**" << std::endl;
-            std::cout << " local size: " << group_size << " x 1" << std::endl;
+            std::cout << " **> Kernel: " << kernel_names_cols [i] << " <**" << std::endl;
+            std::cout << " local size: " << group_size << " x " << group_size << std::endl;
             std::cout << " global size: " << global_x << " x " << global_y << std::endl;
             std::cout << " Time in seconds: " << time_seconds << " s " << std::endl;
             float effective_bw = ((float) 512 * 512 * 4 * 2) * 1.0e-9f / time_seconds;
             std::cout << " Effective bandwidth (on device): " << effective_bw << " GB/s " << std::endl;
           }
           
+//          std::vector <std::string> kernel_names;
+//          for (int i = 0; i < 3; i++)
+//          {
+//            kernel_names.push_back (std::string ("dwt_rows"));
+//            kernel_names.push_back (std::string ("dwt_cols"));
+//          }
+//          kernel_names.push_back (std::string ("dwt_rows"));
+//          
+//          vec_pi = ocl_basic_operator_kernel_55 (kernel_names, arg2, lpf, hpf, arg2, loc_mem, n, m, k, fl, num_loc_mem_elems, LaunchInformation (group_size, 1, global_x, global_y));
+//          
+//          for (int i = 0; i < kernel_names.size (); i++)
+//          {
+//            float time_seconds = vec_pi[i].time_end - vec_pi[i].time_start;
+//            std::cout << " **> Kernel: " << kernel_names [i] << " <**" << std::endl;
+//            std::cout << " local size: " << group_size << " x 1" << std::endl;
+//            std::cout << " global size: " << global_x << " x " << global_y << std::endl;
+//            std::cout << " Time in seconds: " << time_seconds << " s " << std::endl;
+//            float effective_bw = ((float) 512 * 512 * 4 * 2) * 1.0e-9f / time_seconds;
+//            std::cout << " Effective bandwidth (on device): " << effective_bw << " GB/s " << std::endl;
+//          }
+                    
           delete loc_mem;
           
       }

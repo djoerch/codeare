@@ -382,7 +382,9 @@ runKernel             (const cl::NDRange  & global_dims,
       cl::Event event;
       
       m_error = (*it).enqueueNDRangeKernel (*mp_actKernel, cl::NullRange, global_dims, local_dims, NULL, &event);
-
+      
+      m_error = (*it).enqueueBarrier ();
+      
       return event;
       
     } catch (cl::Error & cle) {

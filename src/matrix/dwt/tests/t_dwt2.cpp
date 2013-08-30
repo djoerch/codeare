@@ -11,7 +11,7 @@
 /**********************
  ** type definitions **
  **********************/
-typedef double elem_type;
+typedef float elem_type;
 
 
 using namespace codeare::matrix::io;
