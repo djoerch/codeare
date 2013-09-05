@@ -24,9 +24,9 @@
 # endif
 
 
+  __constant const int offset = FL-1;
   __constant const int block_size = LINE_LENGTH / NUM_GROUPS;
-  __constant const int border_block_size = LINE_LENGTH / NUM_GROUPS + FL;
-  __constant const int offset = FL;
+  __constant const int border_block_size = LINE_LENGTH / NUM_GROUPS + offset;
 
 
 A_type
@@ -56,8 +56,8 @@ global2local        (__global A_type * arg1, __local A_type * tmp,
       int index = upper_left + (local_c2 + j) * LINE_LENGTH + local_c1 + i;
       if (upper_left + (local_c2 + j) * LINE_LENGTH + local_c1 + i < 0)
       {
-        index = index + (index < -FL ? LINE_LENGTH * LINE_LENGTH : 0)
-                      + (index < 0 && index >= -FL ? LINE_LENGTH : 0);
+        index = index + (index < -offset ? LINE_LENGTH * LINE_LENGTH : 0)
+                      + (index < 0 && index >= -offset ? LINE_LENGTH : 0);
         tmp [(local_c2 + j) * border_block_size + local_c1 + i]
             = arg1 [index];
         continue;
@@ -69,8 +69,8 @@ global2local        (__global A_type * arg1, __local A_type * tmp,
       int index = upper_left + (local_c2 + j) * LINE_LENGTH + local_c1 + i;
       if (upper_left + (local_c2 + j) * LINE_LENGTH + local_c1 + i < 0)
       {
-        index = index + (index < -FL ? LINE_LENGTH * LINE_LENGTH : 0)
-                      + (index < 0 && index >= -FL ? LINE_LENGTH : 0);
+        index = index + (index < -offset ? LINE_LENGTH * LINE_LENGTH : 0)
+                      + (index < 0 && index >= -offset ? LINE_LENGTH : 0);
         tmp [(local_c2 + j) * border_block_size + local_c1 + i]
             = arg1 [index];
         continue;
@@ -206,7 +206,7 @@ filter_columns           (const int local_c1, const int local_c2,
     {
 
       // reused index parts
-      const int part_index = local_c2 * border_block_size + 2 * local_c1 + FL;
+      const int part_index = local_c2 * border_block_size + 2 * local_c1 + offset;
       const int part_index2 = local_c2 * block_size + local_c1;
 
       // j: loop over columns per thread -> c2
@@ -253,7 +253,7 @@ filter_columns           (const int local_c1, const int local_c2,
     { 
         
       // reused index parts
-      const int part_index = local_c2 * border_block_size + 2 * (local_c1 - GROUP_SIZE/2) + 1 + FL;
+      const int part_index = local_c2 * border_block_size + 2 * (local_c1 - GROUP_SIZE/2) + 1 + offset;
       const int part_index2 = local_c2 * block_size + local_c1 - GROUP_SIZE/2 + block_size/2;
         
       // j: loop over columns per thread
@@ -312,7 +312,7 @@ filter_rows           (const int local_c1, const int local_c2,
     {
 
       // reused index parts
-      const int part_index = local_c1 + (FL + 2 * local_c2) * block_size;
+      const int part_index = local_c1 + (offset + 2 * local_c2) * block_size;
       const int part_index2 = local_c1 + local_c2 * block_size;
 
       // j: loop over rows per thread -> c1
@@ -359,7 +359,7 @@ filter_rows           (const int local_c1, const int local_c2,
     { 
         
       // reused index parts
-      const int part_index = local_c1 + (FL + 2 * (local_c2 - GROUP_SIZE/2) + 1) * block_size;
+      const int part_index = local_c1 + (offset + 2 * (local_c2 - GROUP_SIZE/2) + 1) * block_size;
       const int part_index2 = local_c1 + (local_c2 - GROUP_SIZE/2 + block_size/2) * block_size;
         
       // j: loop over columns per thread
@@ -403,6 +403,64 @@ filter_rows           (const int local_c1, const int local_c2,
     } // end of highpass filter
 
 }
+
+
+kernel void
+perf_dwtFilter (__local A_type * loc_mem, __constant A_type * _lpf, __constant A_type * _hpf)
+{
+
+  const int local_c1 = get_local_id (0);
+  const int local_c2 = get_local_id (1);
+
+  __local A_type * tmp  = & loc_mem [0];
+  __local A_type * tmp2 = & loc_mem [border_block_size * border_block_size];
+
+
+  filter_columns (local_c1, local_c2, tmp, tmp2, _lpf, _hpf);
+  barrier (CLK_LOCAL_MEM_FENCE);
+  filter_rows (local_c1, local_c2, tmp2, tmp, _lpf, _hpf);
+
+}
+
+
+kernel void
+perf_dwtGlobalToLocal (__local A_type * loc_mem, __global A_type * arg1)
+{
+
+  const int local_c1 = get_local_id (0);
+  const int local_c2 = get_local_id (1);
+
+  __local A_type * tmp  = & loc_mem [0];
+
+  const int upper_left = get_group_id (1) * block_size * LINE_LENGTH
+                       + get_group_id (0) * block_size
+                       - offset * LINE_LENGTH
+                       - offset;
+
+
+  global2local (arg1, tmp, upper_left, local_c1, local_c2);
+
+}
+
+
+
+kernel void
+perf_dwtLocalToGlobal (__local A_type * loc_mem, __global A_type * arg2)
+{
+
+  const int local_c1 = get_local_id (0);
+  const int local_c2 = get_local_id (1);
+
+  __local A_type * tmp  = & loc_mem [0];
+
+  const int upper_left2 = get_group_id (1) * block_size / 2 * LINE_LENGTH
+                        + get_group_id (0) * block_size / 2;
+
+
+  local2global (tmp, arg2, upper_left2, local_c1, local_c2);
+
+}
+
 
 
 
