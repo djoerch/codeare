@@ -73,7 +73,7 @@
        * @brief               inherited (oclDataObject)
        */
       virtual
-      void
+      double
       prepare                 ();
       
       
@@ -81,7 +81,7 @@
        * @brief               inherited (oclObservableDataObject)
        */
       virtual
-      void
+      double
       finish                  ();
       
       
@@ -89,7 +89,7 @@
        * @brief               inherited (oclDataWrapper)
        */
       virtual
-      void
+      double
       getData                 ();
       
       
@@ -135,7 +135,7 @@
    * @brief                   do nothing
    */
   template <class T>
-  void
+  double
   oclLocalMemObject <T> ::
   prepare                     ()
   {
@@ -145,6 +145,8 @@
     // set status: calculating (set available via finish ())
     oclDataObject :: setLocked ();
 
+    return .0;
+    
   }
   
   
@@ -153,7 +155,7 @@
    * @brief                   do nothing
    */
   template <class T>
-  void
+  double
   oclLocalMemObject <T> ::
   finish                      ()
   {
@@ -163,6 +165,8 @@
     // update data state: available for use
     oclDataObject :: setUnlocked ();
 
+    return .0;
+    
   }
   
   
@@ -171,7 +175,7 @@
    * @brief                   do nothing but throw error!
    */
   template <class T>
-  void
+  double
   oclLocalMemObject <T> ::
   getData                     ()
   {

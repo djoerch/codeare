@@ -152,7 +152,7 @@ modify_kernel        ( std::string const &       source,
        *                      
        */
       template <class T>
-      void
+      double
       loadToGPU             (       T   * const cpu_arg,
                              ::size_t           size,
                              clBuffer   * const buffer);
@@ -174,7 +174,7 @@ modify_kernel        ( std::string const &       source,
        * @param             size - ... in bytes
        */
       template <class T>
-      void
+      double
       loadToCPU             (const clBuffer * const buffer,
                                           T * const cpu_arg,
                              const ::size_t         size)
@@ -187,8 +187,11 @@ modify_kernel        ( std::string const &       source,
           
           print_optional (" -- size: %d Bytes", size, VERB_LOW); //m_verbose);
 
+          // TODO: !! blocking !! //
+          double mem_time = omp_get_wtime ();
           // read data from given buffer
           m_error = m_comqs [0] . enqueueReadBuffer (*buffer, CL_TRUE, 0, size, cpu_arg, NULL, NULL);
+          return omp_get_wtime () - mem_time;
         
         }
         catch (cl::Error & cle)
@@ -1193,7 +1196,7 @@ modify_kernel        ( std::string const &       source,
    * @param             size    ... in bytes
    */
   template <class T>
-  void
+  double
   oclConnection ::
   loadToGPU             (       T   * const cpu_arg,
                          ::size_t           size,
@@ -1208,8 +1211,11 @@ modify_kernel        ( std::string const &       source,
                    
       try {
 
-        m_error = it -> enqueueWriteBuffer (*buffer, CL_FALSE, 0, size, cpu_arg, NULL, NULL);
-
+        // TODO: !! blocking !! //
+        double mem_time = omp_get_wtime ();
+        m_error = it -> enqueueWriteBuffer (*buffer, CL_TRUE, 0, size, cpu_arg, NULL, NULL);
+        return omp_get_wtime () - mem_time;
+        
       } catch (cl::Error cle) {
 
         throw oclError (cle.err (), "oclConnection :: loadToGPU");

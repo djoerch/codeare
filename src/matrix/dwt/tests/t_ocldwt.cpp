@@ -62,12 +62,14 @@ main            (int argc, char ** args)
     const char * of_name_base =       conf.GetElement ("/config")->Attribute ("ofname");
     const char * range        =       conf.GetElement ("/config")->Attribute ("range");
 
-    const int     group_size  = atoi (conf.GetElement ("/config")->Attribute ("group_size"));
-    const int     num_groups  = atoi (conf.GetElement ("/config")->Attribute ("num_groups"));
+    const int start_local_size  = atoi (conf.GetElement ("/config/gpu/local")->Attribute ("start_value"));
+    const int end_local_size  = atoi (conf.GetElement ("/config/gpu/local")->Attribute ("end_value"));
+    const int start_global_size  = atoi (conf.GetElement ("/config/gpu/global")->Attribute ("start_value"));
+    const int end_num_groups  = atoi (conf.GetElement ("/config/gpu/global")->Attribute ("end_value"));
     
     // open measurement output file
     ss.clear (), ss.str (std::string ());
-    ss << base << of_name_base << "_wl_fam_" << wl_fam << "_wl_mem_" << wl_mem << "_wl_scale_" << wl_scale << ".txt";
+    ss << base << of_name_base << "_wl_fam_" << wl_fam << "_wl_mem_" << wl_mem << "_wl_scale_" << wl_scale << "_gs_" << start_global_size << ".txt";
     std::fstream fs;
     fs.open (ss.str ().c_str (), std::fstream::out);
 
@@ -80,42 +82,52 @@ main            (int argc, char ** args)
 
     // headline of table
     fs << "## OpenCL DWT ##" << std::endl;
-    fs << "## No. of threads  --  per transform:  --  single forward:  --  single backwards:  --  S(p)" << std::endl;
+    fs << "## Local size  --  global_size  --  time exec  --  time mem  --  bandwidth" << std::endl;
 
     Matrix <elem_type> mat_out_dwt (mat_in.Dim ());
     Matrix <elem_type> mat_out_dwt_recon (mat_in.Dim ());
 
     double time_ref = 0;
+    std::vector <PerformanceInformation> vec_pi;
+    
 
-    // loop over number of threads
-    for (int threads = init_num_threads; threads <= num_threads; threads +=1) //*= 2)
+    for (int global_size = start_global_size; global_size <= end_num_groups; global_size *= 2)
     {
+      for (int local_size = start_local_size; local_size <= end_local_size; local_size *= 2)
+      {
 
         // do something
-        oclDWT <elem_type> dwt (mat_in.Dim (0), mat_in.Dim (1), mat_in.Dim (2), wl_fam, wl_mem, wl_scale, group_size, num_groups);
-        double s_time_f = omp_get_wtime ();
-        dwt.Trafo (mat_in, mat_out_dwt);
-        s_time_f = omp_get_wtime () - s_time_f;
-        double s_time_b = omp_get_wtime ();
+        oclDWT <elem_type> dwt (mat_in.Dim (0), mat_in.Dim (1), mat_in.Dim (2), wl_fam, wl_mem, wl_scale, local_size, global_size);
+        vec_pi = dwt.Trafo (mat_in, mat_out_dwt);
+
         dwt.Adjoint (mat_out_dwt, mat_out_dwt_recon);
-        s_time_b = omp_get_wtime () - s_time_b;
+
+//          std::cout << std::endl;
+//          for (std::vector <PerformanceInformation> :: const_iterator it = vec_pi.begin ();
+//                  it != vec_pi.end (); ++it)
+//          {
+//            std::cout << *it << std::endl;
+//          }
 
         // make sure input data is correct for iteration ;) !!!
 //        mat_out_dwt_recon = mat_in;
 
-        double time = omp_get_wtime ();
+
+        PerformanceInformation pi = vec_pi [3];
         for (int i = 0; i < iterations; i++)
         {
-//            dwt.Trafo (mat_out_dwt_recon, mat_out_dwt);
+            pi += dwt.Trafo (mat_out_dwt_recon, mat_out_dwt) [3];
 //            dwt.Adjoint (mat_out_dwt, mat_out_dwt_recon);
         }
-        time = omp_get_wtime () - time;
 
-        if (threads == 1)
-            time_ref = time;
+          std::cout << " -------------- " << std::endl;
+          std::cout << pi << std::endl;
+          std::cout << " -------------- " << std::endl;
 
-        fs << "\t" << threads << "\t\t" << time/iterations/2 << "\t\t" << s_time_f << "\t\t" << s_time_b << "\t\t" << time_ref/time << std::endl;
 
+        fs << "\t" << pi.lc.local_x << "\t\t" << pi.lc.global_x << "\t\t" << pi.time_exec << "\t\t" << (pi.time_mem_up + pi.time_mem_down) << "\t\t" << pi.parameter << std::endl;
+
+      }
     }
 
     // output oclMatrix to output file

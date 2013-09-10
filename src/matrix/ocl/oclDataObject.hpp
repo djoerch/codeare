@@ -65,7 +65,7 @@
        *                    -- prepare data object for use on gpu --
        */
       virtual
-      void
+      double
       prepare               () = 0;
 
 
@@ -339,7 +339,7 @@
        * @brief             synchronize data on GPU with CPU
        */
       virtual
-      void
+      double
       loadToGPU             () = 0;
 
 
@@ -347,7 +347,7 @@
        * @brief             synchronize data on CPU with GPU
        */
       virtual
-      void
+      double
       loadToCPU             () = 0;
 
 

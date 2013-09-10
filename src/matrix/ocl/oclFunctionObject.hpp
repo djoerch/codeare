@@ -80,8 +80,8 @@
        */
        
       /* function arguments */
-      oclDataObject     * const * const mpp_args;
-      int                               m_num_args;
+      oclDataObject     * const * mpp_args;
+      int                         m_num_args;
   
  
   }; // class oclFunctionObject

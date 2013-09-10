@@ -362,7 +362,7 @@ const
   clGetEventProfilingInfo(event(), CL_PROFILING_COMMAND_START, sizeof (cl_ulong), &start, NULL);
   clGetEventProfilingInfo(event(), CL_PROFILING_COMMAND_END, sizeof (cl_ulong), &end, NULL);
   
-  return {start*1.e-9, end*1.e-9};
+  return {start*1.e-9, end*1.e-9, 0};
   
 }
 

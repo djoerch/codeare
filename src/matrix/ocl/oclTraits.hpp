@@ -308,7 +308,87 @@
 
 
       /**
-       * @brief                     execute specified kernel with 3 arguments and 4 scalars
+       * @brief                       execute specified kernel with 3 arguments
+       */
+      static inline
+      ProfilingInformation
+      ocl_basic_operator_kernel_3              ( const std::string & kernel_name,
+                                                       oclDataObject * const        arg1,
+                                                       oclDataObject * const        arg2,
+                                                       oclDataObject * const      arg3,
+                                                 const LaunchInformation              lc )
+      {
+    
+        // number of kernel arguments
+        const int num_args = 3;
+    
+        // create array of function arguments
+        oclDataObject ** args = (oclDataObject **) malloc (num_args * sizeof (oclDataObject *));
+        args [0] = arg1;
+        args [1] = arg2;
+        args [2] = arg3;
+
+        // create function object
+        oclFunctionObject * op_obj = oclConnection :: Instance ()
+                                        -> makeFunctionObject <elem_type, scalar_type>
+                                              (kernel_name, args, num_args, oclConnection::KERNEL, oclConnection::SYNC);
+        
+        // execute function object
+        ocl_run_func_obj (op_obj, lc);
+
+        // retrieve profiling information
+        ProfilingInformation pi = op_obj -> getProfilingInformation(0);
+        
+        // clear memory
+        delete op_obj;
+        free (args);
+        
+        return pi;
+    
+      }
+      
+      
+            /**
+       * @brief                       execute specified kernel with 2 arguments
+       */
+      static inline
+      ProfilingInformation
+      ocl_basic_operator_kernel_2              ( const std::string & kernel_name,
+                                                       oclDataObject * const        arg1,
+                                                       oclDataObject * const        arg2,
+                                                 const LaunchInformation              lc )
+      {
+    
+        // number of kernel arguments
+        const int num_args = 2;
+    
+        // create array of function arguments
+        oclDataObject ** args = (oclDataObject **) malloc (num_args * sizeof (oclDataObject *));
+        args [0] = arg1;
+        args [1] = arg2;
+
+        // create function object
+        oclFunctionObject * op_obj = oclConnection :: Instance ()
+                                        -> makeFunctionObject <elem_type, scalar_type>
+                                              (kernel_name, args, num_args, oclConnection::KERNEL, oclConnection::SYNC);
+        
+        // execute function object
+        ocl_run_func_obj (op_obj, lc);
+
+        // retrieve profiling information
+        ProfilingInformation pi = op_obj -> getProfilingInformation(0);
+        
+        // clear memory
+        delete op_obj;
+        free (args);
+        
+        return pi;
+    
+      }
+      
+      
+      /**
+       * @brief                     execute specified kernel with 5 arguments and 5 scalars
        */
       static inline
       std::vector <ProfilingInformation>
@@ -876,6 +956,64 @@
 
 
 
+      static inline
+      std::vector <PerformanceInformation>
+      ocl_operator_perf_dwt           ( oclDataObject * const arg1,
+                                        oclDataObject * const lpf,
+                                        oclDataObject * const hpf,
+                                        oclDataObject * const arg2,
+                                        const int num_loc_mem_elems,
+                                        const int fl,
+                                        const int group_size,
+                                        const int global_x,
+                                        const int global_y )
+      {
+        
+          std::vector <PerformanceInformation> vec_perf;
+        
+          print_optional ("oclOperations <", trait1 :: print_elem_type (), ", ",
+                                             trait2 :: print_elem_type (), "> :: ocl_operator_perf_dwt", op_v_level);
+
+          // dynamically allocate local memory
+          oclDataObject * loc_mem = new oclLocalMemObject <elem_type> (num_loc_mem_elems);
+          
+          // kernel launch configuration
+          LaunchInformation lc (group_size, group_size, global_x, global_y);
+
+          ////////////////////
+          // Global to Local
+          ////////////////////
+          std::string kernel_name ("perf_dwtGlobalToLocal");
+          ProfilingInformation pi = ocl_basic_operator_kernel_2 (kernel_name, loc_mem, arg1, lc);
+          float time_seconds = pi.time_end - pi.time_start;
+          float effective_bw = ((float) (pow((512/(global_x/group_size)+fl)/group_size,2)) * global_x * global_y * 4 ) * 1.0e-9f / time_seconds;
+          vec_perf.push_back (PerformanceInformation (kernel_name, lc, std::string () + " Effective bandwidth (GB/s)", time_seconds, pi.time_mem_up, pi.time_mem_down, effective_bw));
+                    
+          ////////////////////
+          // Local to Global
+          ////////////////////
+          kernel_name = std::string ("perf_dwtLocalToGlobal");
+          pi = ocl_basic_operator_kernel_2 (kernel_name, loc_mem, arg2, lc);
+          time_seconds = pi.time_end - pi.time_start;
+          effective_bw = ((float) ( pow (512/global_x,2)) * global_x * global_y * 4 ) * 1.0e-9f / time_seconds;
+          vec_perf.push_back (PerformanceInformation (kernel_name, lc, std::string () + " Effective bandwidth (GB/s)", time_seconds, pi.time_mem_up, pi.time_mem_down, effective_bw));
+          
+          ////////////////////
+          // Convolution
+          ////////////////////
+          kernel_name = std::string ("perf_dwtFilter");
+          pi = ocl_basic_operator_kernel_3 (kernel_name, loc_mem, lpf, hpf, lc);
+          time_seconds = pi.time_end - pi.time_start;
+          float effective_flops = ((float) (7 + (512/(global_x/group_size)+fl) / group_size * 512/global_x * (9 + 4 * fl + 2)) + (7 + pow(512/global_x,2)) * (9 + 4*fl + 2)) * global_x * global_y / time_seconds * 1.0e-9f;
+          vec_perf.push_back (PerformanceInformation (kernel_name, lc, std::string () + " Effective Flop/s", time_seconds, pi.time_mem_up, pi.time_mem_down, effective_flops));
+                    
+          delete loc_mem;
+          
+          return vec_perf;
+        
+      }
+
+
       /**
        * @brief                       3D Discrete Wavelet Transform.
        *
@@ -889,7 +1027,7 @@
        * ...
        */
       static inline
-      const oclError &
+      const std::vector <PerformanceInformation>
       ocl_operator_dwt                ( oclDataObject * const arg1,
                                                   int            n,
                                                   int            m,
@@ -904,29 +1042,30 @@
                                                   int   const global_y)
       {
 
+          std::vector <PerformanceInformation> vec_perf;
+        
           print_optional ("oclOperations <", trait1 :: print_elem_type (), ", ",
                                              trait2 :: print_elem_type (), "> :: ocl_operator_dwt", op_v_level);
 
           // dynamically allocate local memory
           oclDataObject * loc_mem = new oclLocalMemObject <elem_type> (num_loc_mem_elems);
           
-          std::vector <std::string> kernel_names_cols;
-          kernel_names_cols.push_back (std::string ("dwt2"));
+          LaunchInformation lc (group_size, group_size, global_x, global_y);
           
-          std::vector <ProfilingInformation> vec_pi = ocl_basic_operator_kernel_55 (kernel_names_cols, arg1, lpf, hpf, arg2, loc_mem, n, m, k, fl, num_loc_mem_elems, LaunchInformation (group_size, group_size, global_x, global_y));
+          std::vector <std::string> kernel_names;
+          kernel_names.push_back (std::string ("dwt2"));
           
-          for (int i = 0; i < kernel_names_cols.size (); i++)
+          std::vector <ProfilingInformation> vec_pi = ocl_basic_operator_kernel_55 (kernel_names, arg1, lpf, hpf, arg2, loc_mem, n, m, k, fl, num_loc_mem_elems, lc);
+          
+          for (int i = 0; i < kernel_names.size (); i++)
           {
             float time_seconds = vec_pi[i].time_end - vec_pi[i].time_start;
-            std::cout << " **> Kernel: " << kernel_names_cols [i] << " <**" << std::endl;
-            std::cout << " local size: " << group_size << " x " << group_size << std::endl;
-            std::cout << " global size: " << global_x << " x " << global_y << std::endl;
-            std::cout << " Time in seconds: " << time_seconds << " s " << std::endl;
-            float effective_bw = ((float) 512 * 512 * 4 * 2) * 1.0e-9f / time_seconds;
-            std::cout << " Effective bandwidth (on device): " << effective_bw << " GB/s " << std::endl;
+            float effective_bw = ((float) (pow((512/(global_x/group_size)+fl)/group_size,2) + pow (512/global_x,2)) * global_x * global_y * 4 ) * 1.0e-9f / time_seconds;
+            vec_perf.push_back (PerformanceInformation (kernel_names [i], lc, " Effective bandwidth (GB/s)", time_seconds, vec_pi[i].time_mem_up, vec_pi[i].time_mem_down, effective_bw));
           }
           
-//          std::vector <std::string> kernel_names;
+////          std::vector <std::string> kernel_names;
+//          kernel_names.clear ();
 //          for (int i = 0; i < 3; i++)
 //          {
 //            kernel_names.push_back (std::string ("dwt_rows"));
@@ -948,6 +1087,8 @@
 //          }
                     
           delete loc_mem;
+          
+          return vec_perf;
           
       }
 
