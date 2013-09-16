@@ -198,11 +198,13 @@ init_program_kernels    (oclConnection * const con, const std::vector <std::stri
     prog = clProgram (con -> m_cont, sources, & con -> m_error);
 
     // build program
-	  con -> m_error = prog.build (con -> m_devs, "-cl-std=CL1.1");
+	  con -> m_error = prog.build (con -> m_devs, "-cl-std=CL1.1 -cl-nv-maxrregcount=24 -cl-nv-verbose");
+    
+//    std::cout << "Build Log:\t "                  << prog.getBuildInfo<CL_PROGRAM_BUILD_LOG>     (con -> m_devs [0]) << std::endl;
 
     // create kernels
     con -> m_error = prog.createKernels (&kernels);
-        
+
     // assign created objects to type specific storage
     *(ocl_precision_trait <T, S> :: getProgram (con)) = prog;
     *(ocl_precision_trait <T, S> :: getKernels (con)) = kernels;
@@ -218,7 +220,7 @@ init_program_kernels    (oclConnection * const con, const std::vector <std::stri
     std::cout << " Error flag: " << cle.err () << " (" << con -> errorString (cle.err ()) << ")" << std::endl;
     throw -1;
   }
-  
+    
 }
 
 
@@ -373,7 +375,7 @@ oclConnection::
 runKernel             (const cl::NDRange  & global_dims,
                        const cl::NDRange  & local_dims  )
 {
-
+  
   // execute activated kernel on all available devices 
   for (clCommandQueues::iterator it = m_comqs.begin(); it < m_comqs.end(); ++it)
   {

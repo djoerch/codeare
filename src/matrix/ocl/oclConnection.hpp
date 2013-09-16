@@ -509,7 +509,7 @@ modify_kernel        ( std::string const &       source,
         std::string base = "/localdata/djoergens/projects/CoDEARE/src/matrix/";
         std::vector <std::string> filenames;
         filenames.push_back (base + std::string ("ocl/kernels/A_kernels.cl"));
-        filenames.push_back (base + std::string ("ocl/kernels/AB_kernels.cl"));
+//        filenames.push_back (base + std::string ("ocl/kernels/AB_kernels.cl"));
         return filenames;
       }
 
@@ -1147,7 +1147,7 @@ modify_kernel        ( std::string const &       source,
     if (tmp_it == m_current_ocl_objects.end ())
     {
 
-      stringstream msg;
+      std::stringstream msg;
       msg << "oclDataObject (" << obj_id << ") does not exist!";
 
       throw oclError (msg.str (), "oclConnection :: createBuffer");
@@ -1161,7 +1161,7 @@ modify_kernel        ( std::string const &       source,
     if (p_tmp_obj -> getMemState ())
     {
     
-      stringstream msg;
+      std::stringstream msg;
       msg << "oclDataObject (" << obj_id << ") already has a GPU buffer!";
       
       throw oclError (msg.str (), "oclConnection :: createBuffer");

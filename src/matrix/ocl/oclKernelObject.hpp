@@ -259,7 +259,12 @@
     
     for (int i = 0; i < m_events.size (); i++)
     {
+      try {
       m_events [i].wait ();
+      } catch (cl::Error & cle)
+      {
+        std::cerr << oclError (cle.err (), " oclKernelObject::run ") << std::endl;
+      }
     }
     
     // perhaps get data
