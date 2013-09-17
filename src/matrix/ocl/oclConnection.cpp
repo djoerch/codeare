@@ -2,8 +2,12 @@
  ** includes **
  **************/
 
-// ViennaCL
-# include "/usr/local/include/viennacl/ocl/backend.hpp"
+
+# ifdef __USE_VIENNA_CL__
+  // ViennaCL
+  # include <viennacl/ocl/backend.hpp>
+# endif
+
 #include "oclConnection.hpp"
 
 
@@ -265,8 +269,20 @@ oclConnection ( cl_device_type    device_type,
   if (m_devs.size() == 0)
     throw oclError ("No devices available on this platform", "oclConnection :: CTOR");
   
+  // don't use multiple devices (for now)
+  if (m_devs.size () > 1)
+  {
+    clDevices tmp_devs;
+    tmp_devs.push_back (m_devs [0]);
+    m_devs = tmp_devs;
+  }
+  
+# ifdef __USE_VIENNA_CL__
   // context /** ViennaCL **/ /* TODO */
   m_cont = clContext ( viennacl::ocl::current_context () . handle () . get ()); //clContext (m_devs);       // same context for all devices
+# else
+  m_cont = clContext (m_devs); // same context for all devices
+# endif
   
   // command queues
   for (clDevices::iterator it = m_devs.begin(); it < m_devs.end(); ++it)  // iterate over all devices and create a command queue for each
@@ -287,6 +303,7 @@ oclConnection ( cl_device_type    device_type,
 
   print_optional (" ** oclConnection constructed!", m_verbose);
     
+# ifdef __USE_VIENNA_CL__
   /**
    * setup ViennaCL
    */
@@ -294,7 +311,8 @@ oclConnection ( cl_device_type    device_type,
   viennacl :: vector <float> tmp (10);
   viennacl :: vector <double> tmp2 (10);
   tmp = tmp + tmp;
-
+# endif
+  
 }
 
 

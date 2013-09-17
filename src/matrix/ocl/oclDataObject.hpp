@@ -19,8 +19,10 @@
   # include "oclConnection.hpp"
 
   // ViennaCL
-  # include "/usr/local/include/viennacl/vector.hpp"
-  # include "/usr/local/include/viennacl/matrix.hpp"
+# ifdef __USE_VIENNA_CL__
+  # include <viennacl/vector.hpp>
+  # include <viennacl/matrix.hpp>
+# endif
 
 
 
@@ -77,6 +79,8 @@
       print                 ();
 
 
+
+# ifdef __USE_VIENNA_CL__
       /**
        * @brief             -- return ViennaCl vector representation of data object --
        */
@@ -92,7 +96,8 @@
                 class R>
       viennacl :: matrix <S, R>
       getVCLMatrix          (int m, int n);
-
+# endif
+     
 
       /**
        * @name              getters (public)
@@ -518,6 +523,7 @@ protected:
   
 
 
+# ifdef __USE_VIENNA_CL__
   /**
    *                      -- refer to class definition --
    */
@@ -563,7 +569,7 @@ protected:
     return viennacl :: matrix <S, R> ((*mp_gpu_buffer)(), m, n);
 
   }
-
+# endif
   
   
   /**

@@ -79,8 +79,8 @@ class oclDWT {
             makros.push_back ((ss << "FL " << fl, ss.str ())); ss.str ("");
             makros.push_back ((ss << "LDA " << side_length, ss.str ())); ss.str ("");
             std::vector <std::string> filenames;
-            filenames.push_back (std::string ("/localdata/djoergens/projects/CoDEARE/src/matrix/dwt/dwt2.cl"));
-//            filenames.push_back (std::string ("/localdata/djoergens/projects/CoDEARE/src/matrix/dwt/dwt.cl"));
+            filenames.push_back (base_kernel_path + "src/matrix/dwt/dwt2.cl");
+//            filenames.push_back (base_kernel_path + "src/matrix/dwt/dwt.cl");
             oclOperations <T> :: addKernelSources (filenames, makros);
       }
       

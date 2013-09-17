@@ -617,6 +617,7 @@
       }
     
     
+# ifdef __USE_VIENNA_CL__
       /**
        * @brief                       execute specified ViennaCl algorithm with 3 arguments
        */
@@ -745,6 +746,7 @@
         free (args);
     
       }
+# endif
       
       
       /**

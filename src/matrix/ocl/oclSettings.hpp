@@ -11,6 +11,9 @@
   # define __OCL_SETTINGS_HPP__
 
 
+//  # define __USE_VIENNA_CL__
+
+
 
 
   /**************
@@ -47,14 +50,15 @@
   /****************
    ** enum types **
    ****************/
-
+# ifdef __USE_VIENNA_CL__
   enum vclAlgoType
   {
-      
+
     vclSUBTRACT,
     vclMATPROD
   
   };
+# endif
   
   enum oclAMDBlasType
   {
@@ -127,6 +131,10 @@
 
   /* buffer for writing verbosity messages */
   char buffer [100];
+  
+  
+  // base path for kernel files
+  static std::string base_kernel_path = "/localdata/djoergens/projects/CoDEARE/";
   
   
   

@@ -105,6 +105,7 @@ modify_kernel        ( std::string const &       source,
                              oclDataObject * const * const args, const int & num_args,
                              const KernelType kernel_type, const SyncType sync_type);
       
+# ifdef __USE_VIENNA_CL__
       template <class T, class S>     
       oclFunctionObject * const
       makeFunctionObject    (const vclAlgoType & algo_name,
@@ -112,7 +113,8 @@ modify_kernel        ( std::string const &       source,
                              const KernelType kernel_type, const SyncType sync_type,
                              const int num_sclars = 0,
                              int * scalars = NULL);
-
+# endif
+      
       template <class T, class S>     
       oclFunctionObject * const
       makeFunctionObject    (const oclAMDBlasType & algo_name,
@@ -397,7 +399,7 @@ modify_kernel        ( std::string const &       source,
       const std::vector <std::string>
       getFilenames  ()
       {
-        std::string base = "/opt/djoergens/projects/CoDEARE/src/matrix/ocl/kernels/";
+        std::string base = base_kernel_path + "src/matrix/ocl/kernels/";
         std::vector <std::string> filenames;
         filenames.push_back (base + std::string ("mixed_A_kernels.cl"));
         filenames.push_back (base + std::string ("mixed_AB_kernels.cl"));
@@ -452,7 +454,7 @@ modify_kernel        ( std::string const &       source,
       const std::vector <std::string>
       getFilenames  ()
       {
-        std::string base = "/opt/djoergens/projects/CoDEARE/src/matrix/ocl/kernels/";
+        std::string base = base_kernel_path + "src/matrix/ocl/kernels/";
         std::vector <std::string> filenames;
         filenames.push_back (base + std::string ("complex_A_kernels.cl"));
         filenames.push_back (base + std::string ("complex_AB_kernels.cl"));
@@ -506,10 +508,10 @@ modify_kernel        ( std::string const &       source,
       const std::vector <std::string>
       getFilenames  ()
       {
-        std::string base = "/localdata/djoergens/projects/CoDEARE/src/matrix/";
+        std::string base = base_kernel_path + "src/matrix/ocl/kernels/";
         std::vector <std::string> filenames;
-        filenames.push_back (base + std::string ("ocl/kernels/A_kernels.cl"));
-//        filenames.push_back (base + std::string ("ocl/kernels/AB_kernels.cl"));
+        filenames.push_back (base + std::string ("A_kernels.cl"));
+//        filenames.push_back (base + std::string ("AB_kernels.cl"));
         return filenames;
       }
 
@@ -561,10 +563,10 @@ modify_kernel        ( std::string const &       source,
       const std::vector <std::string>
       getFilenames  ()
       {
-        std::string base = "/opt/djoergens/projects/CoDEARE/src/matrix/";
+        std::string base = base_kernel_path + "src/matrix/ocl/kernels/";
         std::vector <std::string> filenames;
-        filenames.push_back (base + std::string ("ocl/kernels/A_kernels.cl"));
-        filenames.push_back (base + std::string ("ocl/kernels/AB_kernels.cl"));
+        filenames.push_back (base + std::string ("A_kernels.cl"));
+        filenames.push_back (base + std::string ("AB_kernels.cl"));
         return filenames;
       }
 
@@ -572,7 +574,7 @@ modify_kernel        ( std::string const &       source,
       const char *
       modify_source (void * buf, int * size)
       {
-        std::string * tmp_str = new string ( modify_kernel (std::string ((const char *) buf),
+        std::string * tmp_str = new std::string ( modify_kernel (std::string ((const char *) buf),
                                                             std::string ("cl_khr_fp64: enable"),
                                                             std::string ("double"),
                                                             std::string ("double"),
@@ -617,7 +619,7 @@ modify_kernel        ( std::string const &       source,
       const std::vector <std::string>
       getFilenames  ()
       {
-        std::string base = "/opt/djoergens/projects/CoDEARE/src/matrix/ocl/kernels/";
+        std::string base = base_kernel_path + "src/matrix/ocl/kernels/";
         std::vector <std::string> filenames;
         filenames.push_back (base + std::string ("mixed_A_kernels.cl"));
         filenames.push_back (base + std::string ("mixed_AB_kernels.cl"));
@@ -628,7 +630,7 @@ modify_kernel        ( std::string const &       source,
       const char *
       modify_source (void * buf, int * size)
       {
-        std::string * tmp_str = new string ( modify_kernel (std::string ((const char *) buf),
+        std::string * tmp_str = new std::string ( modify_kernel (std::string ((const char *) buf),
                                                             std::string ("cl_khr_fp64: enable"),
                                                             std::string ("double2"),
                                                             std::string ("double"),
@@ -673,10 +675,10 @@ modify_kernel        ( std::string const &       source,
       const std::vector <std::string>
       getFilenames  ()
       {
-        std::string base = "/opt/djoergens/projects/CoDEARE/src/matrix/";
+        std::string base = base_kernel_path + "src/matrix/ocl/kernels/";
         std::vector <std::string> filenames;
-        filenames.push_back (base + std::string ("ocl/kernels/complex_A_kernels.cl"));
-        filenames.push_back (base + std::string ("ocl/kernels/complex_AB_kernels.cl"));
+        filenames.push_back (base + std::string ("complex_A_kernels.cl"));
+        filenames.push_back (base + std::string ("complex_AB_kernels.cl"));
         return filenames;
       }
 
@@ -684,7 +686,7 @@ modify_kernel        ( std::string const &       source,
       const char *
       modify_source (void * buf, int * size)
       {
-        std::string * tmp_str = new string ( modify_kernel (std::string ((const char *) buf),
+        std::string * tmp_str = new std::string ( modify_kernel (std::string ((const char *) buf),
                                                             std::string ("cl_khr_fp64: enable"),
                                                             std::string ("double2"),
                                                             std::string ("double2") ) );
@@ -757,9 +759,10 @@ modify_kernel        ( std::string const &       source,
   # include "oclAsyncKernelObject.hpp"
   # include "oclAMDBlasObject.hpp"
   
+# ifdef __USE_VIENNA_CL__
   template <class T, class S>
   class oclViennaClObject;
-
+#endif
   
 
   /**************************************
@@ -1057,6 +1060,7 @@ modify_kernel        ( std::string const &       source,
   }
   
   
+# ifdef __USE_VIENNA_CL__
   // create function object for running an ViennaCL algorithm
   template <class T, class S>
   oclFunctionObject * const
@@ -1089,7 +1093,8 @@ modify_kernel        ( std::string const &       source,
     return algo_obj;
     
   }
-
+# endif
+  
 
   // create function object for running an ViennaCL algorithm
   template <class T, class S>
