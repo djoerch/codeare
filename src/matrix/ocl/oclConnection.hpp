@@ -95,7 +95,7 @@ modify_kernel        ( std::string const &       source,
       
       template <class T, class S>
       oclFunctionObject * const
-      makeFunctionObject    (const string & kernel_name,
+      makeFunctionObject    (const std::string & kernel_name,
                              oclDataObject * const * const args, const int & num_args,
                              const KernelType kernel_type, const SyncType sync_type);
                 
@@ -401,8 +401,8 @@ modify_kernel        ( std::string const &       source,
       {
         std::string base = base_kernel_path + "src/matrix/ocl/kernels/";
         std::vector <std::string> filenames;
-        filenames.push_back (base + std::string ("mixed_A_kernels.cl"));
-        filenames.push_back (base + std::string ("mixed_AB_kernels.cl"));
+        filenames.push_back (base + "mixed_A_kernels.cl");
+        filenames.push_back (base + "mixed_AB_kernels.cl");
         return filenames;
       }
           
@@ -456,8 +456,8 @@ modify_kernel        ( std::string const &       source,
       {
         std::string base = base_kernel_path + "src/matrix/ocl/kernels/";
         std::vector <std::string> filenames;
-        filenames.push_back (base + std::string ("complex_A_kernels.cl"));
-        filenames.push_back (base + std::string ("complex_AB_kernels.cl"));
+        filenames.push_back (base + "complex_A_kernels.cl");
+        filenames.push_back (base + "complex_AB_kernels.cl");
         return filenames;
       }
           
@@ -510,8 +510,8 @@ modify_kernel        ( std::string const &       source,
       {
         std::string base = base_kernel_path + "src/matrix/ocl/kernels/";
         std::vector <std::string> filenames;
-        filenames.push_back (base + std::string ("A_kernels.cl"));
-//        filenames.push_back (base + std::string ("AB_kernels.cl"));
+        filenames.push_back (base + "A_kernels.cl");
+//        filenames.push_back (base + "AB_kernels.cl");
         return filenames;
       }
 
@@ -519,7 +519,7 @@ modify_kernel        ( std::string const &       source,
       const char *
       modify_source (void * buf, int * size)
       {
-        std::string * tmp_str = new string ( modify_kernel (std::string ((const char *) buf),
+        std::string * tmp_str = new std::string ( modify_kernel (std::string ((const char *) buf),
                                                             std::string ("cl_khr_fp64: disable"),
                                                             std::string ("float"),
                                                             std::string ("float"),
@@ -565,8 +565,8 @@ modify_kernel        ( std::string const &       source,
       {
         std::string base = base_kernel_path + "src/matrix/ocl/kernels/";
         std::vector <std::string> filenames;
-        filenames.push_back (base + std::string ("A_kernels.cl"));
-        filenames.push_back (base + std::string ("AB_kernels.cl"));
+        filenames.push_back (base + "A_kernels.cl");
+        filenames.push_back (base + "AB_kernels.cl");
         return filenames;
       }
 
@@ -621,8 +621,8 @@ modify_kernel        ( std::string const &       source,
       {
         std::string base = base_kernel_path + "src/matrix/ocl/kernels/";
         std::vector <std::string> filenames;
-        filenames.push_back (base + std::string ("mixed_A_kernels.cl"));
-        filenames.push_back (base + std::string ("mixed_AB_kernels.cl"));
+        filenames.push_back (base + "mixed_A_kernels.cl");
+        filenames.push_back (base + "mixed_AB_kernels.cl");
         return filenames;
       }
 
@@ -677,8 +677,8 @@ modify_kernel        ( std::string const &       source,
       {
         std::string base = base_kernel_path + "src/matrix/ocl/kernels/";
         std::vector <std::string> filenames;
-        filenames.push_back (base + std::string ("complex_A_kernels.cl"));
-        filenames.push_back (base + std::string ("complex_AB_kernels.cl"));
+        filenames.push_back (base + "complex_A_kernels.cl");
+        filenames.push_back (base + "complex_AB_kernels.cl");
         return filenames;
       }
 
@@ -1002,7 +1002,7 @@ modify_kernel        ( std::string const &       source,
   template <class T, class S>
   oclFunctionObject * const
   oclConnection ::
-  makeFunctionObject    (const        string &               kernel_name,
+  makeFunctionObject    (const   std::string &               kernel_name,
                                oclDataObject * const * const        args, const      int &  num_args,
                          const    KernelType                 kernel_type, const SyncType   sync_type)
   {
