@@ -171,7 +171,7 @@ main            (int argc, char ** args)
       ss << "_local_" << local_sizes [0].first << "_" << local_sizes [0].second << ".txt";
     std::fstream fs;
     fs.open (ss.str ().c_str (), std::fstream::out);
-
+    
     // adjust start value of loop index
     int init_num_threads = 1;
     if (!strcmp (range, "no"))
@@ -207,7 +207,7 @@ main            (int argc, char ** args)
         {
           vec_pi = dwt.Trafo (mat_in, mat_out_dwt);
 
-          dwt.Adjoint (mat_out_dwt, mat_out_dwt_recon);
+//          dwt.Adjoint (mat_out_dwt, mat_out_dwt_recon);
 
         } catch (oclError & err)
         {

@@ -454,6 +454,62 @@
         
       }
 
+      
+      /**
+       * @brief                       execute specified kernel with 2 arguments and 5 scalars
+       */
+      static inline
+      std::vector <ProfilingInformation>
+      ocl_basic_operator_kernel_25             ( const          char * const kernel_name,
+                                                       oclDataObject * const        arg1,
+                                                       oclDataObject * const        arg2,
+                                                                 int                  s1,
+                                                                 int                  s2,
+                                                                 int                  s3,
+                                                                 int                  s4,
+                                                                 int                  s5,
+                                                LaunchInformation                     lc)
+      {
+    
+        // number of kernel arguments
+        const int num_args = 7;
+    
+        // create array of function arguments
+        oclDataObject ** args = (oclDataObject **) malloc (num_args * sizeof (oclDataObject *));
+        args [0] = arg1;
+        args [1] = arg2;
+        args [2] = new oclGPUDataObject <int> (& s1, 1);
+        args [3] = new oclGPUDataObject <int> (& s2, 1);
+        args [4] = new oclGPUDataObject <int> (& s3, 1);
+        args [5] = new oclGPUDataObject <int> (& s4, 1);
+        args [6] = new oclGPUDataObject <int> (& s5, 1);
+
+        // create function object
+        oclFunctionObject * op_obj = oclConnection :: Instance ()
+                                        -> makeFunctionObject <elem_type, scalar_type>
+                                              (kernel_name, args, num_args, oclConnection::KERNEL, oclConnection::SYNC);
+        
+
+        // execute function object
+        ocl_run_func_obj (op_obj, lc);
+        
+        // retrieve profiling information
+        std::vector <ProfilingInformation> vec_pi;
+        vec_pi.push_back (op_obj -> getProfilingInformation(0));
+
+        // clear memory
+        delete op_obj;
+        delete args [2];
+        delete args [3];
+        delete args [4];
+        delete args [5];
+        delete args [6];
+        free (args);
+
+        return vec_pi;
+        
+      }
+      
 
       /**
        * @brief                       execute specified kernel with 3 arguments and 5 scalars
@@ -1045,6 +1101,7 @@
                                         oclDataObject * const  lpf,
                                         oclDataObject * const  hpf,
                                                   int           fl,
+                                            const int         levels,
                                         oclDataObject * const arg2,
                                                   int         num_loc_mem_elems,
                                                   int   const group_size_x,
@@ -1069,9 +1126,19 @@
           
           std::vector <ProfilingInformation> vec_pi = ocl_basic_operator_kernel_55 (kernel_names, arg1, lpf, hpf, arg2, loc_mem, n, m, k, n, num_loc_mem_elems, lc);
           
-//          vec_pi = ocl_basic_operator_kernel_55 (kernel_names, arg2, lpf, hpf, arg1, loc_mem, n, m, k, n/2, num_loc_mem_elems, lc);
-//          vec_pi = ocl_basic_operator_kernel_55 (kernel_names, arg1, lpf, hpf, arg2, loc_mem, n, m, k, n/4, num_loc_mem_elems, lc);
-          
+          int data_size = 0;
+          oclDataObject * tmp1 = arg1;
+          oclDataObject * tmp2 = arg2;
+          for (int i = 1; i < levels; i++)
+          {
+            std::vector <ProfilingInformation> vec_tmp = ocl_basic_operator_kernel_55 (kernel_names, tmp2, lpf, hpf, tmp1, loc_mem, n, m, k, n / pow (2, i), num_loc_mem_elems, lc);
+            oclDataObject * tmp = tmp1;
+            tmp1 = tmp2;
+            tmp2 = tmp;
+            if ((i&1)==0)
+              data_size += n/pow(2,i) * 3;
+          }
+          std::vector <ProfilingInformation> vec_tmp = ocl_basic_operator_kernel_25 ("dwt2_final", arg1, arg2, n, m, k, n / pow (2, levels-1), levels, lc);
           
           for (int i = 0; i < kernel_names.size (); i++)
           {
@@ -1079,6 +1146,11 @@
             float effective_bw = ((float) (num_loc_mem_elems * (((float)global_x)/group_size_x) * (((float)global_y)/group_size_y) * 4 ) * 1.0e-9f) / time_seconds;
             vec_perf.push_back (PerformanceInformation (kernel_names [i], lc, " Effective bandwidth (GB/s)", time_seconds, vec_pi[i].time_mem_up, vec_pi[i].time_mem_down, effective_bw));
           }
+          
+          float time_seconds = vec_tmp [0].time_end - vec_tmp [0].time_start;
+          float effective_bw = (data_size * 4 * 1.0e-9f) / time_seconds;
+          vec_perf.push_back (PerformanceInformation ("dwt2_final", lc, " Effective bandwidth (GB/s)", time_seconds, vec_tmp [0].time_mem_up, vec_tmp [0].time_mem_down, effective_bw));
+
           
 ////          std::vector <std::string> kernel_names;
 //          kernel_names.clear ();

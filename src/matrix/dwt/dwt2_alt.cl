@@ -490,156 +490,6 @@ perf_dwtLocalToGlobal (__local A_type * loc_mem, __global A_type * arg2, __const
 
 
 
-kernel void dwt2_final (__global A_type * arg1,
-                        __global A_type * arg2,
-                        __constant int * n,
-                        __global int * m,
-                        __global int * k,
-                        __constant int * line_length,
-                        __constant int * num_levels)
-{
-
-  int block_size_0 = *line_length / (min (*line_length, (int) get_global_size (0))/GROUP_SIZE_0);
-  int block_size_0_alt = (2 * *line_length) / (min (*line_length, (int) get_global_size (0))/GROUP_SIZE_0);
-  int block_size_1 = *line_length / (min (*line_length, (int) get_global_size (1))/GROUP_SIZE_1);
-
-  const int local_c1 = get_local_id (0);
-  const int local_c2 = get_local_id (1);
-
-  int upper_left  = get_group_id (1) * block_size_1 * LDA
-                  + get_group_id (0) * block_size_0;
-  int upper_left2 = get_group_id (1) * block_size_1 * LDA
-                  + get_group_id (0) * block_size_0_alt;
-
-  int l = 1;
-  int current_line_length = *line_length;
-
-  if (((*num_levels) & 1) == 0)
-  {
-
-  if (get_global_id (0) < current_line_length
-    && get_global_id (1) < current_line_length)
-  {
-
-    // copy upper left corner
-    int j = 0;
-    for (; j < block_size_1 - GROUP_SIZE_1; j += GROUP_SIZE_1)
-    {
-      int i = 0;
-      for (; i < block_size_0 - GROUP_SIZE_0; i += GROUP_SIZE_0)
-      {
-        int index = upper_left + (j + local_c2) * LDA + i + local_c1;
-        arg2 [index] = arg1 [index];
-      }
-      if (i + local_c1 < block_size_0)
-      {
-        int index = upper_left + (j + local_c2) * LDA + i + local_c1;
-        arg2 [index] = arg1 [index];
-      }
-    }
-    if (j + local_c2 < block_size_1)
-    {
-      int i = 0;
-      for (; i < block_size_0 - GROUP_SIZE_0; i += GROUP_SIZE_0)
-      {
-        int index = upper_left + (j + local_c2) * LDA + i + local_c1;
-        arg2 [index] = arg1 [index];
-      }
-      if (i + local_c1 < block_size_0)
-      {
-        int index = upper_left + (j + local_c2) * LDA + i + local_c1;
-        arg2 [index] = arg1 [index];
-      }
-    }
-    
-  }
-
-  l += 2;
-  current_line_length *= 2;
-
-  }
-
-  // loop over levels
-  for (; l < *num_levels; l += 2)
-  {
-    
-    if (get_global_id (1) < current_line_length
-      && get_global_id (0) < current_line_length)
-    {
-
-    block_size_0 = current_line_length / (min (current_line_length, (int) get_global_size (0))/GROUP_SIZE_0);
-    block_size_0_alt = (2 * current_line_length) / (min (current_line_length, (int) get_global_size (0))/GROUP_SIZE_0);
-    block_size_1 = current_line_length / (min (current_line_length, (int) get_global_size (1))/GROUP_SIZE_1);
-    
-    // copy bottom left corner
-    int j = 0;
-    for (; j < block_size_1 - GROUP_SIZE_1; j += GROUP_SIZE_1)
-    {
-      int i = 0;
-      for (; i < block_size_0 - GROUP_SIZE_0; i += GROUP_SIZE_0)
-      {
-        int index = upper_left + current_line_length + (j + local_c2) * LDA + i + local_c1;
-        arg2 [index] = arg1 [index];
-      }
-      if (i + local_c1 < block_size_0)
-      {
-        int index = upper_left + current_line_length + (j + local_c2) * LDA + i + local_c1;
-        arg2 [index] = arg1 [index];
-      }
-    }
-    if (j + local_c2 < block_size_1)
-    {
-      int i = 0;
-      for (; i < block_size_0 - GROUP_SIZE_0; i += GROUP_SIZE_0)
-      {
-        int index = upper_left + current_line_length + (j + local_c2) * LDA + i + local_c1;
-        arg2 [index] = arg1 [index];
-      }
-      if (i + local_c1 < block_size_0)
-      {
-        int index = upper_left + current_line_length + (j + local_c2) * LDA + i + local_c1;
-        arg2 [index] = arg1 [index];
-      }
-    }
-    
-    // copy parts on the right
-    for (j = 0; j < block_size_1 - GROUP_SIZE_1; j += GROUP_SIZE_1)
-    {
-      int i = 0;
-      for (; i < block_size_0_alt - GROUP_SIZE_0; i += GROUP_SIZE_0)
-      {
-        int index = upper_left2 + current_line_length*LDA + (j + local_c2) * LDA + i + local_c1;
-        arg2 [index] = arg1 [index];
-      }
-      if (i + local_c1 < block_size_0_alt)
-      {
-        int index = upper_left2 + current_line_length*LDA + (j + local_c2) * LDA + i + local_c1;
-        arg2 [index] = arg1 [index];
-      }
-    }
-    if (j + local_c2 < block_size_1)
-    {
-      int i = 0;
-      for (; i < block_size_0_alt - GROUP_SIZE_0; i += GROUP_SIZE_0)
-      {
-        int index = upper_left2 + current_line_length*LDA + (j + local_c2) * LDA + i + local_c1;
-        arg2 [index] = arg1 [index];
-      }
-      if (i + local_c1 < block_size_0_alt)
-      {
-        int index = upper_left2 + current_line_length*LDA + (j + local_c2) * LDA + i + local_c1;
-        arg2 [index] = arg1 [index];
-      }
-    }
-    
-    }
-    
-    current_line_length *= 4;
-  }
-
-}
-
-
 
 /**
  * @author djoergens
@@ -656,14 +506,10 @@ kernel void dwt2 (__global A_type * arg1,
           __global int * loc_mem_size)
 {
 
-  if (get_global_id (0) < *line_length
-    && get_global_id (1) < *line_length)
-  {
-
-  const int block_size_0 = *line_length / (min (*line_length, (int) get_global_size (0))/GROUP_SIZE_0);
-  const int block_size_1 = *line_length / (min (*line_length, (int) get_global_size (1))/GROUP_SIZE_0);
-  const int border_block_size_0 = block_size_0 + offset;
-  const int border_block_size_1 = block_size_1 + offset;
+  const int block_size_0 = *line_length / NUM_GROUPS_0;
+  const int block_size_1 = *line_length / NUM_GROUPS_1;
+  const int border_block_size_0 = *line_length / NUM_GROUPS_0 + offset;
+  const int border_block_size_1 = *line_length / NUM_GROUPS_1 + offset;
 
   const int local_c1 = get_local_id (0);
   const int local_c2 = get_local_id (1);
@@ -697,8 +543,6 @@ kernel void dwt2 (__global A_type * arg1,
   // write back to global memory
   //////////////////////////////
   local2global (tmp, arg2, upper_left2, local_c1, local_c2, block_size_0, block_size_1, line_length);
-
-  }
 
 }
 
