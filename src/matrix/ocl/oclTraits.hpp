@@ -1131,11 +1131,14 @@
           oclDataObject * tmp2 = arg2;
           for (int i = 1; i < levels; i++)
           {
-            std::vector <ProfilingInformation> vec_tmp = ocl_basic_operator_kernel_55 (kernel_names, tmp2, lpf, hpf, tmp1, loc_mem, n, m, k, n / pow (2, i), num_loc_mem_elems, lc);
+            const int line_length = n / pow (2, i);
+//            lc.local_x = lc.local_x > line_length ? line_length : lc.local_x;
+//            lc.local_y = lc.local_y > line_length ? line_length : lc.local_y;
+            std::vector <ProfilingInformation> vec_tmp = ocl_basic_operator_kernel_55 (kernel_names, tmp2, lpf, hpf, tmp1, loc_mem, n, m, k, line_length, num_loc_mem_elems, lc);
             oclDataObject * tmp = tmp1;
             tmp1 = tmp2;
             tmp2 = tmp;
-            if ((i&1)==0)
+            if ((i&1)==1)
               data_size += n/pow(2,i) * 3;
           }
           std::vector <ProfilingInformation> vec_tmp = ocl_basic_operator_kernel_25 ("dwt2_final", arg1, arg2, n, m, k, n / pow (2, levels-1), levels, lc);

@@ -571,6 +571,11 @@ kernel void dwt2_final (__global A_type * arg1,
     block_size_0_alt = (2 * current_line_length) / (min (current_line_length, (int) get_global_size (0))/GROUP_SIZE_0);
     block_size_1 = current_line_length / (min (current_line_length, (int) get_global_size (1))/GROUP_SIZE_1);
     
+    upper_left  = get_group_id (1) * block_size_1 * LDA
+                + get_group_id (0) * block_size_0;
+    upper_left2 = get_group_id (1) * block_size_1 * LDA
+                + get_group_id (0) * block_size_0_alt;
+    
     // copy bottom left corner
     int j = 0;
     for (; j < block_size_1 - GROUP_SIZE_1; j += GROUP_SIZE_1)
@@ -661,7 +666,7 @@ kernel void dwt2 (__global A_type * arg1,
   {
 
   const int block_size_0 = *line_length / (min (*line_length, (int) get_global_size (0))/GROUP_SIZE_0);
-  const int block_size_1 = *line_length / (min (*line_length, (int) get_global_size (1))/GROUP_SIZE_0);
+  const int block_size_1 = *line_length / (min (*line_length, (int) get_global_size (1))/GROUP_SIZE_1);
   const int border_block_size_0 = block_size_0 + offset;
   const int border_block_size_1 = block_size_1 + offset;
 
