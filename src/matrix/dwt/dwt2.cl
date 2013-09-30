@@ -709,6 +709,31 @@ kernel void dwt2 (__global A_type * arg1,
 
 
 
+/**
+ * @author djoergens
+ */
+kernel void idwt2 (__global A_type * arg1,
+          __constant A_type * _lpf,
+          __constant A_type * _hpf,
+          __global A_type * arg2,
+          __local A_type * loc_mem,
+          __constant int * n,
+          __global int * m,
+          __global int * k,
+          __constant int * line_length,
+          __global int * loc_mem_size)
+{
+
+
+  for (int j = get_local_id (1); j < *line_length; j += GROUP_SIZE_1 * NUM_GROUPS_1)
+    for (int i = get_local_id (0); i < *line_length; i += GROUP_SIZE_0 * NUM_GROUPS_0)
+      arg2 [(j + get_group_id (1) * GROUP_SIZE_1) * LDA + i + get_group_id (0) * GROUP_SIZE_0] = arg1 [(j + get_group_id (1) * GROUP_SIZE_1) * LDA + i + get_group_id (0) * GROUP_SIZE_0];
+
+
+}
+
+
+
 
 //kernel void idwt2 (__global A_type * arg1,
 //          __constant A_type * _lpf,

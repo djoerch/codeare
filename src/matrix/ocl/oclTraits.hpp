@@ -432,7 +432,7 @@
         oclFunctionObject * op_obj = oclConnection :: Instance ()
                                         -> makeFunctionObject <elem_type, scalar_type>
                                               (kernel_names, args, num_args, oclConnection::KERNEL, oclConnection::SYNC);
-
+        
         // execute function object
         ocl_run_func_obj (op_obj, lc);
         
@@ -1051,8 +1051,8 @@
           ////////////////////
           std::string kernel_name ("perf_dwtGlobalToLocal");
           ProfilingInformation pi = ocl_basic_operator_kernel_21 (kernel_name, loc_mem, arg1, line_length, lc);
-          float time_seconds = pi.time_end - pi.time_start;
-          float effective_bw = ((float) ((512/(global_x/group_size_x)+fl)/group_size_x * (512/(global_y/group_size_y)+fl)/group_size_y) * global_x * global_y * 4 ) * 1.0e-9f / time_seconds;
+          double time_seconds = pi.time_end - pi.time_start;
+          double effective_bw = ((double) ((512/(global_x/(double)group_size_x)+fl)/(double)group_size_x * (512/(global_y/(double)group_size_y)+fl)/(double)group_size_y) * global_x * global_y * 4 ) * 1.0e-9f / time_seconds;
           vec_perf.push_back (PerformanceInformation (kernel_name, lc, std::string () + " Effective bandwidth (GB/s)", time_seconds, pi.time_mem_up, pi.time_mem_down, effective_bw));
                     
           ////////////////////
@@ -1061,7 +1061,7 @@
           kernel_name = std::string ("perf_dwtLocalToGlobal");
           pi = ocl_basic_operator_kernel_21 (kernel_name, loc_mem, arg2, line_length, lc);
           time_seconds = pi.time_end - pi.time_start;
-          effective_bw = ((float) pow (line_length,2) * 4 ) * 1.0e-9f / time_seconds;
+          effective_bw = ((double) pow (line_length,2) * 4 ) * 1.0e-9f / time_seconds;
           vec_perf.push_back (PerformanceInformation (kernel_name, lc, std::string () + " Effective bandwidth (GB/s)", time_seconds, pi.time_mem_up, pi.time_mem_down, effective_bw));
           
           ////////////////////
@@ -1182,6 +1182,89 @@
           return vec_perf;
           
       }
+      
+      
+      
+            /**
+       * @brief                       3D Discrete Wavelet Transform.
+       *
+       * @param  arg1                 Address of signal (n x m x k).
+       * @param  arg2                 Address of resulting DWT (n x m x k).
+       * @param  n                    First dimension.
+       * @param  m                    Second dimension.
+       * @param  k                    Third dimension.
+       * @param  filter               Convolution kernel.
+       * @param  fl                   Length of convolution kernel.
+       * ...
+       */
+      static inline
+      const std::vector <PerformanceInformation>
+      ocl_operator_idwt               ( oclDataObject * const arg1,
+                                                  int            n,
+                                                  int            m,
+                                                  int            k,
+                                        oclDataObject * const  lpf,
+                                        oclDataObject * const  hpf,
+                                                  int           fl,
+                                            const int         levels,
+                                        oclDataObject * const arg2,
+                                                  int         num_loc_mem_elems,
+                                                  int   const group_size_x,
+                                                  int   const group_size_y,
+                                                  int   const global_x,
+                                                  int   const global_y)
+      {
+        
+          std::vector <PerformanceInformation> vec_perf;
+        
+          print_optional ("oclOperations <", trait1 :: print_elem_type (), ", ",
+                                             trait2 :: print_elem_type (), "> :: ocl_operator_idwt", op_v_level);
+
+          // dynamically allocate local memory
+          oclDataObject * loc_mem = new oclLocalMemObject <elem_type> (num_loc_mem_elems);
+          std::cout << " local_mem: " << num_loc_mem_elems * 4 << " Bytes " << std::endl;
+          
+          LaunchInformation lc (group_size_x, group_size_y, global_x, global_y);
+          
+          std::vector <std::string> kernel_names;
+          kernel_names.push_back (std::string ("idwt2"));
+          
+          std::vector <ProfilingInformation> vec_pi = ocl_basic_operator_kernel_55 (kernel_names, arg1, lpf, hpf, arg2, loc_mem, n, m, k, n, num_loc_mem_elems, lc);
+          
+          int data_size = 0;
+          oclDataObject * tmp1 = arg1;
+          oclDataObject * tmp2 = arg2;
+          for (int i = 1; i < levels; i++)
+          {
+            const int line_length = n / pow (2, i);
+//            lc.local_x = lc.local_x > line_length ? line_length : lc.local_x;
+//            lc.local_y = lc.local_y > line_length ? line_length : lc.local_y;
+            std::vector <ProfilingInformation> vec_tmp = ocl_basic_operator_kernel_55 (kernel_names, tmp2, lpf, hpf, tmp1, loc_mem, n, m, k, line_length, num_loc_mem_elems, lc);
+            oclDataObject * tmp = tmp1;
+            tmp1 = tmp2;
+            tmp2 = tmp;
+            if ((i&1)==1)
+              data_size += n/pow(2,i) * 3;
+          }
+//          std::vector <ProfilingInformation> vec_tmp = ocl_basic_operator_kernel_25 ("dwt2_final", arg1, arg2, n, m, k, n / pow (2, levels-1), levels, lc);
+          
+          for (int i = 0; i < kernel_names.size (); i++)
+          {
+            float time_seconds = vec_pi[i].time_end - vec_pi[i].time_start;
+            float effective_bw = ((float) (n * m * 4 ) * 1.0e-9f) / time_seconds;
+            vec_perf.push_back (PerformanceInformation (kernel_names [i], lc, " Effective bandwidth (GB/s)", time_seconds, vec_pi[i].time_mem_up, vec_pi[i].time_mem_down, effective_bw));
+          }
+          
+//          float time_seconds = vec_tmp [0].time_end - vec_tmp [0].time_start;
+//          float effective_bw = (data_size * 4 * 1.0e-9f) / time_seconds;
+//          vec_perf.push_back (PerformanceInformation ("dwt2_final", lc, " Effective bandwidth (GB/s)", time_seconds, vec_tmp [0].time_mem_up, vec_tmp [0].time_mem_down, effective_bw));
+
+          delete loc_mem;
+          
+          return vec_perf;
+          
+      }
+      
 
 
 

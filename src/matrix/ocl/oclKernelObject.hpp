@@ -239,7 +239,7 @@
       // prepare kernel arguments (load to gpu)
       for (int i = 0; i < m_num_args; i++)
       {
-
+        
         // prepare argument
         *p_mem_time += mpp_args [i] -> prepare();
         

@@ -1184,13 +1184,13 @@ modify_kernel        ( std::string const &       source,
     	throw oclError (cle.err(), "oclConnection :: createBuffer");
     }
     print_optional (" -!-> createBuffer: ", errorString (m_error), m_verbose);
-      
+    
     // add to buffer list
     m_current_buffers.insert (std::pair <clBuffer *, int> (p_tmp_obj -> getBuffer (), 1));
         
     // add data object to list of loaded objects
     m_loaded_ocl_objects.push_back (obj_id);
-      
+    
   }
   
   
@@ -1219,6 +1219,7 @@ modify_kernel        ( std::string const &       source,
         // TODO: !! blocking !! //
         double mem_time = omp_get_wtime ();
         m_error = it -> enqueueWriteBuffer (*buffer, CL_TRUE, 0, size, cpu_arg, NULL, NULL);
+        
         return omp_get_wtime () - mem_time;
         
       } catch (cl::Error cle) {

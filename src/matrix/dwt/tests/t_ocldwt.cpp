@@ -11,7 +11,7 @@
 /**********************
  ** type definitions **
  **********************/
-typedef float elem_type;
+typedef double elem_type;
 
 
 using namespace codeare::matrix::io;
@@ -171,7 +171,7 @@ main            (int argc, char ** args)
       ss << "_local_" << local_sizes [0].first << "_" << local_sizes [0].second << ".txt";
     std::fstream fs;
     fs.open (ss.str ().c_str (), std::fstream::out);
-    
+
     // adjust start value of loop index
     int init_num_threads = 1;
     if (!strcmp (range, "no"))
@@ -182,14 +182,14 @@ main            (int argc, char ** args)
     // headline of table
     const int indent = 18;
     fs << "## OpenCL DWT ##" << std::endl;
-    fs << setw (indent) << "## Local size  --" << std::flush;
-    fs << setw (indent) << "  global_size  --" << std::flush <<
-           setw (indent-2) << "  time exec  --" << std::flush <<
-            setw (indent-2) << "  time mem  --" << std::flush <<
-            setw (indent) << "  bandwidth --" << std::flush <<
-            setw (indent-2) << "  g2l --" << std::flush <<
-            setw (indent-2) << "  l2g --" << std::flush <<
-            setw (indent-2) << "  flops" << std::endl;
+    fs << setw (indent)   << "## Local size  --" << std::flush;
+    fs << setw (indent)   << "  global_size  --" << std::flush <<
+          setw (indent-2) << "  time exec  --" << std::flush <<
+          setw (indent-2) << "  time mem  --" << std::flush <<
+          setw (indent)   << "  bandwidth --" << std::flush <<
+          setw (indent-2) << "  g2l --" << std::flush <<
+          setw (indent-2) << "  l2g --" << std::flush <<
+          setw (indent-2) << "  flops" << std::endl;
 
     Matrix <elem_type> mat_out_dwt (mat_in.Dim ());
     Matrix <elem_type> mat_out_dwt_recon (mat_in.Dim ());
@@ -207,7 +207,9 @@ main            (int argc, char ** args)
         {
           vec_pi = dwt.Trafo (mat_in, mat_out_dwt);
 
-//          dwt.Adjoint (mat_out_dwt, mat_out_dwt_recon);
+          std::vector <PerformanceInformation> tmp_vec = dwt.Adjoint (mat_out_dwt, mat_out_dwt_recon);
+          
+          vec_pi.insert (vec_pi.end(), tmp_vec.begin (), tmp_vec.end ());
 
         } catch (oclError & err)
         {
@@ -218,7 +220,7 @@ main            (int argc, char ** args)
           continue;
         }
           
-        mat_out_dwt_recon = mat_in;
+//        mat_out_dwt_recon = mat_in;
         
           std::cout << std::endl;
           for (std::vector <PerformanceInformation> :: const_iterator it = vec_pi.begin ();

@@ -185,7 +185,7 @@
     // buffer on GPU exists ?
     if (! oclDataObject :: getMemState ())
     {
-
+      
       // create buffer object
       try {
     	  oclConnection :: Instance () -> createBuffer (mp_cpu_data, oclDataObject :: getSize (), oclDataObject :: getID ());

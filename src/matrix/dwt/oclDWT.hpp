@@ -246,17 +246,49 @@ class oclDWT {
          * @param  res  Reconstructed signal
          */
         inline
-        void
-        Adjoint      (const Matrix <T> & m, Matrix <T> & res)
+        std::vector <PerformanceInformation>
+        Adjoint      (Matrix <T> & m, Matrix <T> & res)
         {
 
-            assert (   m.Dim (0) == _sl1
+assert (   m.Dim (0) == _sl1
                     && m.Dim (1) == _sl2
                     && (_dim == 2 || m.Dim (2) == _sl3)
                     && m.Dim () == res.Dim ());
-
+                        
             /* TODO: call kernel */
-            res = m;
+            oclDataWrapper <T> * p_ocl_m   = oclOperations <T> :: make_GPU_Obj (&m.Container()[0], m.Size ());
+            oclDataWrapper <T> * p_ocl_res = oclOperations <T> :: make_GPU_Obj (&res[0], res.Size ());
+            oclDataWrapper <T> * p_ocl_lpf = oclOperations <T> :: make_GPU_Obj (_lpf_d, _fl);
+            oclDataWrapper <T> * p_ocl_hpf = oclOperations <T> :: make_GPU_Obj (_hpf_d, _fl);
+            
+            const int num_loc_mem_size = (m.Dim (0) / (_global_size_x/_group_size_x) + _fl) * (m.Dim (0) / (_global_size_x/_group_size_y) + _fl) + (m.Dim (0) / (_global_size_x/_group_size_x)) * (m.Dim (0) / (_global_size_x/_group_size_y) + _fl);
+            
+            std::vector <PerformanceInformation> vec_perf = oclOperations <T> :: ocl_operator_idwt (p_ocl_m, m.Dim(0), m.Dim(1), m.Dim(2),
+                                                   p_ocl_lpf, p_ocl_hpf, _fl, _min_level,
+                                                   p_ocl_res, num_loc_mem_size,
+                                                   _group_size_x,
+                                                   _group_size_y,
+                                                   _global_size_x,
+                                                   _global_size_y);
+            double time = p_ocl_res->getData();
+//            p_ocl_m->getData();
+//            
+////            std::vector <PerformanceInformation> vec_perf2 = oclOperations <T> :: ocl_operator_perf_dwt (p_ocl_m, p_ocl_lpf, p_ocl_hpf, p_ocl_res, m.Dim(0), num_loc_mem_size, _fl,
+////                                                   _group_size_x,
+////                                                   _group_size_y,
+////                                                   _global_size_x,
+////                                                   _global_size_y);
+//                        
+//            delete p_ocl_m;
+//            delete p_ocl_res;
+//            delete p_ocl_lpf;
+//            delete p_ocl_hpf;
+//            
+//            vec_perf [0].time_mem_down += time;
+//            vec_perf2.push_back (vec_perf [0]);
+//            vec_perf2.push_back (vec_perf [1]);
+            
+            return vec_perf;
 
         }
 
