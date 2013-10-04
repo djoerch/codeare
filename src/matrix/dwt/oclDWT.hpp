@@ -80,7 +80,7 @@ class oclDWT {
             makros.push_back ((ss << "LDA " << side_length, ss.str ())); ss.str ("");
             std::vector <std::string> filenames;
             filenames.push_back (base_kernel_path + "src/matrix/dwt/dwt2.cl");
-//            filenames.push_back (base_kernel_path + "src/matrix/dwt/dwt.cl");
+            filenames.push_back (base_kernel_path + "src/matrix/dwt/idwt2.cl");
             oclOperations <T> :: addKernelSources (filenames, makros);
       }
       
@@ -258,8 +258,8 @@ assert (   m.Dim (0) == _sl1
             /* TODO: call kernel */
             oclDataWrapper <T> * p_ocl_m   = oclOperations <T> :: make_GPU_Obj (&m.Container()[0], m.Size ());
             oclDataWrapper <T> * p_ocl_res = oclOperations <T> :: make_GPU_Obj (&res[0], res.Size ());
-            oclDataWrapper <T> * p_ocl_lpf = oclOperations <T> :: make_GPU_Obj (_lpf_d, _fl);
-            oclDataWrapper <T> * p_ocl_hpf = oclOperations <T> :: make_GPU_Obj (_hpf_d, _fl);
+            oclDataWrapper <T> * p_ocl_lpf = oclOperations <T> :: make_GPU_Obj (_lpf_r, _fl);
+            oclDataWrapper <T> * p_ocl_hpf = oclOperations <T> :: make_GPU_Obj (_hpf_r, _fl);
             
             const int num_loc_mem_size = (m.Dim (0) / (_global_size_x/_group_size_x) + _fl) * (m.Dim (0) / (_global_size_x/_group_size_y) + _fl) + (m.Dim (0) / (_global_size_x/_group_size_x)) * (m.Dim (0) / (_global_size_x/_group_size_y) + _fl);
             
@@ -279,10 +279,10 @@ assert (   m.Dim (0) == _sl1
 ////                                                   _global_size_x,
 ////                                                   _global_size_y);
 //                        
-//            delete p_ocl_m;
-//            delete p_ocl_res;
-//            delete p_ocl_lpf;
-//            delete p_ocl_hpf;
+            delete p_ocl_m;
+            delete p_ocl_res;
+            delete p_ocl_lpf;
+            delete p_ocl_hpf;
 //            
 //            vec_perf [0].time_mem_down += time;
 //            vec_perf2.push_back (vec_perf [0]);

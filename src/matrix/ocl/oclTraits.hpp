@@ -1052,7 +1052,7 @@
           std::string kernel_name ("perf_dwtGlobalToLocal");
           ProfilingInformation pi = ocl_basic_operator_kernel_21 (kernel_name, loc_mem, arg1, line_length, lc);
           double time_seconds = pi.time_end - pi.time_start;
-          double effective_bw = ((double) ((512/(global_x/(double)group_size_x)+fl)/(double)group_size_x * (512/(global_y/(double)group_size_y)+fl)/(double)group_size_y) * global_x * global_y * 4 ) * 1.0e-9f / time_seconds;
+          double effective_bw = ((double) ((512/(global_x/(double)group_size_x)+fl)/(double)group_size_x * (512/(global_y/(double)group_size_y)+fl)/(double)group_size_y) * global_x * global_y * sizeof (elem_type) ) * 1.0e-9f / time_seconds;
           vec_perf.push_back (PerformanceInformation (kernel_name, lc, std::string () + " Effective bandwidth (GB/s)", time_seconds, pi.time_mem_up, pi.time_mem_down, effective_bw));
                     
           ////////////////////
@@ -1061,7 +1061,7 @@
           kernel_name = std::string ("perf_dwtLocalToGlobal");
           pi = ocl_basic_operator_kernel_21 (kernel_name, loc_mem, arg2, line_length, lc);
           time_seconds = pi.time_end - pi.time_start;
-          effective_bw = ((double) pow (line_length,2) * 4 ) * 1.0e-9f / time_seconds;
+          effective_bw = ((double) pow (line_length,2) * sizeof (elem_type) ) * 1.0e-9f / time_seconds;
           vec_perf.push_back (PerformanceInformation (kernel_name, lc, std::string () + " Effective bandwidth (GB/s)", time_seconds, pi.time_mem_up, pi.time_mem_down, effective_bw));
           
           ////////////////////
@@ -1117,7 +1117,7 @@
 
           // dynamically allocate local memory
           oclDataObject * loc_mem = new oclLocalMemObject <elem_type> (num_loc_mem_elems);
-          std::cout << " local_mem: " << num_loc_mem_elems * 4 << " Bytes " << std::endl;
+          std::cout << " local_mem: " << num_loc_mem_elems * sizeof (elem_type) << " Bytes " << std::endl;
           
           LaunchInformation lc (group_size_x, group_size_y, global_x, global_y);
           
@@ -1146,12 +1146,12 @@
           for (int i = 0; i < kernel_names.size (); i++)
           {
             float time_seconds = vec_pi[i].time_end - vec_pi[i].time_start;
-            float effective_bw = ((float) (num_loc_mem_elems * (((float)global_x)/group_size_x) * (((float)global_y)/group_size_y) * 4 ) * 1.0e-9f) / time_seconds;
+            float effective_bw = ((float) (num_loc_mem_elems * (((float)global_x)/group_size_x) * (((float)global_y)/group_size_y) * sizeof (elem_type) * 2) * 1.0e-9f) / time_seconds;
             vec_perf.push_back (PerformanceInformation (kernel_names [i], lc, " Effective bandwidth (GB/s)", time_seconds, vec_pi[i].time_mem_up, vec_pi[i].time_mem_down, effective_bw));
           }
           
           float time_seconds = vec_tmp [0].time_end - vec_tmp [0].time_start;
-          float effective_bw = (data_size * 4 * 1.0e-9f) / time_seconds;
+          float effective_bw = (data_size * sizeof (elem_type) * 1.0e-9f) / time_seconds;
           vec_perf.push_back (PerformanceInformation ("dwt2_final", lc, " Effective bandwidth (GB/s)", time_seconds, vec_tmp [0].time_mem_up, vec_tmp [0].time_mem_down, effective_bw));
 
           
@@ -1222,27 +1222,28 @@
 
           // dynamically allocate local memory
           oclDataObject * loc_mem = new oclLocalMemObject <elem_type> (num_loc_mem_elems);
-          std::cout << " local_mem: " << num_loc_mem_elems * 4 << " Bytes " << std::endl;
+          std::cout << " local_mem: " << num_loc_mem_elems * sizeof (elem_type) << " Bytes " << std::endl;
           
           LaunchInformation lc (group_size_x, group_size_y, global_x, global_y);
           
           std::vector <std::string> kernel_names;
           kernel_names.push_back (std::string ("idwt2"));
-          
-          std::vector <ProfilingInformation> vec_pi = ocl_basic_operator_kernel_55 (kernel_names, arg1, lpf, hpf, arg2, loc_mem, n, m, k, n, num_loc_mem_elems, lc);
+          std::cout << " levels: " << levels << std::endl;
+          std::cout << " line_length: " << n/pow(2,levels-1) << std::endl;
+          std::vector <ProfilingInformation> vec_pi = ocl_basic_operator_kernel_55 (kernel_names, arg1, lpf, hpf, arg2, loc_mem, n, m, k, n/pow (2,levels-1), num_loc_mem_elems, lc);
           
           int data_size = 0;
           oclDataObject * tmp1 = arg1;
           oclDataObject * tmp2 = arg2;
           for (int i = 1; i < levels; i++)
           {
-            const int line_length = n / pow (2, i);
+//            const int line_length = n / pow (2, i);
 //            lc.local_x = lc.local_x > line_length ? line_length : lc.local_x;
 //            lc.local_y = lc.local_y > line_length ? line_length : lc.local_y;
-            std::vector <ProfilingInformation> vec_tmp = ocl_basic_operator_kernel_55 (kernel_names, tmp2, lpf, hpf, tmp1, loc_mem, n, m, k, line_length, num_loc_mem_elems, lc);
-            oclDataObject * tmp = tmp1;
-            tmp1 = tmp2;
-            tmp2 = tmp;
+//            std::vector <ProfilingInformation> vec_tmp = ocl_basic_operator_kernel_55 (kernel_names, tmp2, lpf, hpf, tmp1, loc_mem, n, m, k, line_length, num_loc_mem_elems, lc);
+//            oclDataObject * tmp = tmp1;
+//            tmp1 = tmp2;
+//            tmp2 = tmp;
             if ((i&1)==1)
               data_size += n/pow(2,i) * 3;
           }
@@ -1251,12 +1252,12 @@
           for (int i = 0; i < kernel_names.size (); i++)
           {
             float time_seconds = vec_pi[i].time_end - vec_pi[i].time_start;
-            float effective_bw = ((float) (n * m * 4 ) * 1.0e-9f) / time_seconds;
+            float effective_bw = ((float) (n * m * sizeof (elem_type) * 2) * 1.0e-9f) / time_seconds;
             vec_perf.push_back (PerformanceInformation (kernel_names [i], lc, " Effective bandwidth (GB/s)", time_seconds, vec_pi[i].time_mem_up, vec_pi[i].time_mem_down, effective_bw));
           }
           
 //          float time_seconds = vec_tmp [0].time_end - vec_tmp [0].time_start;
-//          float effective_bw = (data_size * 4 * 1.0e-9f) / time_seconds;
+//          float effective_bw = (data_size * sizeof (elem_type) * 1.0e-9f) / time_seconds;
 //          vec_perf.push_back (PerformanceInformation ("dwt2_final", lc, " Effective bandwidth (GB/s)", time_seconds, vec_tmp [0].time_mem_up, vec_tmp [0].time_mem_down, effective_bw));
 
           delete loc_mem;

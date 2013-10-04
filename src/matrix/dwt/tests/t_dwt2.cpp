@@ -114,6 +114,9 @@ main            (int argc, char ** args)
 
 	    fs << "\t" << threads << "\t\t" << time/iterations/2 << "\t\t" << s_time_f << "\t\t" << s_time_b << "\t\t" << time_ref/time << std::endl;
 
+//      std::cout << " time: " << time/iterations/2 << "s " << std::endl;
+
+      
 	}
 
 	// output oclMatrix to output file
