@@ -77,6 +77,7 @@ class oclDWT {
             makros.push_back ((ss << "NUM_GROUPS_0 " << (_global_size_x/_group_size_x), ss.str ())); ss.str ("");
             makros.push_back ((ss << "NUM_GROUPS_1 " << (_global_size_y/_group_size_y), ss.str ())); ss.str ("");
             makros.push_back ((ss << "FL " << fl, ss.str ())); ss.str ("");
+            makros.push_back ((ss << "ODD_FILTER " << (fl&1), ss.str ())); ss.str ("");
             makros.push_back ((ss << "LDA " << side_length, ss.str ())); ss.str ("");
             std::vector <std::string> filenames;
             filenames.push_back (base_kernel_path + "src/matrix/dwt/dwt2.cl");
@@ -141,7 +142,7 @@ class oclDWT {
           _wl_fam(wl_fam),
           _fl (wl_mem),
           _group_size_x (group_size_x),
-              _group_size_y (group_size_y),
+          _group_size_y (group_size_y),
           _global_size_x (global_size_x),
           _global_size_y (global_size_y)
         {
@@ -170,7 +171,7 @@ class oclDWT {
           _wl_fam(wl_fam),
           _fl (wl_mem),
           _group_size_x (group_size_x),
-              _group_size_y (group_size_y),
+          _group_size_y (group_size_y),
           _global_size_x (global_size_x),
           _global_size_y (global_size_y)
         {
@@ -210,7 +211,7 @@ class oclDWT {
             const int num_loc_mem_size = (m.Dim (0) / (_global_size_x/_group_size_x) + _fl) * (m.Dim (0) / (_global_size_x/_group_size_y) + _fl) + (m.Dim (0) / (_global_size_x/_group_size_x)) * (m.Dim (0) / (_global_size_x/_group_size_y) + _fl);
             
             std::vector <PerformanceInformation> vec_perf = oclOperations <T> :: ocl_operator_dwt (p_ocl_m, m.Dim(0), m.Dim(1), m.Dim(2),
-                                                   p_ocl_lpf, p_ocl_hpf, _fl, _min_level,
+                                                   p_ocl_lpf, p_ocl_hpf, _fl, _max_level - _min_level,
                                                    p_ocl_res, num_loc_mem_size,
                                                    _group_size_x,
                                                    _group_size_y,
@@ -264,7 +265,7 @@ assert (   m.Dim (0) == _sl1
             const int num_loc_mem_size = (m.Dim (0) / (_global_size_x/_group_size_x) + _fl) * (m.Dim (0) / (_global_size_x/_group_size_y) + _fl) + (m.Dim (0) / (_global_size_x/_group_size_x)) * (m.Dim (0) / (_global_size_x/_group_size_y) + _fl);
             
             std::vector <PerformanceInformation> vec_perf = oclOperations <T> :: ocl_operator_idwt (p_ocl_m, m.Dim(0), m.Dim(1), m.Dim(2),
-                                                   p_ocl_lpf, p_ocl_hpf, _fl, _min_level,
+                                                   p_ocl_lpf, p_ocl_hpf, _fl, _max_level - _min_level,
                                                    p_ocl_res, num_loc_mem_size,
                                                    _group_size_x,
                                                    _group_size_y,
