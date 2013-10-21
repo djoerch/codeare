@@ -37,7 +37,7 @@
 
 
 # ifndef OFFSET
-  __constant const int offset = FL-1;
+  __constant const int offset = FL-2;
   # define OFFSET
 # endif
 
@@ -50,7 +50,7 @@ conv_step_hi        (const int index, __constant A_type * _filter, __local A_typ
   # pragma unroll
   for (int k = FL-1; k >= 0; k--)
   {
-    sum += tmp [index - (k-1) * increment] * _filter [k];
+    sum += tmp [index - k * increment] * _filter [k];
   }
   return sum;
 }
@@ -130,9 +130,11 @@ local2global        (__local A_type * tmp2, __global A_type * arg2,
                      const int block_size_0, const int block_size_1,
                      __constant int * line_length)
 {
-  
-  const int c1_base = get_group_id (0) * block_size_0/2 + local_c1 - FL/2;
-  const int c2_base = get_group_id (1) * block_size_1/2 + local_c2 - FL/2;
+ 
+  const int shift = - offset/2;
+
+  const int c1_base = get_group_id (0) * block_size_0/2 + local_c1 + shift;
+  const int c2_base = get_group_id (1) * block_size_1/2 + local_c2 + shift;
 
   ///////////
   // part: LL
@@ -143,14 +145,14 @@ local2global        (__local A_type * tmp2, __global A_type * arg2,
     int i;
     for (i = 0; i < block_size_0/2-GROUP_SIZE_0; i += GROUP_SIZE_0)
     {
-      int index = upper_left2 + (local_c2 + j - FL/2) * LDA + local_c1 + i - FL/2;
+      int index = upper_left2 + (local_c2 + j + shift) * LDA + local_c1 + i + shift;
       index = index + (c1_base + i < 0 ? *line_length/2 : 0)
                     + (c2_base + j < 0 ? *line_length/2 * LDA : 0);
       arg2 [index] = tmp2 [(local_c2 + j) * block_size_0 + local_c1 + i];
     }
     if (i + local_c1 < block_size_0/2)
     {
-      int index = upper_left2 + (local_c2 + j - FL/2) * LDA + local_c1 + i - FL/2;
+      int index = upper_left2 + (local_c2 + j + shift) * LDA + local_c1 + i + shift;
       index = index + (c1_base + i < 0 ? *line_length/2 : 0)
                     + (c2_base + j < 0 ? *line_length/2 * LDA : 0);
       arg2 [index] = tmp2 [(local_c2 + j) * block_size_0 + local_c1 + i];
@@ -161,14 +163,14 @@ local2global        (__local A_type * tmp2, __global A_type * arg2,
     int i;
     for (i = 0; i < block_size_0/2-GROUP_SIZE_0; i += GROUP_SIZE_0)
     {
-      int index = upper_left2 + (local_c2 + j - FL/2) * LDA + local_c1 + i - FL/2;
+      int index = upper_left2 + (local_c2 + j + shift) * LDA + local_c1 + i + shift;
       index = index + (c1_base + i < 0 ? *line_length/2 : 0)
                     + (c2_base + j < 0 ? *line_length/2 * LDA : 0);
       arg2 [index] = tmp2 [(local_c2 + j) * block_size_0 + local_c1 + i];
     }
     if (i + local_c1 < block_size_0/2)
     {
-      int index = upper_left2 + (local_c2 + j - FL/2) * LDA + local_c1 + i - FL/2;
+      int index = upper_left2 + (local_c2 + j + shift) * LDA + local_c1 + i + shift;
       index = index + (c1_base + i < 0 ? *line_length/2 : 0)
                     + (c2_base + j < 0 ? *line_length/2 * LDA : 0);
       arg2 [index] = tmp2 [(local_c2 + j) * block_size_0 + local_c1 + i];
@@ -183,16 +185,16 @@ local2global        (__local A_type * tmp2, __global A_type * arg2,
     int i;
     for (i = 0; i < block_size_0/2-GROUP_SIZE_0; i += GROUP_SIZE_0)
     {
-      int index = upper_left2 + (*line_length/2 + local_c2 + j - block_size_1/2 - FL/2) * LDA + local_c1 + i - FL/2;
+      int index = upper_left2 + (*line_length/2 + local_c2 + j - block_size_1/2 ) * LDA + local_c1 + i + shift;
       index = index + (c1_base + i < 0 ? *line_length/2 : 0)
-                    + (c2_base + j - block_size_1/2 < 0 ? *line_length/2 * LDA : 0);
+                    + (c2_base + j -shift- block_size_1/2 < 0 ? *line_length/2 * LDA : 0);
       arg2 [index] = tmp2 [(local_c2 + j) * block_size_0 + local_c1 + i];
     }
     if (i + local_c1 < block_size_0/2)
     {
-      int index = upper_left2 + (*line_length/2 + local_c2 + j - block_size_1/2 - FL/2) * LDA + local_c1 + i - FL/2;
+      int index = upper_left2 + (*line_length/2 + local_c2 + j - block_size_1/2) * LDA + local_c1 + i + shift;
       index = index + (c1_base + i < 0 ? *line_length/2 : 0)
-                    + (c2_base + j - block_size_1/2 < 0 ? *line_length/2 * LDA : 0);
+                    + (c2_base + j -shift- block_size_1/2 < 0 ? *line_length/2 * LDA : 0);
       arg2 [index] = tmp2 [(local_c2 + j) * block_size_0 + local_c1 + i];
     }
   }
@@ -201,16 +203,16 @@ local2global        (__local A_type * tmp2, __global A_type * arg2,
     int i;
     for (i = 0; i < block_size_0/2-GROUP_SIZE_0; i += GROUP_SIZE_0)
     {
-      int index = upper_left2 + (*line_length/2 + local_c2 + j - block_size_1/2 - FL/2) * LDA + local_c1 + i - FL/2;
+      int index = upper_left2 + (*line_length/2 + local_c2 + j - block_size_1/2) * LDA + local_c1 + i + shift;
       index = index + (c1_base + i < 0 ? *line_length/2 : 0)
-                    + (c2_base + j - block_size_1/2 < 0 ? *line_length/2 * LDA : 0);
+                    + (c2_base + j -shift- block_size_1/2 < 0 ? *line_length/2 * LDA : 0);
       arg2 [index] = tmp2 [(local_c2 + j) * block_size_0 + local_c1 + i];
     }
     if (i + local_c1 < block_size_0/2)
     {
-      int index = upper_left2 + (*line_length/2 + local_c2 + j - block_size_1/2 - FL/2) * LDA + local_c1 + i - FL/2;
+      int index = upper_left2 + (*line_length/2 + local_c2 + j - block_size_1/2) * LDA + local_c1 + i + shift;
       index = index + (c1_base + i < 0 ? *line_length/2 : 0)
-                    + (c2_base + j - block_size_1/2 < 0 ? *line_length/2 * LDA : 0);
+                    + (c2_base + j -shift - block_size_1/2 < 0 ? *line_length/2 * LDA : 0);
       arg2 [index] = tmp2 [(local_c2 + j) * block_size_0 + local_c1 + i];
     }
   }
@@ -223,15 +225,15 @@ local2global        (__local A_type * tmp2, __global A_type * arg2,
     int i;
     for (i = 0; i < block_size_0/2-GROUP_SIZE_0; i += GROUP_SIZE_0)
     {
-      int index = upper_left2 + (local_c2 + j - FL/2) * LDA + local_c1 + i + *line_length/2 - FL/2;
-      index = index + (c1_base + i < 0 ? *line_length/2 : 0)
+      int index = upper_left2 + (local_c2 + j + shift) * LDA + local_c1 + i + *line_length/2;
+      index = index + (c1_base + i -shift < 0 ? *line_length/2 : 0)
                     + (c2_base + j < 0 ? *line_length/2 * LDA : 0);
       arg2 [index] = tmp2 [(local_c2 + j) * block_size_0 + local_c1 + i + block_size_0/2];
     }
     if (i + local_c1 < block_size_0/2)
     {
-      int index = upper_left2 + (local_c2 + j - FL/2) * LDA + local_c1 + i + *line_length/2 - FL/2;
-      index = index + (c1_base + i < 0 ? *line_length/2 : 0)
+      int index = upper_left2 + (local_c2 + j + shift) * LDA + local_c1 + i + *line_length/2;
+      index = index + (c1_base + i -shift < 0 ? *line_length/2 : 0)
                     + (c2_base + j < 0 ? *line_length/2 * LDA : 0);
       arg2 [index] = tmp2 [(local_c2 + j) * block_size_0 + local_c1 + i + block_size_0/2];
     }
@@ -241,15 +243,15 @@ local2global        (__local A_type * tmp2, __global A_type * arg2,
     int i;
     for (i = 0; i < block_size_0/2-GROUP_SIZE_0; i += GROUP_SIZE_0)
     {
-      int index = upper_left2 + (local_c2 + j - FL/2) * LDA + local_c1 + i + *line_length/2 - FL/2;
-      index = index + (c1_base + i < 0 ? *line_length/2 : 0)
+      int index = upper_left2 + (local_c2 + j + shift) * LDA + local_c1 + i + *line_length/2;
+      index = index + (c1_base + i -shift < 0 ? *line_length/2 : 0)
                     + (c2_base + j < 0 ? *line_length/2 * LDA : 0);
       arg2 [index] = tmp2 [(local_c2 + j) * block_size_0 + local_c1 + i + block_size_0/2];
     }
     if (i + local_c1 < block_size_0/2)
     {
-      int index = upper_left2 + (local_c2 + j - FL/2) * LDA + local_c1 + i + *line_length/2 - FL/2;
-      index = index + (c1_base + i < 0 ? *line_length/2 : 0)
+      int index = upper_left2 + (local_c2 + j + shift) * LDA + local_c1 + i + *line_length/2;
+      index = index + (c1_base + i -shift < 0 ? *line_length/2 : 0)
                     + (c2_base + j < 0 ? *line_length/2 * LDA : 0);
       arg2 [index] = tmp2 [(local_c2 + j) * block_size_0 + local_c1 + i + block_size_0/2];
     }
@@ -263,16 +265,16 @@ local2global        (__local A_type * tmp2, __global A_type * arg2,
     int i;
     for (i = 0; i < block_size_0/2-GROUP_SIZE_0; i += GROUP_SIZE_0)
     {
-      int index = upper_left2 + (*line_length/2 + local_c2 + j - block_size_1/2 - FL/2) * LDA + local_c1 + i + *line_length/2 - FL/2;
-      index = index + (c1_base + i < 0 ? *line_length/2 : 0)
-                    + (c2_base + j - block_size_1/2 < 0 ? *line_length/2 * LDA : 0);
+      int index = upper_left2 + (*line_length/2 + local_c2 + j - block_size_1/2) * LDA + local_c1 + i + *line_length/2;
+      index = index + (c1_base + i -shift < 0 ? *line_length/2 : 0)
+                    + (c2_base + j -shift - block_size_1/2 < 0 ? *line_length/2 * LDA : 0);
       arg2 [index] = tmp2 [(local_c2 + j) * block_size_0 + local_c1 + i + block_size_0/2];
     }
     if (i + local_c1 < block_size_0/2)
     {
-      int index = upper_left2 + (*line_length/2 + local_c2 + j - block_size_1/2 - FL/2) * LDA + local_c1 + i + *line_length/2 - FL/2;
-      index = index + (c1_base + i < 0 ? *line_length/2 : 0)
-                    + (c2_base + j - block_size_1/2 < 0 ? *line_length/2 * LDA : 0);
+      int index = upper_left2 + (*line_length/2 + local_c2 + j - block_size_1/2) * LDA + local_c1 + i + *line_length/2;
+      index = index + (c1_base + i -shift < 0 ? *line_length/2 : 0)
+                    + (c2_base + j -shift - block_size_1/2 < 0 ? *line_length/2 * LDA : 0);
       arg2 [index] = tmp2 [(local_c2 + j) * block_size_0 + local_c1 + i + block_size_0/2];
     }
   }
@@ -281,16 +283,16 @@ local2global        (__local A_type * tmp2, __global A_type * arg2,
     int i;
     for (i = 0; i < block_size_0/2-GROUP_SIZE_0; i += GROUP_SIZE_0)
     {
-      int index = upper_left2 + (*line_length/2 + local_c2 + j - block_size_1/2 - FL/2) * LDA + local_c1 + i + *line_length/2 - FL/2;
-      index = index + (c1_base + i < 0 ? *line_length/2 : 0)
-                    + (c2_base + j - block_size_1/2 < 0 ? *line_length/2 * LDA : 0);
+      int index = upper_left2 + (*line_length/2 + local_c2 + j - block_size_1/2) * LDA + local_c1 + i + *line_length/2;
+      index = index + (c1_base + i -shift < 0 ? *line_length/2 : 0)
+                    + (c2_base + j -shift - block_size_1/2 < 0 ? *line_length/2 * LDA : 0);
       arg2 [index] = tmp2 [(local_c2 + j) * block_size_0 + local_c1 + i + block_size_0/2];
     }
     if (i + local_c1 < block_size_0/2)
     {
-      int index = upper_left2 + (*line_length/2 + local_c2 + j - block_size_1/2 - FL/2) * LDA + local_c1 + i + *line_length/2 - FL/2;
-      index = index + (c1_base + i < 0 ? *line_length/2 : 0)
-                    + (c2_base + j - block_size_1/2 < 0 ? *line_length/2 * LDA : 0);
+      int index = upper_left2 + (*line_length/2 + local_c2 + j - block_size_1/2) * LDA + local_c1 + i + *line_length/2;
+      index = index + (c1_base -shift + i < 0 ? *line_length/2 : 0)
+                    + (c2_base -shift + j - block_size_1/2 < 0 ? *line_length/2 * LDA : 0);
       arg2 [index] = tmp2 [(local_c2 + j) * block_size_0 + local_c1 + i + block_size_0/2];
     }
   }
@@ -307,13 +309,17 @@ filter_columns           (const int local_c1, const int local_c2,
                           const int border_block_size_0, const int border_block_size_1)
 {
 
+//    const int modulo = offset & 1;
+
     // COLUMNS
 
     if (local_c1 < GROUP_SIZE_0/2)  // lowpass filter
     {
 
+      const int start_lo = 0;//modulo;
+
       // reused index parts
-      const int part_index = local_c2 * border_block_size_0 + 2 * local_c1;
+      const int part_index = local_c2 * border_block_size_0 + 2 * local_c1 + start_lo;//((FL+1)&1);
       const int part_index2 = local_c2 * block_size_0 + local_c1;
 
       // j: loop over columns per thread -> c2
@@ -357,10 +363,12 @@ filter_columns           (const int local_c1, const int local_c2,
     } // end of lowpass filter
     
     else  // highpass filter
-    { 
-        
+    {
+     
+      const int start_hi = FL;//modulo + 1;
+    
       // reused index parts
-      const int part_index = local_c2 * border_block_size_0 + 2 * (local_c1 - GROUP_SIZE_0/2) + offset - 1;
+      const int part_index = local_c2 * border_block_size_0 + 2 * (local_c1 - GROUP_SIZE_0/2) - 1 + start_hi;//offset;
       const int part_index2 = local_c2 * block_size_0 + local_c1 - GROUP_SIZE_0/2 + block_size_0/2;
         
       // j: loop over columns per thread
@@ -414,13 +422,17 @@ filter_rows           (const int local_c1, const int local_c2,
                        const int block_size_0, const int block_size_1)
 {
 
+    const int modulo = offset & 1;
+
     // ROWS
 
     if (local_c2 < GROUP_SIZE_1/2)  // lowpass filter
     {
 
+      const int start_lo = 0;//modulo;
+
       // reused index parts
-      const int part_index = local_c1 + (2 * local_c2) * block_size_0;
+      const int part_index = local_c1 + (2 * local_c2 + start_lo /*((FL+1)&1)*/) * block_size_0;
       const int part_index2 = local_c1 + local_c2 * block_size_0;
 
       // j: loop over rows per thread -> c1
@@ -464,10 +476,12 @@ filter_rows           (const int local_c1, const int local_c2,
     } // end of lowpass filter
     
     else  // highpass filter
-    { 
+    {
+        
+      const int start_hi = FL;//modulo + 1;
         
       // reused index parts
-      const int part_index = local_c1 + (offset - 1 + 2 * (local_c2 - GROUP_SIZE_1/2)) * block_size_0;
+      const int part_index = local_c1 + (start_hi - 1 + 2 * (local_c2 - GROUP_SIZE_1/2)) * block_size_0;
       const int part_index2 = local_c1 + (local_c2 - GROUP_SIZE_1/2 + block_size_1/2) * block_size_0;
         
       // j: loop over rows per thread -> c1

@@ -208,7 +208,7 @@ class oclDWT {
             oclDataWrapper <T> * p_ocl_lpf = oclOperations <T> :: make_GPU_Obj (_lpf_d, _fl);
             oclDataWrapper <T> * p_ocl_hpf = oclOperations <T> :: make_GPU_Obj (_hpf_d, _fl);
             
-            const int num_loc_mem_size = (m.Dim (0) / (_global_size_x/_group_size_x) + _fl) * (m.Dim (0) / (_global_size_x/_group_size_y) + _fl) + (m.Dim (0) / (_global_size_x/_group_size_x)) * (m.Dim (0) / (_global_size_x/_group_size_y) + _fl);
+            const int num_loc_mem_size = (m.Dim (0) / (_global_size_x/_group_size_x) + _fl) * (m.Dim (0) / (_global_size_y/_group_size_y) + _fl) + (m.Dim (0) / (_global_size_x/_group_size_x)) * (m.Dim (0) / (_global_size_y/_group_size_y) + _fl);
             
             std::vector <PerformanceInformation> vec_perf = oclOperations <T> :: ocl_operator_dwt (p_ocl_m, m.Dim(0), m.Dim(1), m.Dim(2),
                                                    p_ocl_lpf, p_ocl_hpf, _fl, _max_level - _min_level,
@@ -262,7 +262,7 @@ assert (   m.Dim (0) == _sl1
             oclDataWrapper <T> * p_ocl_lpf = oclOperations <T> :: make_GPU_Obj (_lpf_r, _fl);
             oclDataWrapper <T> * p_ocl_hpf = oclOperations <T> :: make_GPU_Obj (_hpf_r, _fl);
             
-            const int num_loc_mem_size = (m.Dim (0) / (_global_size_x/_group_size_x) + _fl) * (m.Dim (0) / (_global_size_x/_group_size_y) + _fl) + (m.Dim (0) / (_global_size_x/_group_size_x)) * (m.Dim (0) / (_global_size_x/_group_size_y) + _fl);
+            const int num_loc_mem_size = (m.Dim (0) / (_global_size_x/_group_size_x) + 2*(_fl-1)) * (m.Dim (0) / (_global_size_y/_group_size_y) + 2*(_fl-1)) + (m.Dim (0) / (_global_size_x/_group_size_x)) * (m.Dim (0) / (_global_size_y/_group_size_y) + 2*(_fl-1));
             
             std::vector <PerformanceInformation> vec_perf = oclOperations <T> :: ocl_operator_idwt (p_ocl_m, m.Dim(0), m.Dim(1), m.Dim(2),
                                                    p_ocl_lpf, p_ocl_hpf, _fl, _max_level - _min_level,
