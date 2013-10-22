@@ -801,8 +801,10 @@ kernel void dwt2 (__global A_type * arg1,
 
   // filter operations
   filter_columns (local_c1, local_c2, tmp, tmp2, _lpf, _hpf, block_size_0, block_size_1, border_block_size_0, border_block_size_1);
+
   barrier (CLK_LOCAL_MEM_FENCE);
-  filter_rows (local_c1, local_c2, tmp2, tmp, _lpf, _hpf, block_size_0, block_size_1);
+
+filter_rows (local_c1, local_c2, tmp2, tmp, _lpf, _hpf, block_size_0, block_size_1);
 
   barrier (CLK_LOCAL_MEM_FENCE);
 
