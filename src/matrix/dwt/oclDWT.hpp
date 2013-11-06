@@ -232,8 +232,8 @@ class oclDWT {
             delete p_ocl_hpf;
             
             vec_perf [0].time_mem_down += time;
-            vec_perf2.push_back (vec_perf [0]);
-            vec_perf2.push_back (vec_perf [1]);
+            vec_perf2.insert (vec_perf2.end (), vec_perf.begin (), vec_perf.end ());
+            
             
             return vec_perf2;
             

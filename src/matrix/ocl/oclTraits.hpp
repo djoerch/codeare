@@ -7,6 +7,7 @@
    ** makros **
    ************/
   # define __OCL_TRAITS_HPP__
+  # define __PERFORMANCE_INFO__
   
   
 
@@ -381,7 +382,7 @@
         ocl_run_func_obj (op_obj, lc);
 
         // retrieve profiling information
-        ProfilingInformation pi = op_obj -> getProfilingInformation(0);
+        ProfilingInformation pi = op_obj -> getProfilingInformation ();
         
         // clear memory
         delete op_obj;
@@ -397,8 +398,8 @@
        * @brief                     execute specified kernel with 5 arguments and 5 scalars
        */
       static inline
-      std::vector <ProfilingInformation>
-      ocl_basic_operator_kernel_55  ( const   std::vector <std::string> &       kernel_names,
+      ProfilingInformation
+      ocl_basic_operator_kernel_55  ( const   std::string               &        kernel_name,
                                             oclDataObject               * const         arg1,
                                             oclDataObject               * const         arg2,
                                             oclDataObject               * const         arg3,
@@ -431,15 +432,13 @@
         // create function object
         oclFunctionObject * op_obj = oclConnection :: Instance ()
                                         -> makeFunctionObject <elem_type, scalar_type>
-                                              (kernel_names, args, num_args, oclConnection::KERNEL, oclConnection::SYNC);
+                                              (kernel_name, args, num_args, oclConnection::KERNEL, oclConnection::SYNC);
         
         // execute function object
         ocl_run_func_obj (op_obj, lc);
         
         // retrieve profiling information
-        std::vector <ProfilingInformation> vec_pi;
-        for (int i = 0; i < kernel_names.size (); i++)
-          vec_pi.push_back (op_obj -> getProfilingInformation(i));
+        ProfilingInformation pi = op_obj -> getProfilingInformation ();
 
         // clear memory
         delete op_obj;
@@ -450,7 +449,7 @@
         delete args [9];
         free (args);
 
-        return vec_pi;
+        return pi;
         
       }
       
@@ -579,7 +578,7 @@
        * @brief                       execute specified kernel with 2 arguments and 4 scalars
        */
       static inline
-      std::vector <ProfilingInformation>
+      ProfilingInformation
       ocl_basic_operator_kernel_24             ( const          char * const kernel_name,
                                                        oclDataObject * const        arg1,
                                                        oclDataObject * const        arg2,
@@ -612,8 +611,8 @@
         ocl_run_func_obj (op_obj, lc);
         
         // retrieve profiling information
-        std::vector <ProfilingInformation> vec_pi;
-        vec_pi.push_back (op_obj -> getProfilingInformation(0));
+        ProfilingInformation pi;
+        pi = op_obj -> getProfilingInformation(0);
 
         // clear memory
         delete op_obj;
@@ -623,7 +622,7 @@
         delete args [5];
         free (args);
 
-        return vec_pi;
+        return pi;
         
       }
       
@@ -1169,7 +1168,7 @@
           std::string kernel_name ("perf_dwtGlobalToLocal");
           ProfilingInformation pi = ocl_basic_operator_kernel_21 (kernel_name, loc_mem, arg1, line_length, lc);
           double time_seconds = pi.time_end - pi.time_start;
-          double effective_bw = ((double) ((512/(global_x/(double)group_size_x)+fl)/(double)group_size_x * (512/(global_y/(double)group_size_y)+fl)/(double)group_size_y) * global_x * global_y * sizeof (elem_type) ) * 1.0e-9f / time_seconds;
+          double effective_bw = ((double) ((line_length/(global_x/(double)group_size_x)+fl-2)/(double)group_size_x * (line_length/(global_y/(double)group_size_y)+fl-2)/(double)group_size_y) * global_x * global_y * sizeof (elem_type) ) * 1.0e-9f / time_seconds;
           vec_perf.push_back (PerformanceInformation (kernel_name, lc, std::string () + " Effective bandwidth (GB/s)", time_seconds, pi.time_mem_up, pi.time_mem_down, effective_bw));
                     
           ////////////////////
@@ -1187,7 +1186,7 @@
           kernel_name = std::string ("perf_dwtFilter");
           pi = ocl_basic_operator_kernel_31 (kernel_name, loc_mem, lpf, hpf, line_length, lc);
           time_seconds = pi.time_end - pi.time_start;
-          float effective_flops = ((float) (7 + (512/(global_x/group_size_x)+fl) / group_size_x * 512/global_x * (9 + 4 * fl + 2)) + (7 + pow(512/global_x,2)) * (9 + 4*fl + 2)) * global_x * global_y / time_seconds * 1.0e-9f;
+          float effective_flops = ((float) (7 + (line_length/(global_x/group_size_x)+fl) / group_size_x * line_length/global_x * (9 + 4 * fl + 2)) + (7 + pow(line_length/global_x,2)) * (9 + 4*fl + 2)) * global_x * global_y / time_seconds * 1.0e-9f;
           vec_perf.push_back (PerformanceInformation (kernel_name, lc, std::string () + " Effective Flop/s (GFlop/s)", time_seconds, pi.time_mem_up, pi.time_mem_down, effective_flops));
                     
           delete loc_mem;
@@ -1210,7 +1209,7 @@
        * ...
        */
       static inline
-      const std::vector <PerformanceInformation>
+      std::vector <PerformanceInformation>
       ocl_operator_dwt                ( oclDataObject * const arg1,
                                                   int            n,
                                                   int            m,
@@ -1227,50 +1226,85 @@
                                                   int   const global_y)
       {
         
-          std::vector <PerformanceInformation> vec_perf;
-        
           print_optional ("oclOperations <", trait1 :: print_elem_type (), ", ",
                                              trait2 :: print_elem_type (), "> :: ocl_operator_dwt", op_v_level);
 
           // dynamically allocate local memory
           oclDataObject * loc_mem = new oclLocalMemObject <elem_type> (num_loc_mem_elems);
-          std::cout << " local_mem: " << num_loc_mem_elems * sizeof (elem_type) << " Bytes " << std::endl;
           
+          // create kernel launch configuration
           LaunchInformation lc (group_size_x, group_size_y, global_x, global_y);
           
-          std::vector <std::string> kernel_names;
-          kernel_names.push_back (std::string ("dwt2"));
+          std::vector <ProfilingInformation> vec_pi;
           
-          std::vector <ProfilingInformation> vec_pi = ocl_basic_operator_kernel_55 (kernel_names, arg1, lpf, hpf, arg2, loc_mem, n, m, k, n, num_loc_mem_elems, lc);
-          
-          int data_size = 0;
+          // launch kernels
           oclDataObject * tmp1 = arg1;
           oclDataObject * tmp2 = arg2;
-          for (int i = 1; i < levels; i++)
+          for (int i = 0; i < levels; i++)
           {
             const int line_length = n / pow (2, i);
-            std::vector <ProfilingInformation> vec_tmp = ocl_basic_operator_kernel_55 (kernel_names, tmp2, lpf, hpf, tmp1, loc_mem, n, m, k, line_length, num_loc_mem_elems, lc);
+            ProfilingInformation pi = ocl_basic_operator_kernel_55 ("dwt2", tmp1, lpf, hpf, tmp2, loc_mem, n, m, k, line_length, num_loc_mem_elems, lc);
+            vec_pi.push_back (pi);
             oclDataObject * tmp = tmp1;
             tmp1 = tmp2;
             tmp2 = tmp;
-            if ((i&1)==1)
-              data_size += n/pow(2,i) * 3;
           }
           std::vector <ProfilingInformation> vec_tmp = ocl_basic_operator_kernel_25 ("dwt2_final", arg1, arg2, n, m, k, n / pow (2, levels-1), levels, lc);
           
-          for (int i = 0; i < kernel_names.size (); i++)
+          delete loc_mem;
+          
+          ///////////////
+          // performance
+          ///////////////
+
+# ifdef __PERFORMANCE_INFO__
+          
+          const int num_groups_0 = global_x / group_size_x;
+          const int num_groups_1 = global_y / group_size_y;
+          
+          // data amount for dwt2 over all levels
+          int data_size_1 = 0;
+          for (int i = 0; i < levels; i++)
           {
-            float time_seconds = vec_pi[i].time_end - vec_pi[i].time_start;
-            float effective_bw = ((float) (num_loc_mem_elems * (((float)global_x)/group_size_x) * (((float)global_y)/group_size_y) * sizeof (elem_type) * 2) * 1.0e-9f) / time_seconds;
-            vec_perf.push_back (PerformanceInformation (kernel_names [i], lc, " Effective bandwidth (GB/s)", time_seconds, vec_pi[i].time_mem_up, vec_pi[i].time_mem_down, effective_bw));
+            const int sl_0 = n / pow (2, i);
+            const int sl_1 = m / pow (2, i);
+            const float block_size_0 = sl_0 / num_groups_0;
+            const float block_size_1 = sl_1 / num_groups_1;
+            const int offset = fl - 2;
+            // global -> local
+            data_size_1 += (block_size_0 + offset) * (block_size_1 + offset) * num_groups_0 * num_groups_1;
+            // local -> global
+            data_size_1 += sl_0 * sl_1;
           }
           
-          float time_seconds = vec_tmp [0].time_end - vec_tmp [0].time_start;
-          float effective_bw = (data_size * sizeof (elem_type) * 1.0e-9f) / time_seconds;
-          vec_perf.push_back (PerformanceInformation ("dwt2_final", lc, " Effective bandwidth (GB/s)", time_seconds, vec_tmp [0].time_mem_up, vec_tmp [0].time_mem_down, effective_bw));
+          std::vector <PerformanceInformation> vec_perf;
+          float time_seconds_1 = 0,
+                time_mem_up_1 = 0,
+                time_mem_down_1;
+          for (std::vector <ProfilingInformation> :: const_iterator it_pi = vec_pi.begin (); it_pi != vec_pi.end (); ++it_pi)
+          {
+            time_seconds_1 += it_pi -> time_end - it_pi -> time_start;
+            time_mem_up_1   += it_pi -> time_mem_up;
+            time_mem_down_1 += it_pi -> time_mem_down;
+          }
+          float effective_bw_1 = (data_size_1 * sizeof (elem_type) * 1.0e-9f) / time_seconds_1;
+          
+          // data amount for dwt2_final
+          int data_size_2 = 0;
+          for (int i = 1; i <= (levels-1)/2; i++)
+            data_size_2 += pow (n/pow (2,2*i), 2);
+          data_size_2 *= 3;
+          if (levels&1)
+            data_size_2 += pow (n/pow (2,2*(levels-1)), 2);
+          
+          float time_seconds_2 = vec_tmp [0].time_end - vec_tmp [0].time_start;
+          float effective_bw_2 = (data_size_2 * sizeof (elem_type) * 1.0e-9f) / time_seconds_2;
 
-                    
-          delete loc_mem;
+          float effective_bw = ((data_size_1 + data_size_2) * sizeof (elem_type) * 1.0e-9f) / (time_seconds_1 + time_seconds_2);
+          vec_perf.push_back (PerformanceInformation ("dwt2 (all levels, final)", lc, " Effective bandwidth (GB/s)", time_seconds_1 + time_seconds_2, time_mem_up_1 + vec_tmp [0].time_mem_up, time_mem_down_1 + vec_tmp [0].time_mem_down, effective_bw));
+          vec_perf.push_back (PerformanceInformation ("dwt2 (all levels)", lc, " Effective bandwidth (GB/s)", time_seconds_1, time_mem_up_1, time_mem_down_1, effective_bw_1));
+          vec_perf.push_back (PerformanceInformation ("dwt2_final", lc, " Effective bandwidth (GB/s)", time_seconds_2, vec_tmp [0].time_mem_up, vec_tmp [0].time_mem_down, effective_bw_2));
+# endif
           
           return vec_perf;
           
@@ -1291,7 +1325,7 @@
        * ...
        */
       static inline
-      const std::vector <PerformanceInformation>
+      std::vector <PerformanceInformation>
       ocl_operator_idwt               ( oclDataObject * const arg1,
                                                   int            n,
                                                   int            m,
@@ -1319,32 +1353,82 @@
           
           // create launch configuration
           LaunchInformation lc (group_size_x, group_size_y, global_x, global_y);
-          
-          // specify kernels to launch
-          std::vector <std::string> kernel_names;
-          kernel_names.push_back (std::string ("idwt2"));
+                    
+          std::vector <ProfilingInformation> vec_pi_1, vec_pi_2;
           
           const int line_length = n/pow (2,levels-1);
-          std::vector <ProfilingInformation> vec_pi = ocl_basic_operator_kernel_55 (kernel_names, arg1, lpf, hpf, arg2, loc_mem, n, m, k, line_length, num_loc_mem_elems, lc);
+          ProfilingInformation pi = ocl_basic_operator_kernel_55 ("idwt2", arg1, lpf, hpf, arg2, loc_mem, n, m, k, line_length, num_loc_mem_elems, lc);
+          vec_pi_1.push_back (pi);
           
-          int data_size = 0;
           for (int i = levels-2; i >= 0; i--)
           {
             const int line_length2 = n / pow (2, i);
-            std::vector <ProfilingInformation> vec_tmp = ocl_basic_operator_kernel_24 ("idwt2_prepare", arg1, arg2, n, m, k, line_length2/2, lc);
-            vec_tmp = ocl_basic_operator_kernel_55 (kernel_names, arg1, lpf, hpf, arg2, loc_mem, n, m, k, line_length2, num_loc_mem_elems, lc);
-            if ((i&1)==1)
-              data_size += n/pow(2,i) * 3;
+            ProfilingInformation pi_tmp2 = ocl_basic_operator_kernel_24 ("idwt2_prepare", arg1, arg2, n, m, k, line_length2/2, lc);
+            ProfilingInformation pi_tmp1 = ocl_basic_operator_kernel_55 ("idwt2", arg1, lpf, hpf, arg2, loc_mem, n, m, k, line_length2, num_loc_mem_elems, lc);
+            vec_pi_2.push_back (pi_tmp2);
+            vec_pi_1.push_back (pi_tmp1);
           }
           
-          for (int i = 0; i < kernel_names.size (); i++)
+# ifdef __PERFORMANCE_INFO__
+          
+          const int num_groups_0 = global_x / group_size_x;
+          const int num_groups_1 = global_y / group_size_y;
+          
+          // data amount for idwt2 over all levels
+          int data_size_1 = 0;
+          for (int i = levels-1; i > 0; i--)
           {
-            float time_seconds = vec_pi[i].time_end - vec_pi[i].time_start;
-            float effective_bw = ((float) (n * m * sizeof (elem_type) * 2) * 1.0e-9f) / time_seconds;
-            vec_perf.push_back (PerformanceInformation (kernel_names [i], lc, " Effective bandwidth (GB/s)", time_seconds, vec_pi[i].time_mem_up, vec_pi[i].time_mem_down, effective_bw));
+            const int sl_0 = n / pow (2, i);
+            const int sl_1 = m / pow (2, i);
+            const float block_size_0 = sl_0 / num_groups_0;
+            const float block_size_1 = sl_1 / num_groups_1;
+            const int offset = fl - 1;
+            // global -> local
+            data_size_1 += (block_size_0 + 2 * offset) * (block_size_1 + 2 * offset) * num_groups_0 * num_groups_1;
+            // local -> global
+            data_size_1 += sl_0 * sl_1;
           }
           
-
+          float time_seconds_1 = 0,
+                time_mem_up_1 = 0,
+                time_mem_down_1 = 0;
+          for (std::vector <ProfilingInformation> :: const_iterator it = vec_pi_1.begin (); it != vec_pi_1.end (); ++it)
+          {
+            time_seconds_1 += it -> time_end - it -> time_start;
+            time_mem_up_1 += it -> time_mem_up;
+            time_mem_down_1 += it -> time_mem_down;
+          }
+          float effective_bw_1 = ((data_size_1 * sizeof (elem_type)) * 1.0e-9) / time_seconds_1;
+          
+          // data amount for idwt2_prepare
+          int data_size_2 = 0;
+          for (int l = 2; l <= levels; l++)
+          {
+            const int sl_0 = n / pow (2, l-1);
+            const int sl_1 = m / pow (2, l-1);
+            data_size_2 += sl_0 * sl_1;
+          }
+          
+          float time_seconds_2 = 0,
+                time_mem_up_2 = 0,
+                time_mem_down_2 = 0;
+          for (std::vector <ProfilingInformation> :: const_iterator it = vec_pi_2.begin (); it != vec_pi_2.end (); ++it)
+          {
+            time_seconds_2 += it -> time_end - it -> time_start;
+            time_mem_up_2 += it -> time_mem_up;
+            time_mem_down_2 += it -> time_mem_down;
+          }
+          float effective_bw_2 = ((data_size_2 * sizeof (elem_type)) * 1.0e-9) / time_seconds_2;
+          
+          // overall bandwidth
+          float effective_bw = (((data_size_1 + data_size_2) * sizeof (elem_type)) * 1.0e-9) / (time_seconds_1 + time_seconds_2);
+          
+            vec_perf.push_back (PerformanceInformation ("idwt2 (+prepare)", lc, " Effective bandwidth (GB/s)", time_seconds_1 + time_seconds_2, time_mem_up_1 + time_mem_up_2, time_mem_down_1 + time_mem_down_2, effective_bw));
+            vec_perf.push_back (PerformanceInformation ("idwt2 (kernel)", lc, " Effective bandwidth (GB/s)", time_seconds_1, time_mem_up_1, time_mem_down_1, effective_bw_1));
+            vec_perf.push_back (PerformanceInformation ("idwt2_prepare (kernel)", lc, " Effective bandwidth (GB/s)", time_seconds_2, time_mem_up_2, time_mem_down_2, effective_bw_2));
+                        
+# endif
+            
           delete loc_mem;
           
           return vec_perf;

@@ -255,7 +255,7 @@
       throw oclError (tmp.str (), "oclDataWrapper :: loadToCPU", oclError :: WARNING);
     
     }
-  
+    
     return mem_time;
     
   }

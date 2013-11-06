@@ -11,7 +11,7 @@
 /**********************
  ** type definitions **
  **********************/
-typedef float elem_type;
+typedef double elem_type;
 
 
 using namespace codeare::matrix::io;
@@ -58,13 +58,14 @@ main            (int argc, char ** args)
 
 	// more params
 	const int    iterations   = atoi (conf.GetElement ("/config")->Attribute ("iterations"));
-	const int    num_threads  = atoi (conf.GetElement ("/config")->Attribute ("num_threads"));
-	const char * of_name_base =       conf.GetElement ("/config")->Attribute ("ofname");
-	const char * range        =       conf.GetElement ("/config")->Attribute ("range");
+	const int    num_threads  = atoi (conf.GetElement ("/config/openmp")->Attribute ("num_threads"));
+  const char * of_path      =       conf.GetElement ("/config/ofname")->Attribute ("path");
+	const char * of_name_base =       conf.GetElement ("/config/ofname")->Attribute ("base");
+	const char * range        =       conf.GetElement ("/config/openmp")->Attribute ("range");
 
 	// open measurement output file
 	ss.clear (), ss.str (std::string ());
-	ss << base << of_name_base << "_wl_fam_" << wl_fam << "_wl_mem_" << wl_mem << "_wl_scale_" << wl_scale << ".txt";
+	ss << base << of_path << "dwt2_" << of_name_base << "_wl_fam_" << wl_fam << "_wl_mem_" << wl_mem << "_wl_scale_" << wl_scale << ".txt";
 	std::fstream fs;
 	fs.open (ss.str ().c_str (), std::fstream::out);
 
@@ -114,7 +115,7 @@ main            (int argc, char ** args)
 
 	    fs << "\t" << threads << "\t\t" << time/iterations/2 << "\t\t" << s_time_f << "\t\t" << s_time_b << "\t\t" << time_ref/time << std::endl;
 
-//      std::cout << " time: " << time/iterations/2 << "s " << std::endl;
+      std::cout << " time: " << time/iterations/2 << "s " << std::endl;
 
       
 	}
@@ -124,6 +125,7 @@ main            (int argc, char ** args)
 	ioc2.Write (mat_out_dwt,       conf.GetElement ("/config/data/out/res-dwt"));
     ioc2.Write (mat_out_dwt_recon, conf.GetElement ("/config/data/out/res-dwt-recon"));
 
+    fs.flush ();
     fs.close ();
 
 	// Outro

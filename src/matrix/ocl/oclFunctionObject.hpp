@@ -68,7 +68,7 @@
       
       virtual
       const ProfilingInformation
-      getProfilingInformation (const int)
+      getProfilingInformation (const int = 0)
       const = 0;
 
   

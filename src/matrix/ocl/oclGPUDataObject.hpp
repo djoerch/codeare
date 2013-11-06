@@ -160,7 +160,7 @@
   
       // set status: calculating (set available via finish ())
       oclDataObject :: setLocked ();
-    
+      
       // synchronize GPU data / load to GPU
       mem_time = oclDataWrapper <T> :: loadToGPU ();
     

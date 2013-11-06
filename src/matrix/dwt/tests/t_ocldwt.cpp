@@ -35,6 +35,8 @@ vector_of_sizes         (TiXmlElement * const elem)
     TiXmlNode * child = NULL;
     while (child = elem -> IterateChildren (child))
     {
+      if (child -> Type() == TiXmlNode::TINYXML_COMMENT)
+        continue;
       values.push_back (atoi (child -> ToElement () -> GetText ()));
     }
   }
@@ -84,7 +86,7 @@ extract_sizes           (const Configurable & conf,
   // get "local" node
   TiXmlElement * local_elem = conf.GetElement ("/config/gpu/local");
   pair_vector_of_sizes (local_elem, local_sizes);
-
+  
   // get "global" node
   TiXmlElement * global_elem = conf.GetElement ("/config/gpu/global");
   pair_vector_of_sizes (global_elem, global_sizes);
@@ -108,6 +110,38 @@ extract_sizes           (const Configurable & conf,
     throw oclError (" ! Number of local and global sizes must be equal ! ", " extract_sizes ()");
   }
   
+}
+
+
+void
+print_table_header (std::fstream & fs, const int iterations, const char * name_param, const int indent)
+{
+  
+    fs << "## OpenCL DWT ##" << std::endl;
+    fs << "## iterations: " << iterations << std::endl;
+    fs << "## fixed " << name_param << " configuration" << std::endl;
+  
+    // headline of table
+    fs << " ##";
+    if (strcmp (name_param, "local") == 0)
+    {
+      fs               << " global_size_x  --" << std::flush <<
+         setw (indent) << " global_size_y  --" << std::flush;
+    }
+    else if (strcmp (name_param, "global") == 0)
+    {
+      fs << setw (indent)   << " local_size_x  --" << std::flush <<
+            setw (indent)   << " local_size_y  --" << std::flush;
+    }
+    fs << setw (indent-2) << "  time exec (f)  --" << std::flush <<
+          setw (indent-2) << "  time exec (b)  --" << std::flush <<
+          setw (indent-2) << "  time mem  --" << std::flush <<
+          setw (indent)   << "  bandwidth (f) --" << std::flush <<
+          setw (indent)   << "  bandwidth (b) --" << std::flush <<
+          setw (indent-2) << "  g2l (f) --" << std::flush <<
+          setw (indent-2) << "  l2g (f) --" << std::flush <<
+          setw (indent-2) << "  flops (f) " << std::endl;
+
 }
 
 
@@ -152,11 +186,10 @@ main            (int argc, char ** args)
 
     // more params
     const int    iterations   = atoi (conf.GetElement ("/config")->Attribute ("iterations"));
-    const int    num_threads  = 1; //atoi (conf.GetElement ("/config")->Attribute ("num_threads"));
+    const char * of_path      =       conf.GetElement ("/config/ofname")->Attribute ("path");
     const char * of_name_base =       conf.GetElement ("/config/ofname")->Attribute ("base");
     const char * name_param   =       conf.GetElement ("/config/ofname")->Attribute ("param");
-    const char * range        =       conf.GetElement ("/config")->Attribute ("range");
-
+    
     std::vector <std::pair <int, int> > local_sizes;
     std::vector <std::pair <int, int> > global_sizes;
     
@@ -164,7 +197,7 @@ main            (int argc, char ** args)
     
     // open measurement output file
     ss.clear (), ss.str (std::string ());
-    ss << base << of_name_base << "_wl_fam_" << wl_fam << "_wl_mem_" << wl_mem << "_wl_scale_" << wl_scale;
+    ss << base << of_path << "ocldwt2_" << of_name_base << "_wl_fam_" << wl_fam << "_wl_mem_" << wl_mem << "_wl_scale_" << wl_scale;
     if (strcmp (name_param, "global") == 0)
       ss << "_global_" << global_sizes [0].first << "_" << global_sizes [0].second << ".txt";
     else if (strcmp (name_param, "local") == 0)
@@ -172,45 +205,84 @@ main            (int argc, char ** args)
     std::fstream fs;
     fs.open (ss.str ().c_str (), std::fstream::out);
 
-    // adjust start value of loop index
-    int init_num_threads = 1;
-    if (!strcmp (range, "no"))
-        init_num_threads = num_threads;
-
     oclConnection::Instance();
 
-    // headline of table
-    const int indent = 18;
-    fs << "## OpenCL DWT ##" << std::endl;
-    fs << setw (indent)   << "## Local size  --" << std::flush;
-    fs << setw (indent)   << "  global_size  --" << std::flush <<
-          setw (indent-2) << "  time exec  --" << std::flush <<
-          setw (indent-2) << "  time mem  --" << std::flush <<
-          setw (indent)   << "  bandwidth --" << std::flush <<
-          setw (indent-2) << "  g2l --" << std::flush <<
-          setw (indent-2) << "  l2g --" << std::flush <<
-          setw (indent-2) << "  flops" << std::endl;
+    const int indent = 20;
+    print_table_header (fs, iterations, name_param, indent);
 
     Matrix <elem_type> mat_out_dwt (mat_in.Dim ());
     Matrix <elem_type> mat_out_dwt_recon (mat_in.Dim ());
 
     double time_ref = 0;
-    std::vector <PerformanceInformation> vec_pi;
     
     for (int i = 0; i < local_sizes.size (); ++i)
     {
-    
+
+      std::pair <int, int> sizes = (0==strcmp(name_param, "local") ? local_sizes [i] : global_sizes [i]);
+      
+      try
+      {
+      
         // do something
         oclDWT <elem_type> dwt (mat_in.Dim (0), mat_in.Dim (1), mat_in.Dim (2), wl_fam, wl_mem, wl_scale, local_sizes [i].first, local_sizes [i].second, global_sizes [i].first, global_sizes [i].second);
         
-        try
-        {
-          vec_pi = dwt.Trafo (mat_in, mat_out_dwt);
-
-          std::vector <PerformanceInformation> tmp_vec = dwt.Adjoint (mat_out_dwt, mat_out_dwt_recon);
+        std::vector <PerformanceInformation> vec_pi_forward = dwt.Trafo (mat_in, mat_out_dwt);
+        std::vector <PerformanceInformation> vec_pi_backwards = dwt.Adjoint (mat_out_dwt, mat_out_dwt_recon);
+        
           
-          vec_pi.insert (vec_pi.end(), tmp_vec.begin (), tmp_vec.end ());
+//        mat_out_dwt_recon = mat_in;
+        
+//          std::cout << std::endl;
+//          for (std::vector <PerformanceInformation> :: const_iterator it = vec_pi_forward.begin ();
+//                  it != vec_pi_forward.end (); ++it)
+//          {
+//            std::cout << *it << std::endl;
+//          }
 
+        // make sure input data is correct for iteration ;) !!!
+//        mat_out_dwt_recon = mat_in;
+
+        for (int j = 1; j < iterations; j++)
+        {
+            std::vector <PerformanceInformation> vec_tmp_1 = dwt.Trafo (mat_out_dwt_recon, mat_out_dwt);
+            std::vector <PerformanceInformation> vec_tmp_2 = dwt.Adjoint (mat_out_dwt, mat_out_dwt_recon);
+            for (int k = 0; k < vec_tmp_1.size(); k++)
+              vec_pi_forward [k] += vec_tmp_1 [k];
+            for (int k = 0; k < vec_tmp_2.size(); k++)
+              vec_pi_backwards [k] += vec_tmp_2 [k];
+        }
+        
+//          std::cout << std::endl;
+//          for (std::vector <PerformanceInformation> :: const_iterator it = vec_pi_forward.begin ();
+//                  it != vec_pi_forward.end (); ++it)
+//          {
+//            std::cout << *it << std::endl;
+//          }
+
+          PerformanceInformation pi = vec_pi_forward [3];
+          std::cout << " -------------- " << std::endl;
+          std::cout << pi << std::endl;
+          std::cout << " -------------- " << std::endl;
+
+          PerformanceInformation pi2 = vec_pi_backwards [0];
+          std::cout << " -------------- " << std::endl;
+          std::cout << pi2 << std::endl;
+          std::cout << " -------------- " << std::endl;
+
+          fs << setw (indent-5) << (strcmp (name_param, "local")?pi.lc.local_x:pi.lc.global_x) << std::flush <<
+              setw (indent) << (strcmp (name_param, "local")?pi.lc.local_y:pi.lc.global_y) << std::flush << 
+              setw (indent) << pi.time_exec << std::flush <<
+              setw (indent) << pi2.time_exec << std::flush <<
+              setw (indent) << (pi.time_mem_up + pi.time_mem_down) << std::flush <<
+              setw (indent) << pi.parameter << std::flush <<
+              setw (indent) << pi2.parameter << std::flush <<
+              setw (indent) << vec_pi_forward [0].parameter << std::flush <<
+              setw (indent) << vec_pi_forward [1].parameter << std::flush <<
+              setw (indent) << vec_pi_forward [2].parameter << std::endl;
+          if (i < local_sizes.size () - 1 && (0==strcmp (name_param, "local") ? local_sizes [i+1] : global_sizes [i+1]) != sizes)
+            fs << std::endl;
+
+                  
         } catch (oclError & err)
         {
           std::cerr << " ! CAUTION: skipped (" << local_sizes [i].first << ", "
@@ -219,41 +291,7 @@ main            (int argc, char ** args)
           std::cerr << err << std::endl;
           continue;
         }
-          
-//        mat_out_dwt_recon = mat_in;
         
-          std::cout << std::endl;
-          for (std::vector <PerformanceInformation> :: const_iterator it = vec_pi.begin ();
-                  it != vec_pi.end (); ++it)
-          {
-            std::cout << *it << std::endl;
-          }
-
-        // make sure input data is correct for iteration ;) !!!
-//        mat_out_dwt_recon = mat_in;
-
-
-        PerformanceInformation pi = vec_pi [3];
-//        for (int i = 0; i < iterations; i++)
-//        {
-//            pi += dwt.Trafo (mat_out_dwt_recon, mat_out_dwt) [3];
-////            dwt.Adjoint (mat_out_dwt, mat_out_dwt_recon);
-//        }
-
-          std::cout << " -------------- " << std::endl;
-          std::cout << pi << std::endl;
-          std::cout << " -------------- " << std::endl;
-
-
-        fs << setw (indent-5) << pi.lc.local_x << std::flush <<
-              setw (indent) << pi.lc.global_x << std::flush << 
-              setw (indent) << pi.time_exec << std::flush << 
-              setw (indent) << (pi.time_mem_up + pi.time_mem_down) << std::flush <<
-              setw (indent) << pi.parameter << std::flush <<
-              setw (indent) << vec_pi [0].parameter << std::flush <<
-              setw (indent) << vec_pi [1].parameter << std::flush <<
-              setw (indent) << vec_pi [2].parameter << std::endl;
-
       }
 
     // output oclMatrix to output file

@@ -202,7 +202,7 @@ init_program_kernels    (oclConnection * const con, const std::vector <std::stri
     prog = clProgram (con -> m_cont, sources, & con -> m_error);
 
     // build program
-	  con -> m_error = prog.build (con -> m_devs, "-cl-std=CL1.1 -cl-nv-maxrregcount=24 -cl-nv-verbose");
+	  con -> m_error = prog.build (con -> m_devs, "-cl-std=CL1.1 -cl-mad-enable -cl-fast-relaxed-math -cl-nv-maxrregcount=32 -cl-nv-verbose");
     
 //    std::cout << "Build Log:\t "                  << prog.getBuildInfo<CL_PROGRAM_BUILD_LOG>     (con -> m_devs [0]) << std::endl;
 
