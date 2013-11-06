@@ -1376,7 +1376,7 @@
           
           // data amount for idwt2 over all levels
           int data_size_1 = 0;
-          for (int i = levels-1; i > 0; i--)
+          for (int i = levels-1; i >= 0; i--)
           {
             const int sl_0 = n / pow (2, i);
             const int sl_1 = m / pow (2, i);
@@ -1398,7 +1398,7 @@
             time_mem_up_1 += it -> time_mem_up;
             time_mem_down_1 += it -> time_mem_down;
           }
-          float effective_bw_1 = ((data_size_1 * sizeof (elem_type)) * 1.0e-9) / time_seconds_1;
+          float effective_bw_1 = ((float) (data_size_1 * sizeof (elem_type)) * 1.0e-9f) / time_seconds_1;
           
           // data amount for idwt2_prepare
           int data_size_2 = 0;
@@ -1418,10 +1418,10 @@
             time_mem_up_2 += it -> time_mem_up;
             time_mem_down_2 += it -> time_mem_down;
           }
-          float effective_bw_2 = ((data_size_2 * sizeof (elem_type)) * 1.0e-9) / time_seconds_2;
+          float effective_bw_2 = ((float)(data_size_2 * sizeof (elem_type)) * 1.0e-9f) / time_seconds_2;
           
           // overall bandwidth
-          float effective_bw = (((data_size_1 + data_size_2) * sizeof (elem_type)) * 1.0e-9) / (time_seconds_1 + time_seconds_2);
+          float effective_bw = ((float)((data_size_1 + data_size_2) * sizeof (elem_type)) * 1.0e-9f) / (time_seconds_1 + time_seconds_2);
           
             vec_perf.push_back (PerformanceInformation ("idwt2 (+prepare)", lc, " Effective bandwidth (GB/s)", time_seconds_1 + time_seconds_2, time_mem_up_1 + time_mem_up_2, time_mem_down_1 + time_mem_down_2, effective_bw));
             vec_perf.push_back (PerformanceInformation ("idwt2 (kernel)", lc, " Effective bandwidth (GB/s)", time_seconds_1, time_mem_up_1, time_mem_down_1, effective_bw_1));
