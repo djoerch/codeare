@@ -157,7 +157,7 @@ public:
 		assert (cpsz = m_fplan.M_total * m_rank);
 
 		if (sizeof(T) == sizeof(double))
-			memcpy (m_fplan.x, k.Memory(), cpsz * sizeof(double));
+			memcpy (m_fplan.x, k.Ptr(), cpsz * sizeof(double));
 		else 
 			for (size_t i = 0; i < cpsz; ++i)
 				m_fplan.x[i] = k[i];
@@ -177,7 +177,7 @@ public:
 		assert (cpsz = m_fplan.M_total);
 
 		if (sizeof(T) == sizeof(double))
-			memcpy (m_iplan.w, w.Memory(), cpsz * sizeof(double));
+			memcpy (m_iplan.w, w.Ptr(), cpsz * sizeof(double));
 		else 
 			for (size_t i = 0; i < cpsz; ++i)
 				m_iplan.w[i] = w[i];
@@ -200,11 +200,11 @@ public:
 		Matrix< std::complex<T> > out (m_M,1);
 		
 		if (sizeof(T) == sizeof(double))
-			memcpy (m_fplan.f_hat, m.Memory(), m_imgsz * sizeof (std::complex<T>));
+			memcpy (m_fplan.f_hat, m.Ptr(), m_imgsz * sizeof (std::complex<T>));
 		else 
 			for (size_t i = 0; i < m_imgsz; ++i) {
-				m_fplan.f_hat[i][0] = creal(m[i]);
-				m_fplan.f_hat[i][1] = cimag(m[i]);
+				m_fplan.f_hat[i][0] = real(m[i]);
+				m_fplan.f_hat[i][1] = imag(m[i]);
 			}
 		
 		NFFTTraits<double>::Trafo (m_fplan);
@@ -232,11 +232,11 @@ public:
         Matrix< std::complex<T> > out (m_N);
 		
 		if (sizeof(T) == sizeof(double))
-			memcpy (m_iplan.y, m.Memory(), m_M * sizeof ( std::complex<T> ));
+			memcpy (m_iplan.y, m.Ptr(), m_M * sizeof ( std::complex<T> ));
 		else 
 			for (size_t i = 0; i < m_M; ++i) {
-				m_iplan.y[i][0] = creal(m[i]);
-				m_iplan.y[i][1] = cimag(m[i]);
+				m_iplan.y[i][0] = real(m[i]);
+				m_iplan.y[i][1] = imag(m[i]);
 			}
 
 		NFFTTraits<double>::ITrafo ((Plan&) m_fplan, (Solver&) m_iplan, m_maxit, m_epsilon);
