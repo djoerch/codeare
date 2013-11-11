@@ -37,6 +37,10 @@
 #include "Complex.hpp"
 #include "Container.hpp"
 
+#ifdef EXPLICIT_SIMD
+#    include "SIMD.hpp"
+#endif
+
 #include <assert.h>
 #include <iostream>
 #include <memory>
@@ -423,9 +427,9 @@ public:
      * @return          Data 
      */
     inline const T*            
-    Memory             (const size_t p = 0)  const {
+    Ptr             (const size_t p = 0)  const {
         assert (p < Size());
-        return _M.memory(p);
+        return _M.ptr(p);
     }
 
     

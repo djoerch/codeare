@@ -96,7 +96,7 @@ eig2 (const Matrix<T>& m, const char& jobvl = 'N', const char& jobvr = 'N') {
 	LapackTraits<T>::geev (jobvl, jobvr, N, &a[0], lda, &ev[0], &lv[0], ldvl, &rv[0], ldvr, &work[0], lwork, &rwork[0], info);
     
 	// Initialize work space
-	lwork = (int) creal (work[0]);
+	lwork = (int) real (work[0]);
     work.resize(lwork);
     
 	// Actual Eigenvalue computation
@@ -206,7 +206,7 @@ svd2 (const Matrix<T>& IN, const char& jobz = 'N') {
 	LapackTraits<T>::gesdd (jobz, m, n, &A[0], lda, &s[0], &U[0], ldu, &V[0],
 			ldvt, &work[0], lwork, &rwork[0], &iwork[0], info);
 	
-	lwork = (int) creal (work[0]);
+	lwork = (int) real (work[0]);
 	work.resize(lwork);
     
 	// SVD
@@ -283,7 +283,7 @@ inv (const Matrix<T>& m) {
 	LapackTraits<T>::getri (N, &res[0], N, &ipiv[0], &work[0], lwork, info);
     
 	// Work memory allocation -------------
-	lwork = (int) creal (work[0]);
+	lwork = (int) real (work[0]);
     work.resize(lwork);
 	
 	// Inversion --------------------------
@@ -338,7 +338,7 @@ pinv (const Matrix<T>& m, const char& trans = 'N') {
     
 	LapackTraits<T>::gels (trans, M, N, nrhs, mm, lda, b, ldb, work, lwork, info);
     
-	lwork = (int) creal(work[0]);
+	lwork = (int) real(work[0]);
 	work.resize(lwork);
 
 	LapackTraits<T>::gels (trans, M, N, nrhs, mm, lda, b, ldb, work, lwork, info);
@@ -458,7 +458,7 @@ gemm (const Matrix<T>& A, const Matrix<T>& B, const char& transa = 'N', const ch
 	
 	Matrix<T> C(m,n);
 	
-	LapackTraits<T>::gemm (transa, transb, m, n, k, alpha, A.Memory(), ah, B.Memory(), bh, beta, &C[0], ldc);
+	LapackTraits<T>::gemm (transa, transb, m, n, k, alpha, A.Ptr(), ah, B.Ptr(), bh, beta, &C[0], ldc);
     
 	return C;
 	
@@ -523,7 +523,7 @@ gemv (const Matrix<T>& A, const Matrix<T>& x, const char& trans = 'N') {
 	
 	Matrix<T> y ((trans == 'N') ? m : n, 1);
     
-	LapackTraits<T>::gemv (trans, m, n, alpha, A.Memory(), ah, x.Memory(), one, beta, &y[0], one);
+	LapackTraits<T>::gemv (trans, m, n, alpha, A.Ptr(), ah, x.Ptr(), one, beta, &y[0], one);
 	
 	return y;
 	
@@ -547,7 +547,7 @@ norm (const Matrix<T>& M) {
 	int n    = (int) numel (M);
 	int incx = 1;
     
-	return creal(LapackTraits<T>::nrm2 (n, M.Memory(), incx));
+	return real(LapackTraits<T>::nrm2 (n, M.Ptr(), incx));
     
 }
 
@@ -578,7 +578,7 @@ dotc (const Matrix<T>& A, const Matrix<T>& B) {
 	res = T(0.0);
 	one = 1;
 	
-	LapackTraits<T>::dotc (n, A.Memory(), one, B.Memory(), one, &res);
+	LapackTraits<T>::dotc (n, A.Ptr(), one, B.Ptr(), one, &res);
 	
 	return res;
 	
@@ -617,7 +617,7 @@ dot  (const Matrix<T>& A, const Matrix<T>& B) {
 	res = T(0.0);
 	one = 1;
     
-	LapackTraits<T>::dot (n, A.Memory(), one, B.Memory(), one, &res);
+	LapackTraits<T>::dot (n, A.Ptr(), one, B.Ptr(), one, &res);
 	
 	return res;
 	

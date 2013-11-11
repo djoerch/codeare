@@ -419,15 +419,19 @@ AC_ARG_WITH(fftw,   [  --with-fftw             	     Set directory of FFTW3 libr
 case $host in
     *linux-gnu*)
 	    LIBEXT=so
+        LIBPATH=LD_LIBRARY_PATH
     ;;
     *darwin*)
 	    LIBEXT=dylib
+        LIBPATH=DYLD_LIBRARY_PATH
     ;;
     *cygwin*)
 	    LIBEXT=dll.a
+        LIBPATH=LD_LIBRARY_PATH
     ;;
     *mingw*)
 	    LIBEXT=dll.a
+        LIBPATH=LD_LIBRARY_PATH
     ;;
 esac
 
@@ -569,6 +573,9 @@ AM_CONDITIONAL([USE_NFFT3], [test "$HAVE_NFFT3" -eq 1])
 
 # Checks for C++ libraries with name spaces
 
+AC_CHECK_LIB([boost_thread],        [exit])
+AC_CHECK_LIB([boost_system],        [exit])
+
 
 # ISMRMRD
 AC_ARG_WITH(ismrmrdroot,[  --with-ismrmrdroot       path to ISMRMRD install dir], 
@@ -584,9 +591,6 @@ if test x"$with_ismrmrdroot" != x"no" ; then
 	AC_CHECK_HEADERS([ismrmrd_hdf5.h], [], [AC_MSG_ERROR([cannot find ismrmrd_hdf5.h, bailing out])])
 
 	OLD_LIBS=$LIBS
-
-    AC_CHECK_LIB([boost_thread],        [exit])
-    AC_CHECK_LIB([boost_system],        [exit])
 
 	AC_MSG_CHECKING([for IsmrmrdDataset in -lismrmrd])
 
@@ -933,6 +937,7 @@ AC_CONFIG_FILES([src/Loader.hpp Makefile src/Makefile src/modules/Makefile src/t
  src/matrix/linalg/tests/Makefile src/matrix/ft/Makefile src/matrix/ft/tests/Makefile 
  src/matrix/dwt/Makefile src/matrix/dwt/tests/Makefile src/matrix/io/tests/Makefile
  src/matrix/mpi/Makefile src/matrix/mpi/tests/Makefile src/matrix/interp/Makefile
- src/matrix/interp/tests/Makefile src/mongoose/Makefile])
+ src/matrix/interp/tests/Makefile src/matrix/unwrap/Makefile src/matrix/unwrap/tests/Makefile 
+ src/mongoose/Makefile src/matrix/mri/Makefile src/matrix/mri/tests/Makefile])
 AC_OUTPUT
 
