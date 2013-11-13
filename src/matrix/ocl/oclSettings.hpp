@@ -178,8 +178,15 @@
       global_z = glob_z;
     }
     LaunchInformation (const int loc_x, const int loc_y, const int glob_x, const int glob_y)
-     : LaunchInformation (loc_x, loc_y, 1, glob_x, glob_y, 1)
-    { }
+//     : LaunchInformation (loc_x, loc_y, 1, glob_x, glob_y, 1)
+    {
+      local_x = loc_x;
+      local_y = loc_y;
+      local_z = 1;
+      global_x = glob_x;
+      global_y = glob_y;
+      global_z = 1;
+    }
     LaunchInformation (const LaunchInformation & lc)
     {
       local_x = lc.local_x;
@@ -254,8 +261,8 @@
                       const PerformanceInformation & pi )
   {
     os << " **> Kernel: " << pi.kernel_name << " <**" << std::endl;
-    os << "   local size: " << pi.lc.local_x << " x " << pi.lc.local_y << std::endl;
-    os << "   global size: " << pi.lc.global_x << " x " << pi.lc.global_y << std::endl;
+    os << "   local size: " << pi.lc.local_x << " x " << pi.lc.local_y << " x " << pi.lc.local_z << std::endl;
+    os << "   global size: " << pi.lc.global_x << " x " << pi.lc.global_y << " x " << pi.lc.global_z << std::endl;
     os << "   Execution time in seconds: " << pi.time_exec << " s " << std::endl;
     os << "   Memory transfer time in seconds: " << (pi.time_mem_up + pi.time_mem_down) << " s " << std::endl;
     os << "  " << pi.information << ": " << pi.parameter << std::endl;

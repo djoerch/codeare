@@ -1356,12 +1356,12 @@
           oclDataObject * loc_mem = new oclLocalMemObject <elem_type> (num_loc_mem_elems);
           
           // create kernel launch configuration
-          LaunchInformation lc (group_size_x, group_size_y, 1, global_x, global_y, 128);
+          LaunchInformation lc (group_size_x, group_size_y, 1, global_x, global_y, 32);
 //          LaunchInformation lc2 (1,1,128, 128,128,128);
           
           std::vector <ProfilingInformation> vec_pi;
           
-          const int num_slices = 128;
+          const int num_slices = k;
           
           // launch kernels
           oclDataObject * tmp1 = arg1;

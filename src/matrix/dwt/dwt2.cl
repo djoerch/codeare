@@ -625,7 +625,7 @@ kernel void dwt2_final (__global A_type * input,
   {
 
     __global A_type * arg1 = input + slice * LDA * LDA;
-    __global A_type * arg2 = output + (slice + 1) * LDA * LDA;
+    __global A_type * arg2 = output + slice * LDA * LDA;
 
     int l = 1;
     int current_line_length = *line_length;
