@@ -1356,7 +1356,7 @@
           
           // create kernel launch configuration
           LaunchInformation lc (group_size_x, group_size_y, 1, global_x, global_y, 32);
-//          LaunchInformation lc2 (1,1,128, 128,128,128);
+          LaunchInformation lc2 (1,1,128, 128,128,128);
           
           std::vector <ProfilingInformation> vec_pi;
           
@@ -1370,11 +1370,11 @@
             const int line_length = n / pow (2, i);
             ProfilingInformation pi = ocl_basic_operator_kernel_56 ("dwt2", tmp1, lpf, hpf, tmp2, loc_mem, n, m, k, line_length, num_slices, num_loc_mem_elems, lc);
 //            ProfilingInformation pi = ocl_basic_operator_kernel_55 ("dwt2", tmp1, lpf, hpf, tmp2, loc_mem, n, m, k, line_length, num_loc_mem_elems, lc);
-//            ProfilingInformation pi = ocl_basic_operator_kernel_55 ("dwt3", tmp1, lpf, hpf, tmp2, loc_mem, n, m, k, line_length, num_loc_mem_elems, lc2);
+            ProfilingInformation tmp_pi = ocl_basic_operator_kernel_55 ("dwt3", tmp2, lpf, hpf, tmp1, loc_mem, n, m, k, line_length, num_loc_mem_elems, lc2);
             vec_pi.push_back (pi);
-            oclDataObject * tmp = tmp1;
-            tmp1 = tmp2;
-            tmp2 = tmp;
+//            oclDataObject * tmp = tmp1;
+//            tmp1 = tmp2;
+//            tmp2 = tmp;
           }
           
           std::vector <ProfilingInformation> vec_tmp = ocl_basic_operator_kernel_26 ("dwt2_final", arg1, arg2, n, m, k, n / pow (2, levels-1), num_slices, levels, lc);
