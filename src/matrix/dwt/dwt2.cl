@@ -1,9 +1,9 @@
 // created on Aug 28, 2013
 
 
-#pragma OPENCL EXTENSION cl_amd_printf: enable
+#pragma OPENCL EXTENSION cl_amd_printf : enable
 
-//int printf(constant char * restrict format, ...);
+//int printf(const constant char * restrict format, ...);
 
 //typedef float A_type;
 
@@ -90,7 +90,7 @@ global2local        (__global A_type * arg1, __local A_type * tmp,
       index = index + (c1_base + i < 0 ? *line_length : 0)
                     + (c2_base + j < 0 ? *line_length * LDA : 0);
       tmp [(local_c2 + j) * border_block_size_0 + local_c1 + i]
-            = arg1 [index];
+            = arg1 [index] > 0 ? 33.3 : -1;
     }
     if (i + local_c1 < border_block_size_0)
     {
@@ -98,7 +98,7 @@ global2local        (__global A_type * arg1, __local A_type * tmp,
       index = index + (c1_base + i < 0 ? *line_length : 0)
                     + (c2_base + j < 0 ? *line_length * LDA : 0);
       tmp [(local_c2 + j) * border_block_size_0 + local_c1 + i]
-            = arg1 [index];
+            = arg1 [index] > 0 ? 33.3 : -1;
     }
   }
   if (j + local_c2 < border_block_size_1)
@@ -110,7 +110,7 @@ global2local        (__global A_type * arg1, __local A_type * tmp,
       index = index + (c1_base + i < 0 ? *line_length : 0)
                     + (c2_base + j < 0 ? *line_length * LDA : 0);
       tmp [(local_c2 + j) * border_block_size_0 + local_c1 + i]
-            = arg1 [index];
+            = arg1 [index] > 0 ? 33.3 : -1;
     }
     if (i + local_c1 < border_block_size_0)
     {
@@ -118,7 +118,7 @@ global2local        (__global A_type * arg1, __local A_type * tmp,
       index = index + (c1_base + i < 0 ? *line_length : 0)
                     + (c2_base + j < 0 ? *line_length * LDA : 0);
       tmp [(local_c2 + j) * border_block_size_0 + local_c1 + i]
-            = arg1 [index];
+            = arg1 [index] > 0 ? 33.3 : -1;
     }
   }
 }
@@ -598,12 +598,13 @@ perf_dwtLocalToGlobal (__local A_type * loc_mem, __global A_type * arg2, __const
 
 
 
-kernel void dwt2_final (__global A_type * arg1,
-                        __global A_type * arg2,
+kernel void dwt2_final (__global A_type * input,
+                        __global A_type * output,
                         __constant int * n,
                         __global int * m,
                         __global int * k,
                         __constant int * line_length,
+                        __constant int * num_slices,
                         __constant int * num_levels)
 {
 
@@ -619,136 +620,148 @@ kernel void dwt2_final (__global A_type * arg1,
   int upper_left2 = get_group_id (1) * block_size_1 * LDA
                   + get_group_id (0) * block_size_0_alt;
 
-  int l = 1;
-  int current_line_length = *line_length;
-
-  if (((*num_levels) & 1) == 0)
+  // loop over slices
+  for (int slice = get_group_id (2); slice < *num_slices; slice += get_global_size (2))
   {
 
-  if (get_global_id (0) < current_line_length
-    && get_global_id (1) < current_line_length)
-  {
+    __global A_type * arg1 = input + slice * LDA * LDA;
+    __global A_type * arg2 = output + (slice + 1) * LDA * LDA;
 
-    // copy upper left corner
-    int j = 0;
-    for (; j < block_size_1 - GROUP_SIZE_1; j += GROUP_SIZE_1)
-    {
-      int i = 0;
-      for (; i < block_size_0 - GROUP_SIZE_0; i += GROUP_SIZE_0)
-      {
-        int index = upper_left + (j + local_c2) * LDA + i + local_c1;
-        arg2 [index] = arg1 [index];
-      }
-      if (i + local_c1 < block_size_0)
-      {
-        int index = upper_left + (j + local_c2) * LDA + i + local_c1;
-        arg2 [index] = arg1 [index];
-      }
-    }
-    if (j + local_c2 < block_size_1)
-    {
-      int i = 0;
-      for (; i < block_size_0 - GROUP_SIZE_0; i += GROUP_SIZE_0)
-      {
-        int index = upper_left + (j + local_c2) * LDA + i + local_c1;
-        arg2 [index] = arg1 [index];
-      }
-      if (i + local_c1 < block_size_0)
-      {
-        int index = upper_left + (j + local_c2) * LDA + i + local_c1;
-        arg2 [index] = arg1 [index];
-      }
-    }
-    
-  }
+    int l = 1;
+    int current_line_length = *line_length;
 
-  l += 2;
-  current_line_length *= 2;
-
-  }
-
-  // loop over levels
-  for (; l < *num_levels; l += 2)
-  {
-    
-    if (get_global_id (1) < current_line_length
-      && get_global_id (0) < current_line_length)
+    // first level (only for EVEN number of levels)
+    if (((*num_levels) & 1) == 0)
     {
 
-    block_size_0 = current_line_length / (min (current_line_length, (int) get_global_size (0))/GROUP_SIZE_0);
-    block_size_0_alt = (2 * current_line_length) / (min (current_line_length, (int) get_global_size (0))/GROUP_SIZE_0);
-    block_size_1 = current_line_length / (min (current_line_length, (int) get_global_size (1))/GROUP_SIZE_1);
-    
-    upper_left  = get_group_id (1) * block_size_1 * LDA
-                + get_group_id (0) * block_size_0;
-    upper_left2 = get_group_id (1) * block_size_1 * LDA
-                + get_group_id (0) * block_size_0_alt;
-    
-    // copy bottom left corner
-    int j = 0;
-    for (; j < block_size_1 - GROUP_SIZE_1; j += GROUP_SIZE_1)
+      // choose active threads
+      if (get_global_id (0) < current_line_length
+        && get_global_id (1) < current_line_length)
+      {
+
+        // copy upper left corner
+        int j = 0;
+        for (; j < block_size_1 - GROUP_SIZE_1; j += GROUP_SIZE_1)
+        {
+          int i = 0;
+          for (; i < block_size_0 - GROUP_SIZE_0; i += GROUP_SIZE_0)
+          {
+            int index = upper_left + (j + local_c2) * LDA + i + local_c1;
+            arg2 [index] = arg1 [index];
+          }
+          if (i + local_c1 < block_size_0)
+          {
+            int index = upper_left + (j + local_c2) * LDA + i + local_c1;
+            arg2 [index] = arg1 [index];
+          }
+        }
+        if (j + local_c2 < block_size_1)
+        {
+          int i = 0;
+          for (; i < block_size_0 - GROUP_SIZE_0; i += GROUP_SIZE_0)
+          {
+            int index = upper_left + (j + local_c2) * LDA + i + local_c1;
+            arg2 [index] = arg1 [index];
+          }
+          if (i + local_c1 < block_size_0)
+          {
+            int index = upper_left + (j + local_c2) * LDA + i + local_c1;
+            arg2 [index] = arg1 [index];
+          }
+        }
+
+      } // if: choose active threads
+
+      l += 2;
+      current_line_length *= 2;
+
+    } // if: first level (case of EVEN number of levels)
+
+    // loop over levels
+    for (; l < *num_levels; l += 2)
     {
-      int i = 0;
-      for (; i < block_size_0 - GROUP_SIZE_0; i += GROUP_SIZE_0)
+
+      if (get_global_id (1) < current_line_length
+        && get_global_id (0) < current_line_length)
       {
-        int index = upper_left + current_line_length + (j + local_c2) * LDA + i + local_c1;
-        arg2 [index] = arg1 [index];
-      }
-      if (i + local_c1 < block_size_0)
-      {
-        int index = upper_left + current_line_length + (j + local_c2) * LDA + i + local_c1;
-        arg2 [index] = arg1 [index];
-      }
-    }
-    if (j + local_c2 < block_size_1)
-    {
-      int i = 0;
-      for (; i < block_size_0 - GROUP_SIZE_0; i += GROUP_SIZE_0)
-      {
-        int index = upper_left + current_line_length + (j + local_c2) * LDA + i + local_c1;
-        arg2 [index] = arg1 [index];
-      }
-      if (i + local_c1 < block_size_0)
-      {
-        int index = upper_left + current_line_length + (j + local_c2) * LDA + i + local_c1;
-        arg2 [index] = arg1 [index];
-      }
-    }
+
+        block_size_0 = current_line_length / (min (current_line_length, (int) get_global_size (0))/GROUP_SIZE_0);
+        block_size_0_alt = (2 * current_line_length) / (min (current_line_length, (int) get_global_size (0))/GROUP_SIZE_0);
+        block_size_1 = current_line_length / (min (current_line_length, (int) get_global_size (1))/GROUP_SIZE_1);
+
+        upper_left  = get_group_id (1) * block_size_1 * LDA
+                    + get_group_id (0) * block_size_0;
+        upper_left2 = get_group_id (1) * block_size_1 * LDA
+                    + get_group_id (0) * block_size_0_alt;
+
+        // copy bottom left corner
+        int j = 0;
+        for (; j < block_size_1 - GROUP_SIZE_1; j += GROUP_SIZE_1)
+        {
+          int i = 0;
+          for (; i < block_size_0 - GROUP_SIZE_0; i += GROUP_SIZE_0)
+          {
+            int index = upper_left + current_line_length + (j + local_c2) * LDA + i + local_c1;
+            arg2 [index] = arg1 [index];
+          }
+          if (i + local_c1 < block_size_0)
+          {
+            int index = upper_left + current_line_length + (j + local_c2) * LDA + i + local_c1;
+            arg2 [index] = arg1 [index];
+          }
+        }
+        if (j + local_c2 < block_size_1)
+        {
+          int i = 0;
+          for (; i < block_size_0 - GROUP_SIZE_0; i += GROUP_SIZE_0)
+          {
+            int index = upper_left + current_line_length + (j + local_c2) * LDA + i + local_c1;
+            arg2 [index] = arg1 [index];
+          }
+          if (i + local_c1 < block_size_0)
+          {
+            int index = upper_left + current_line_length + (j + local_c2) * LDA + i + local_c1;
+            arg2 [index] = arg1 [index];
+          }
+        }
+
+        // copy parts on the right
+        for (j = 0; j < block_size_1 - GROUP_SIZE_1; j += GROUP_SIZE_1)
+        {
+          int i = 0;
+          for (; i < block_size_0_alt - GROUP_SIZE_0; i += GROUP_SIZE_0)
+          {
+            int index = upper_left2 + current_line_length*LDA + (j + local_c2) * LDA + i + local_c1;
+            arg2 [index] = arg1 [index];
+          }
+          if (i + local_c1 < block_size_0_alt)
+          {
+            int index = upper_left2 + current_line_length*LDA + (j + local_c2) * LDA + i + local_c1;
+            arg2 [index] = arg1 [index];
+          }
+        }
+        if (j + local_c2 < block_size_1)
+        {
+          int i = 0;
+          for (; i < block_size_0_alt - GROUP_SIZE_0; i += GROUP_SIZE_0)
+          {
+            int index = upper_left2 + current_line_length*LDA + (j + local_c2) * LDA + i + local_c1;
+            arg2 [index] = arg1 [index];
+          }
+          if (i + local_c1 < block_size_0_alt)
+          {
+            int index = upper_left2 + current_line_length*LDA + (j + local_c2) * LDA + i + local_c1;
+            arg2 [index] = arg1 [index];
+          }
+        }
+
+      } // if: choose active threads
+
+      current_line_length *= 4;
     
-    // copy parts on the right
-    for (j = 0; j < block_size_1 - GROUP_SIZE_1; j += GROUP_SIZE_1)
-    {
-      int i = 0;
-      for (; i < block_size_0_alt - GROUP_SIZE_0; i += GROUP_SIZE_0)
-      {
-        int index = upper_left2 + current_line_length*LDA + (j + local_c2) * LDA + i + local_c1;
-        arg2 [index] = arg1 [index];
-      }
-      if (i + local_c1 < block_size_0_alt)
-      {
-        int index = upper_left2 + current_line_length*LDA + (j + local_c2) * LDA + i + local_c1;
-        arg2 [index] = arg1 [index];
-      }
-    }
-    if (j + local_c2 < block_size_1)
-    {
-      int i = 0;
-      for (; i < block_size_0_alt - GROUP_SIZE_0; i += GROUP_SIZE_0)
-      {
-        int index = upper_left2 + current_line_length*LDA + (j + local_c2) * LDA + i + local_c1;
-        arg2 [index] = arg1 [index];
-      }
-      if (i + local_c1 < block_size_0_alt)
-      {
-        int index = upper_left2 + current_line_length*LDA + (j + local_c2) * LDA + i + local_c1;
-        arg2 [index] = arg1 [index];
-      }
-    }
-    
-    }
-    
-    current_line_length *= 4;
-  }
+    } // loop over levels
+
+  } // loop over slices
 
 }
 
@@ -757,63 +770,75 @@ kernel void dwt2_final (__global A_type * arg1,
 /**
  * @author djoergens
  */
-kernel void dwt2 (__global A_type * arg1,
+kernel void dwt2 (__global A_type * input,
           __constant A_type * _lpf,
           __constant A_type * _hpf,
-          __global A_type * arg2,
+          __global A_type * output,
           __local A_type * loc_mem,
           __constant int * n,
           __global int * m,
           __global int * k,
           __constant int * line_length,
+          __constant int * num_slices,
           __global int * loc_mem_size)
 {
 
+  // choose active threads
   if (get_global_id (0) < *line_length
     && get_global_id (1) < *line_length)
   {
 
-  const int block_size_0 = *line_length / (min (*line_length, (int) get_global_size (0))/GROUP_SIZE_0);
-  const int block_size_1 = *line_length / (min (*line_length, (int) get_global_size (1))/GROUP_SIZE_1);
-  const int border_block_size_0 = block_size_0 + offset;
-  const int border_block_size_1 = block_size_1 + offset;
+    const int block_size_0 = *line_length / (min (*line_length, (int) get_global_size (0))/GROUP_SIZE_0);
+    const int block_size_1 = *line_length / (min (*line_length, (int) get_global_size (1))/GROUP_SIZE_1);
+    const int border_block_size_0 = block_size_0 + offset;
+    const int border_block_size_1 = block_size_1 + offset;
 
-  const int local_c1 = get_local_id (0);
-  const int local_c2 = get_local_id (1);
+    const int local_c1 = get_local_id (0);
+    const int local_c2 = get_local_id (1);
 
-  __local A_type * tmp  = & loc_mem [0];
-  __local A_type * tmp2 = & loc_mem [border_block_size_0 * border_block_size_1];
+    __local A_type * tmp  = & loc_mem [0];
+    __local A_type * tmp2 = & loc_mem [border_block_size_0 * border_block_size_1];
 
-  const int upper_left = get_group_id (1) * block_size_1 * LDA
-                       + get_group_id (0) * block_size_0
-                       - offset * LDA
-                       - offset;
-  const int upper_left2 = get_group_id (1) * block_size_1 / 2 * LDA
-                        + get_group_id (0) * block_size_0 / 2;
+    const int upper_left = get_group_id (1) * block_size_1 * LDA
+                         + get_group_id (0) * block_size_0
+                         - offset * LDA
+                         - offset;
+    const int upper_left2 = get_group_id (1) * block_size_1 / 2 * LDA
+                          + get_group_id (0) * block_size_0 / 2;
 
-  /////////////////////////////
-  // load block to local memory
-  /////////////////////////////
-  global2local (arg1, tmp, upper_left, local_c1, local_c2, border_block_size_0, border_block_size_1, line_length);
+    for (int slice = get_group_id (2); slice < *num_slices; slice += get_global_size (2))
+    {
 
-    
-  barrier (CLK_LOCAL_MEM_FENCE); // local mem fence since work is performed on local memory !!!
+      // update start address of current slice
+      __global A_type * arg1 = input + slice * LDA * LDA;
+      __global A_type * arg2 = output + slice * LDA * LDA;
 
-  // filter operations
-  filter_columns (local_c1, local_c2, tmp, tmp2, _lpf, _hpf, block_size_0, block_size_1, border_block_size_0, border_block_size_1);
+      barrier (CLK_LOCAL_MEM_FENCE);
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+      /////////////////////////////
+      // load block to local memory
+      /////////////////////////////
+      global2local (arg1, tmp, upper_left, local_c1, local_c2, border_block_size_0, border_block_size_1, line_length);
 
-filter_rows (local_c1, local_c2, tmp2, tmp, _lpf, _hpf, block_size_0, block_size_1);
+      barrier (CLK_LOCAL_MEM_FENCE); // local mem fence since work is performed on local memory !!!
 
-  barrier (CLK_LOCAL_MEM_FENCE);
+      // filter operations
+      filter_columns (local_c1, local_c2, tmp, tmp2, _lpf, _hpf, block_size_0, block_size_1, border_block_size_0, border_block_size_1);
 
-  //////////////////////////////
-  // write back to global memory
-  //////////////////////////////
-  local2global (tmp, arg2, upper_left2, local_c1, local_c2, block_size_0, block_size_1, line_length);
+      barrier (CLK_LOCAL_MEM_FENCE);
 
-  }
+      filter_rows (local_c1, local_c2, tmp2, tmp, _lpf, _hpf, block_size_0, block_size_1);
+
+      barrier (CLK_LOCAL_MEM_FENCE);
+
+      //////////////////////////////
+      // write back to global memory
+      //////////////////////////////
+      local2global (tmp, arg2, upper_left2, local_c1, local_c2, block_size_0, block_size_1, line_length);
+
+    } // loop over slices
+
+  } // if: choose active threads
 
 }
 

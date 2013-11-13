@@ -36,8 +36,9 @@ modify_kernel              ( std::string const &       source,
                                      int const &            n )
 {
 
-  std::stringstream ss;          
-  ss <<              "# pragma OPENCL EXTENSION " << fp_extension << "\n\n";
+  std::stringstream ss;
+  if (!fp_extension.empty())
+    ss <<              "# pragma OPENCL EXTENSION " << fp_extension << "\n\n";
   ss <<              "# define  A_type_n " << A_type;
   if (n > 0) ss << n;
   ss << std::endl << "# define  A_type "   << A_type <<      std::endl;
@@ -201,8 +202,10 @@ init_program_kernels    (oclConnection * const con, const std::vector <std::stri
     // create program
     prog = clProgram (con -> m_cont, sources, & con -> m_error);
 
+    
+    
     // build program
-	  con -> m_error = prog.build (con -> m_devs, "-cl-std=CL1.1 -cl-mad-enable -cl-fast-relaxed-math -cl-nv-maxrregcount=32 -cl-nv-verbose");
+	  con -> m_error = prog.build (con -> m_devs, "-cl-std=CL1.0 -cl-mad-enable -cl-fast-relaxed-math"); //-cl-nv-maxrregcount=32 -cl-nv-verbose");
     
 //    std::cout << "Build Log:\t "                  << prog.getBuildInfo<CL_PROGRAM_BUILD_LOG>     (con -> m_devs [0]) << std::endl;
 
@@ -268,7 +271,7 @@ oclConnection ( cl_device_type    device_type,
   print_optional (" ** device max WI sizes [0]: %zu, %zu, %zu", m_max_wi_sizes[0], m_max_wi_sizes[1], m_max_wi_sizes[2], VERB_NONE);
   if (m_devs.size() == 0)
     throw oclError ("No devices available on this platform", "oclConnection :: CTOR");
-  
+    
   // don't use multiple devices (for now)
   if (m_devs.size () > 1)
   {
@@ -403,7 +406,9 @@ runKernel             (const cl::NDRange  & global_dims,
       
       m_error = (*it).enqueueNDRangeKernel (*mp_actKernel, cl::NullRange, global_dims, local_dims, NULL, &event);
       
-      m_error = (*it).enqueueBarrier ();
+      (*it).finish ();
+      
+//      m_error = (*it).enqueueBarrier ();
       
       return event;
       

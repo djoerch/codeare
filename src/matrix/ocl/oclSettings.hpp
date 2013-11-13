@@ -163,21 +163,31 @@
   {
     int local_x;
     int local_y;
+    int local_z;
     int global_x;
     int global_y;
-    LaunchInformation (const int loc_x, const int loc_y, const int glob_x, const int glob_y)
+    int global_z;
+    LaunchInformation (const int loc_x, const int loc_y, const int loc_z,
+                       const int glob_x, const int glob_y, const int glob_z)
     {
       local_x = loc_x;
       local_y = loc_y;
+      local_z = loc_z;
       global_x = glob_x;
       global_y = glob_y;
+      global_z = glob_z;
     }
+    LaunchInformation (const int loc_x, const int loc_y, const int glob_x, const int glob_y)
+     : LaunchInformation (loc_x, loc_y, 1, glob_x, glob_y, 1)
+    { }
     LaunchInformation (const LaunchInformation & lc)
     {
       local_x = lc.local_x;
       local_y = lc.local_y;
+      local_z = lc.local_z;
       global_x = lc.global_x;
       global_y = lc.global_y;
+      global_z = lc.global_z;
     }
     bool
     operator==        (const LaunchInformation & lc)
@@ -185,8 +195,10 @@
     {
       return this -> local_x == lc.local_x
               && this -> local_y == lc.local_y
+              && this -> local_z == lc.local_z
               && this -> global_x == lc.global_x
-              && this -> global_y == lc.global_y;
+              && this -> global_y == lc.global_y
+              && this -> global_z == lc.global_z;
     }
   };
   

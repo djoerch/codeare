@@ -82,6 +82,7 @@ class oclDWT {
             std::vector <std::string> filenames;
             filenames.push_back (base_kernel_path + "src/matrix/dwt/dwt2.cl");
             filenames.push_back (base_kernel_path + "src/matrix/dwt/idwt2.cl");
+            filenames.push_back (base_kernel_path + "src/matrix/dwt/dwt3.cl");
             oclOperations <T> :: addKernelSources (filenames, makros);
       }
       
@@ -202,6 +203,12 @@ class oclDWT {
                     && (_dim == 2 || m.Dim (2) == _sl3)
                     && m.Dim () == res.Dim ());
                         
+            if (_max_level - _min_level == 0)
+            {
+              res = m;
+              return std::vector <PerformanceInformation> ();
+            }
+            
             /* TODO: call kernel */
             oclDataWrapper <T> * p_ocl_m   = oclOperations <T> :: make_GPU_Obj (&m.Container()[0], m.Size ());
             oclDataWrapper <T> * p_ocl_res = oclOperations <T> :: make_GPU_Obj (&res[0], res.Size ());
