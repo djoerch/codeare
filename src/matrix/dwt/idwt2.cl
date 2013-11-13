@@ -21,6 +21,10 @@
   # define LDA 512
 # endif
 
+# ifndef LDB
+  # define LDB 512
+# endif
+
 # ifndef FL
   # define FL 4
 # endif
@@ -676,14 +680,16 @@ ifiltering_cols          (const int local_c1, const int local_c2,
 
 
 
-kernel void idwt2_prepare (__global A_type * arg1,
-                           __global A_type * arg2,
+kernel void idwt2_prepare (__global A_type * input,
+                           __global A_type * output,
                            __constant int * n,
                            __global int * m,
                            __global int * k,
-                           __constant int * line_length)
+                           __constant int * line_length,
+                           __constant int * num_slices)
 {
 
+  // choose active threads
   if (get_global_id (0) < *line_length
     && get_global_id (1) < *line_length)
   {
@@ -696,68 +702,78 @@ kernel void idwt2_prepare (__global A_type * arg1,
     const int upper_left = get_group_id (1) * block_size_1 * LDA
                           + get_group_id (0) * block_size_0;
 
-    // copy approximation part from arg1 to arg2
-    int j;
-    for (j = 0; j < block_size_1 - GROUP_SIZE_1; j += GROUP_SIZE_1)
+    // loop over slices
+    for (int slice = get_group_id (2); slice < *num_slices; slice += get_global_size (2))
     {
-      int i;
-      for (i = 0; i < block_size_0 - GROUP_SIZE_0; i += GROUP_SIZE_0)
-      {
-        const int index = upper_left + (j + local_c2) * LDA + i + local_c1;
-        arg1 [index] = arg2 [index];
-      }
-      if (i + local_c1 < block_size_0)
-      {
-        const int index = upper_left + (j + local_c2) * LDA + i + local_c1;
-        arg1 [index] = arg2 [index];
-      }
-    }
-    if (j + local_c2 < block_size_1)
-    {
-      int i;
-      for (i = 0; i < block_size_0 - GROUP_SIZE_0; i += GROUP_SIZE_0)
-      {
-        const int index = upper_left + (j + local_c2) * LDA + i + local_c1;
-        arg1 [index] = arg2 [index];
-      }
-      if (i + local_c1 < block_size_0)
-      {
-        const int index = upper_left + (j + local_c2) * LDA + i + local_c1;
-        arg1 [index] = arg2 [index];
-      }
-    }
 
-    
-    for (j = 0; j < block_size_1 - GROUP_SIZE_1; j += GROUP_SIZE_1)
-    {
-      int i;
-      for (i = 0; i < block_size_0 - GROUP_SIZE_0; i += GROUP_SIZE_0)
-      {
-        const int index = upper_left + (j + local_c2) * LDA + i + local_c1;
-        arg2 [index] = arg1 [index];
-      }
-      if (i + local_c1 < block_size_0)
-      {
-        const int index = upper_left + (j + local_c2) * LDA + i + local_c1;
-        arg2 [index] = arg1 [index];
-      }
-    }
-    if (j + local_c2 < block_size_1)
-    {
-      int i;
-      for (i = 0; i < block_size_0 - GROUP_SIZE_0; i += GROUP_SIZE_0)
-      {
-        const int index = upper_left + (j + local_c2) * LDA + i + local_c1;
-        arg2 [index] = arg1 [index];
-      }
-      if (i + local_c1 < block_size_0)
-      {
-        const int index = upper_left + (j + local_c2) * LDA + i + local_c1;
-        arg2 [index] = arg1 [index];
-      }
-    }
+      // start addresses of current slice
+      __global A_type * arg1 = input + slice * LDA * LDB;
+      __global A_type * arg2 = output + slice * LDA * LDB;
 
-  }
+      // copy approximation part from arg1 to arg2
+      int j;
+      for (j = 0; j < block_size_1 - GROUP_SIZE_1; j += GROUP_SIZE_1)
+      {
+        int i;
+        for (i = 0; i < block_size_0 - GROUP_SIZE_0; i += GROUP_SIZE_0)
+        {
+          const int index = upper_left + (j + local_c2) * LDA + i + local_c1;
+          arg1 [index] = arg2 [index];
+        }
+        if (i + local_c1 < block_size_0)
+        {
+          const int index = upper_left + (j + local_c2) * LDA + i + local_c1;
+          arg1 [index] = arg2 [index];
+        }
+      }
+      if (j + local_c2 < block_size_1)
+      {
+        int i;
+        for (i = 0; i < block_size_0 - GROUP_SIZE_0; i += GROUP_SIZE_0)
+        {
+          const int index = upper_left + (j + local_c2) * LDA + i + local_c1;
+          arg1 [index] = arg2 [index];
+        }
+        if (i + local_c1 < block_size_0)
+        {
+          const int index = upper_left + (j + local_c2) * LDA + i + local_c1;
+          arg1 [index] = arg2 [index];
+        }
+      }
+
+
+      for (j = 0; j < block_size_1 - GROUP_SIZE_1; j += GROUP_SIZE_1)
+      {
+        int i;
+        for (i = 0; i < block_size_0 - GROUP_SIZE_0; i += GROUP_SIZE_0)
+        {
+          const int index = upper_left + (j + local_c2) * LDA + i + local_c1;
+          arg2 [index] = arg1 [index];
+        }
+        if (i + local_c1 < block_size_0)
+        {
+          const int index = upper_left + (j + local_c2) * LDA + i + local_c1;
+          arg2 [index] = arg1 [index];
+        }
+      }
+      if (j + local_c2 < block_size_1)
+      {
+        int i;
+        for (i = 0; i < block_size_0 - GROUP_SIZE_0; i += GROUP_SIZE_0)
+        {
+          const int index = upper_left + (j + local_c2) * LDA + i + local_c1;
+          arg2 [index] = arg1 [index];
+        }
+        if (i + local_c1 < block_size_0)
+        {
+          const int index = upper_left + (j + local_c2) * LDA + i + local_c1;
+          arg2 [index] = arg1 [index];
+        }
+      }
+
+    } // loop over slices
+
+  } // if: choose active threads
     
 }
 
@@ -766,18 +782,20 @@ kernel void idwt2_prepare (__global A_type * arg1,
 /**
  * @author djoergens
  */
-kernel void idwt2 (__global A_type * arg1,
+kernel void idwt2 (__global A_type * input,
           __constant A_type * _lpf,
           __constant A_type * _hpf,
-          __global A_type * arg2,
+          __global A_type * output,
           __local A_type * loc_mem,
           __constant int * n,
           __global int * m,
           __global int * k,
           __constant int * line_length,
+          __constant int * num_slices,
           __global int * loc_mem_size)
 {
 
+  // choose active threads
   if (get_global_id (0) < *line_length
     && get_global_id (1) < *line_length)
   {
@@ -798,38 +816,50 @@ kernel void idwt2 (__global A_type * arg1,
     const int upper_left2 = get_group_id (1) * block_size_1 * LDA
                           + get_group_id (0) * block_size_0;
 
-    /////
-    // memory transfer: global -> local
-    /////
-    iglobal2local (arg1, tmp, local_c1, local_c2, block_size_0, block_size_1, border_block_size_0, line_length);
-    
-    barrier (CLK_LOCAL_MEM_FENCE);
-    
-    /////
-    // filter operations on rows
-    /////
-    ifiltering1_rows (local_c1, local_c2, tmp, tmp2, _lpf, _hpf, block_size_0, block_size_1,
-                      border_block_size_0, border_block_size_1);
-    ifiltering_rows (local_c1, local_c2, tmp, tmp2, _lpf, _hpf, block_size_0, block_size_1,
-                     border_block_size_0, border_block_size_1);
+    // loop over slices
+    for (int slice = get_group_id (2); slice < *num_slices; slice += get_global_size (2))
+    {
 
-    barrier (CLK_LOCAL_MEM_FENCE);
-    
-    /////
-    // filter operations on columns
-    /////
-    ifiltering1_cols (local_c1, local_c2, tmp, tmp2, _lpf, _hpf, block_size_0, block_size_1,
-                      border_block_size_0, border_block_size_1);
-    ifiltering_cols (local_c1, local_c2, tmp, tmp2, _lpf, _hpf, block_size_0, block_size_1,
-                     border_block_size_0, border_block_size_1);
+      // start addresses of current slice
+      __global A_type * arg1 = input + slice * LDA * LDB;
+      __global A_type * arg2 = output + slice * LDA * LDB;
 
-    barrier (CLK_LOCAL_MEM_FENCE);
+      barrier (CLK_LOCAL_MEM_FENCE);
 
-    /////
-    // memory transfer: local -> global
-    /////
-    ilocal2global (arg2, tmp, upper_left2, local_c1, local_c2, block_size_0, block_size_1, line_length);
+      /////
+      // memory transfer: global -> local
+      /////
+      iglobal2local (arg1, tmp, local_c1, local_c2, block_size_0, block_size_1, border_block_size_0, line_length);
 
-  }
+      barrier (CLK_LOCAL_MEM_FENCE);
+
+      /////
+      // filter operations on rows
+      /////
+      ifiltering1_rows (local_c1, local_c2, tmp, tmp2, _lpf, _hpf, block_size_0, block_size_1,
+                        border_block_size_0, border_block_size_1);
+      ifiltering_rows (local_c1, local_c2, tmp, tmp2, _lpf, _hpf, block_size_0, block_size_1,
+                       border_block_size_0, border_block_size_1);
+
+      barrier (CLK_LOCAL_MEM_FENCE);
+
+      /////
+      // filter operations on columns
+      /////
+      ifiltering1_cols (local_c1, local_c2, tmp, tmp2, _lpf, _hpf, block_size_0, block_size_1,
+                        border_block_size_0, border_block_size_1);
+      ifiltering_cols (local_c1, local_c2, tmp, tmp2, _lpf, _hpf, block_size_0, block_size_1,
+                       border_block_size_0, border_block_size_1);
+
+      barrier (CLK_LOCAL_MEM_FENCE);
+
+      /////
+      // memory transfer: local -> global
+      /////
+      ilocal2global (arg2, tmp, upper_left2, local_c1, local_c2, block_size_0, block_size_1, line_length);
+
+    } // loop over slices
+
+  } // if: choose active threads
 
 }

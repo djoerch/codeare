@@ -27,6 +27,10 @@
   # define LDA 512
 # endif
 
+# ifndef LDB
+  # define LDB 512
+# endif
+
 # ifndef FL
   # define FL 4
 # endif
@@ -90,7 +94,7 @@ global2local        (__global A_type * arg1, __local A_type * tmp,
       index = index + (c1_base + i < 0 ? *line_length : 0)
                     + (c2_base + j < 0 ? *line_length * LDA : 0);
       tmp [(local_c2 + j) * border_block_size_0 + local_c1 + i]
-            = arg1 [index] > 0 ? 33.3 : -1;
+            = arg1 [index];
     }
     if (i + local_c1 < border_block_size_0)
     {
@@ -98,7 +102,7 @@ global2local        (__global A_type * arg1, __local A_type * tmp,
       index = index + (c1_base + i < 0 ? *line_length : 0)
                     + (c2_base + j < 0 ? *line_length * LDA : 0);
       tmp [(local_c2 + j) * border_block_size_0 + local_c1 + i]
-            = arg1 [index] > 0 ? 33.3 : -1;
+            = arg1 [index];
     }
   }
   if (j + local_c2 < border_block_size_1)
@@ -110,7 +114,7 @@ global2local        (__global A_type * arg1, __local A_type * tmp,
       index = index + (c1_base + i < 0 ? *line_length : 0)
                     + (c2_base + j < 0 ? *line_length * LDA : 0);
       tmp [(local_c2 + j) * border_block_size_0 + local_c1 + i]
-            = arg1 [index] > 0 ? 33.3 : -1;
+            = arg1 [index];
     }
     if (i + local_c1 < border_block_size_0)
     {
@@ -118,7 +122,7 @@ global2local        (__global A_type * arg1, __local A_type * tmp,
       index = index + (c1_base + i < 0 ? *line_length : 0)
                     + (c2_base + j < 0 ? *line_length * LDA : 0);
       tmp [(local_c2 + j) * border_block_size_0 + local_c1 + i]
-            = arg1 [index] > 0 ? 33.3 : -1;
+            = arg1 [index];
     }
   }
 }
@@ -624,8 +628,8 @@ kernel void dwt2_final (__global A_type * input,
   for (int slice = get_group_id (2); slice < *num_slices; slice += get_global_size (2))
   {
 
-    __global A_type * arg1 = input + slice * LDA * LDA;
-    __global A_type * arg2 = output + slice * LDA * LDA;
+    __global A_type * arg1 = input + slice * LDA * LDB;
+    __global A_type * arg2 = output + slice * LDA * LDB;
 
     int l = 1;
     int current_line_length = *line_length;
@@ -810,8 +814,8 @@ kernel void dwt2 (__global A_type * input,
     {
 
       // update start address of current slice
-      __global A_type * arg1 = input + slice * LDA * LDA;
-      __global A_type * arg2 = output + slice * LDA * LDA;
+      __global A_type * arg1 = input + slice * LDA * LDB;
+      __global A_type * arg2 = output + slice * LDA * LDB;
 
       barrier (CLK_LOCAL_MEM_FENCE);
 
