@@ -1356,7 +1356,7 @@
           
           // create kernel launch configuration
           LaunchInformation lc (group_size_x, group_size_y, 1, global_x, global_y, 32);
-          LaunchInformation lc2 (1,1,128, 128,128,128);
+          LaunchInformation lc2 (1,1,64, 128,128,64);
           
           std::vector <ProfilingInformation> vec_pi;
           

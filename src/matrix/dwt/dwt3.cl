@@ -106,42 +106,94 @@ kernel void dwt3 (__global A_type * arg1,
           __global int * loc_mem_size)
 {
 
-  const int block_size = *line_length / (min (*line_length, (int) get_global_size (2))/get_local_size (2));
-  const int border_block_size = block_size + offset;
+  if (get_global_id (2) < *line_length)
+  {
 
-  __local A_type * tmp = & loc_mem [0];
-  __local A_type * tmp2 = & loc_mem [border_block_size];
+    const int lid = get_local_id (2);
+    const int lsize = get_local_size (2);
 
-  const int base_index = get_group_id (0) + get_group_id (1) * *n;
+    const int block_size = *line_length / (min (*line_length, (int) get_global_size (2))/get_local_size (2));
+    const int border_block_size = block_size + offset;
+
+    __local A_type * tmp = & loc_mem [0];
+    __local A_type * tmp2 = & loc_mem [border_block_size];
+
+    const int base_index = get_group_id (0) + get_group_id (1) * *n;
 
 
-  // loop over size of local memory (over slices)
+    // loop over size of local memory (over slices)
+
+    int i;
+    for (i = 0; i < block_size - lsize; i += lsize)
+    {
+      const int index = base_index + (lid + i < offset ? (*line_length-1 - lid) : (lid + i - offset)) * LDA * LDB;
+      tmp [lid + i] = arg1 [index];
+    }
+    if (i + lid < block_size)
+    {
+      const int index = base_index + (lid + i < offset ? (*line_length-1 - lid) : (lid + i - offset)) * LDA * LDB;
+      tmp [lid + i] = arg1 [index];
+    }
+
+      barrier (CLK_LOCAL_MEM_FENCE);
+
+      // perform calculation
+      filter (lid, tmp, tmp2, _lpf, _hpf, block_size, border_block_size);
+
+      barrier (CLK_LOCAL_MEM_FENCE);
+
+      // write back
+      const int shift = - offset / 2;    
+      const int local_base = lid + shift;
+
+    ///////////
+    // part: LOW
+    ///////////
+    if (lid < block_size/2)
+    {
+      int i;
+      for (i = 0; i < block_size / 2 - lsize; i += lsize)
+      {
+        int index = base_index + (local_base + i) * LDA * LDB;
+        index = index + (local_base + i < 0 ? *line_length/2-1 : 0) * LDA * LDB;
+        arg2 [index] = tmp2 [lid + i];
+      }
+      if (i + lid < block_size / 2)
+      {
+        int index = base_index + (local_base + i) * LDA * LDB;
+        index = index + (local_base + i < 0 ? *line_length/2-1 : 0) * LDA * LDB;
+        arg2 [index] = tmp2 [lid + i];
+      }
+    }
+
+    ///////////
+    // part: HIGH
+    ///////////
+    if (lid < block_size/2)
+    {
+      int i;
+      for (i = 0; i < block_size / 2 - lsize; i += lsize)
+      {
+        int index = base_index + (lid + i + *line_length/2-1) * LDA * LDB;
+        index = index + (local_base + i -shift < 0 ? *line_length/2-1 : 0) * LDA * LDB;
+        arg2 [index] = tmp2 [lid + i + block_size / 2];
+      }
+      if (i + get_local_id (2) < block_size/2)
+      {
+        int index = base_index + (lid + i + *line_length/2-1) * LDA * LDB;
+        index = index + (local_base + i -shift < 0 ? *line_length/2-1 : 0) * LDA * LDB;
+        arg2 [index] = tmp2 [lid + i + block_size / 2];
+      }
+    }
+
+  }
     
-    // load GROUP_SIZE elements to local memory
-    const int index = base_index + (get_local_id (2) < offset ? (LDC - get_local_id (2)) : (get_local_id (2) - offset)) * LDA * LDB;
-    tmp [get_local_id (2)] = arg1 [index];
-    
-    barrier (CLK_LOCAL_MEM_FENCE);
-    
-    // perform calculation
-    filter (get_local_id (2), tmp, tmp2, _lpf, _hpf, block_size, border_block_size);
-
-//    if (get_local_id (2) < GROUP_SIZE / 2)
+//    if (get_local_id (2) < get_local_size (2) / 2) // lowpass
 //    {
-//        tmp2 [get_local_id (2)] = conv_step_lo (2 * get_local_id (2), _lpf, tmp, 1);
+//      const int 
+//      arg2 [base_index + get_local_id (2) * LDA * LDB] = tmp2 [get_local_id (2)];
 //    }
-//    else
-//    {
-//        tmp2 [get_local_id (2)] = conv_step_hi (2 * (get_local_id (2) - GROUP_SIZE/2), _hpf, tmp, 1);
-//    }
-    
-    barrier (CLK_LOCAL_MEM_FENCE);
-    
-    const int shift = - offset / 2;
-    
-    // write back
-    arg2 [base_index + get_local_id (2) * LDA * LDB] = tmp2 [get_local_id (2)];
-    
-    arg2 [0] = 44.4;
+//    else                                           // highpass
+//      ...
     
 }
