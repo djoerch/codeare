@@ -273,7 +273,10 @@
       m_events [i].wait ();
       } catch (cl::Error & cle)
       {
-        std::cerr << oclError (cle.err (), " oclKernelObject::run ") << std::endl;
+          std::stringstream msg;
+          msg << cle.what () << "\n -> oclKernelObject :: run (" << m_kernel_names [i] << ")";
+        
+          throw oclError (cle.err (), msg.str ().c_str ());
       }
     }
     
