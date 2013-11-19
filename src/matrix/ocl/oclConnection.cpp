@@ -16,6 +16,42 @@
  **************************/
 
 
+/**
+ * @brief                  Set thread configuration (local, global) for given kernel name.
+ */
+oclError &
+oclConnection ::
+setThreadConfig            (const std::string & kernel_name, const LaunchInformation & lc)
+{
+  
+  std::pair <std::map <std::string, LaunchInformation> :: iterator, bool> res
+          = m_thread_config.insert (std::make_pair (kernel_name, lc));
+  
+  if (!res.second)
+    res.first -> second = lc;
+  
+}
+
+
+const LaunchInformation &
+oclConnection ::
+getThreadConfig             (const std::string & kernel_name)
+{
+  
+  try {
+    return m_thread_config.at (kernel_name);
+  } catch (std::out_of_range & oor)
+  {
+    /* throw error message */
+    std::stringstream msg;
+    msg << "No thread configuration found for kernel (" << kernel_name << ")";
+    throw oclError (msg.str (), "oclConnection :: activateKernel");
+  }
+  
+}
+
+
+
 /** 
  * @brief                  Modify kernel source code by adding predefined makro definitions.
  *
@@ -263,10 +299,12 @@ oclConnection ( cl_device_type    device_type,
   }
   print_optional (" ** # of devices on platform: %d", m_devs.size(), VERB_LOW);
   std::string info_string;
+  cl_ulong local_mem_size;
   print_optional (" ** device type [0]: ", (m_devs [0].getInfo (CL_DEVICE_VENDOR, &info_string), info_string.c_str ()), VERB_LOW);
   print_optional (" ** device extensions [0]: ", (m_devs [0].getInfo (CL_DEVICE_EXTENSIONS, &info_string), info_string.c_str ()), VERB_MIDDLE);
   print_optional (" ** device max WG size [0]: %d", (m_devs [0].getInfo (CL_DEVICE_MAX_WORK_GROUP_SIZE, &m_max_wg_size), m_max_wg_size), VERB_NONE);
   print_optional (" ** device max WI dim [0]: %d", (m_devs [0].getInfo (CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, &m_max_wi_dim), m_max_wi_dim), VERB_NONE);
+  print_optional (" ** device max local memory: %d Bytes", (m_devs [0].getInfo (CL_DEVICE_LOCAL_MEM_SIZE, &local_mem_size), local_mem_size), VERB_NONE);
   m_devs [0].getInfo (CL_DEVICE_MAX_WORK_ITEM_SIZES, &m_max_wi_sizes);
   print_optional (" ** device max WI sizes [0]: %zu, %zu, %zu", m_max_wi_sizes[0], m_max_wi_sizes[1], m_max_wi_sizes[2], VERB_NONE);
   if (m_devs.size() == 0)
@@ -348,6 +386,15 @@ activateKernel            (const std::string kernelname)
     if (kernelname.compare (act_kernelname) == 0)
     {
       mp_actKernel = & ((* mp_kernels) [i]);
+      try {
+        mp_lc = & m_thread_config.at (kernelname);
+      } catch (std::out_of_range & oor)
+      {
+        /* throw error message */
+        std::stringstream msg;
+        msg << "No thread configuration found for kernel (" << kernelname << ")";
+        throw oclError (msg.str (), "oclConnection :: activateKernel");
+      }
       return 0;
     }
   }
@@ -404,7 +451,7 @@ runKernel             (const cl::NDRange  & global_dims,
 
       cl::Event event;
       
-      m_error = (*it).enqueueNDRangeKernel (*mp_actKernel, cl::NullRange, global_dims, local_dims, NULL, &event);
+      m_error = (*it).enqueueNDRangeKernel (*mp_actKernel, cl::NullRange, mp_lc -> global (), mp_lc -> local (), NULL, &event);
       
       (*it).finish ();
       

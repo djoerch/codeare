@@ -272,12 +272,20 @@ modify_kernel        ( std::string const &       source,
       rebuildWithSource       (const std::string &,
                                const std::vector <std::string> &);
 
+      
+      oclError &
+      setThreadConfig         (const std::string &,
+                               const LaunchInformation &);
+      
+      const LaunchInformation &
+      getThreadConfig         (const std::string &);
+      
     
     /*************
      ** private **
      *************/
     private:
-
+      
 
       /**********************
        ** member variables **
@@ -286,6 +294,7 @@ modify_kernel        ( std::string const &       source,
       std::map <oclObjectID, oclDataObject * const>         m_current_ocl_objects;
       std::list <oclObjectID>                               m_loaded_ocl_objects;
       std::map <clBuffer *, int>                            m_current_buffers;
+      std::map <std::string, LaunchInformation>             m_thread_config;
       
       
       /********************
@@ -321,6 +330,7 @@ modify_kernel        ( std::string const &       source,
       cl_int                   m_error;      // error variable
       VerbosityLevel           m_verbose;    // verbosity level
       clKernel               * mp_actKernel;
+      LaunchInformation      * mp_lc;
       int                      num_kernel;
 
       
@@ -356,7 +366,7 @@ modify_kernel        ( std::string const &       source,
       oclConnection         (oclConnection &) { /*TODO*/};
     
       
-
+    
   }; // class oclConnection
   
   

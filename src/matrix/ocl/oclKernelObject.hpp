@@ -248,12 +248,22 @@
 
       }
 
-      // run kernel
-      cl::NDRange global_dims(lc.global_x, lc.global_y, lc.global_z);
-      cl::NDRange local_dims(lc.local_x, lc.local_y, lc.local_z);
-      cl::Event event = oclCon -> runKernel(global_dims, local_dims);
+      try {
+        
+        // run kernel
+        cl::NDRange global_dims(lc.global_x, lc.global_y, lc.global_z);
+        cl::NDRange local_dims(lc.local_x, lc.local_y, lc.local_z);
+        cl::Event event = oclCon -> runKernel(global_dims, local_dims);
+        
+        m_events.push_back (event);
 
-      m_events.push_back (event);
+      } catch (oclError & err)
+      {
+          std::stringstream msg;
+          msg << "oclKernelObject :: run (" << *it_kernel_name << ")";
+        
+          throw oclError (err, msg.str ().c_str ());
+      }
       
     }
     

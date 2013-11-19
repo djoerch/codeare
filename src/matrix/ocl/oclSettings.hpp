@@ -207,6 +207,12 @@
               && this -> global_y == lc.global_y
               && this -> global_z == lc.global_z;
     }
+    cl::NDRange
+    global            () const
+    { return cl::NDRange (global_x, global_y, global_z); }
+    cl::NDRange
+    local             () const
+    { return cl::NDRange (local_x, local_y, local_z); }
   };
   
   

@@ -42,7 +42,7 @@
  */
 # define OPENCL_GROUP_SIZE 16
 # define OPENCL_GLOBAL_SIZE 256
-
+# define LC LaunchInformation (16, 16, 1, 256, 256, 1)
 
 
 # include "Matrix.hpp"
@@ -68,23 +68,35 @@ class oclDWT {
 
       inline void
       setupOpenCL           (const int fl,
-                             const int side_length)
+                             const int side_length,
+                             const LaunchInformation & lc1,
+                             const LaunchInformation & lc2)
       {
         std::stringstream ss;
             std::vector <std::string> makros;
-            makros.push_back ((ss << "GROUP_SIZE_0 " << _group_size_x, ss.str ())); ss.str ("");
-            makros.push_back ((ss << "GROUP_SIZE_1 " << _group_size_y, ss.str ())); ss.str ("");
-            makros.push_back ((ss << "NUM_GROUPS_0 " << (_global_size_x/_group_size_x), ss.str ())); ss.str ("");
-            makros.push_back ((ss << "NUM_GROUPS_1 " << (_global_size_y/_group_size_y), ss.str ())); ss.str ("");
+            makros.push_back ((ss << "GROUP_SIZE_0 " << lc1.local_x, ss.str ())); ss.str ("");
+            makros.push_back ((ss << "GROUP_SIZE_1 " << lc1.local_y, ss.str ())); ss.str ("");
+            makros.push_back ((ss << "NUM_GROUPS_0 " << (lc1.global_x/lc1.local_x), ss.str ())); ss.str ("");
+            makros.push_back ((ss << "NUM_GROUPS_1 " << (lc1.global_y/lc1.local_y), ss.str ())); ss.str ("");
             makros.push_back ((ss << "FL " << fl, ss.str ())); ss.str ("");
             makros.push_back ((ss << "ODD_FILTER " << (fl&1), ss.str ())); ss.str ("");
             makros.push_back ((ss << "LDA " << side_length, ss.str ())); ss.str ("");
             makros.push_back ((ss << "LDB " << side_length, ss.str ())); ss.str ("");
             std::vector <std::string> filenames;
             filenames.push_back (base_kernel_path + "src/matrix/dwt/dwt2.cl");
+            filenames.push_back (base_kernel_path + "src/matrix/dwt/dwt2_alt.cl");
             filenames.push_back (base_kernel_path + "src/matrix/dwt/idwt2.cl");
             filenames.push_back (base_kernel_path + "src/matrix/dwt/dwt3.cl");
             oclOperations <T> :: addKernelSources (filenames, makros);
+            oclConnection :: Instance () -> setThreadConfig (std::string ("perf_dwtGlobalToLocal"), lc1);
+            oclConnection :: Instance () -> setThreadConfig (std::string ("perf_dwtLocalToGlobal"), lc1);
+            oclConnection :: Instance () -> setThreadConfig (std::string ("perf_dwtFilter"), lc1);
+            oclConnection :: Instance () -> setThreadConfig (std::string ("dwt2"), lc1);
+            oclConnection :: Instance () -> setThreadConfig (std::string ("dwt2_alt"), lc1);
+            oclConnection :: Instance () -> setThreadConfig (std::string ("dwt2_final"), lc1);
+            oclConnection :: Instance () -> setThreadConfig (std::string ("idwt2"), lc1);
+            oclConnection :: Instance () -> setThreadConfig (std::string ("idwt2_prepare"), lc1);
+            oclConnection :: Instance () -> setThreadConfig (std::string ("dwt3"), lc2);
       }
       
   
@@ -102,7 +114,7 @@ class oclDWT {
          * @param  wl_scale     Decomposition until side length equals 2^wl_scale.
          */
         oclDWT (const size_t sl1, const size_t sl2, const size_t sl3,
-             const wlfamily wl_fam = WL_FAM, const int wl_mem = WL_MEM, const int wl_scale = WL_SCALE, const int group_size_x = OPENCL_GROUP_SIZE, const int group_size_y = OPENCL_GROUP_SIZE, const int global_size_x = OPENCL_GLOBAL_SIZE, const int global_size_y = OPENCL_GLOBAL_SIZE)
+             const wlfamily wl_fam = WL_FAM, const int wl_mem = WL_MEM, const int wl_scale = WL_SCALE, const LaunchInformation & lc1 = LC, const LaunchInformation & lc2 = LC)
             : _sl1 (sl1),
               _sl2 (sl2),
               _sl3 (sl3),
@@ -111,14 +123,10 @@ class oclDWT {
               _min_level (wl_scale),
               _max_level (MaxLevel ()),
               _wl_fam(wl_fam),
-              _fl (wl_mem),
-              _group_size_x (group_size_x),
-              _group_size_y (group_size_y),
-          _global_size_x (global_size_x),
-          _global_size_y (global_size_y)
+              _fl (wl_mem)
         {
             setupWlFilters <T> (wl_fam, wl_mem, _lpf_d, _lpf_r, _hpf_d, _hpf_r);
-            setupOpenCL (wl_mem, _min_sl);
+            setupOpenCL (wl_mem, _min_sl, lc1, lc2);
         }
 
 
@@ -133,7 +141,7 @@ class oclDWT {
          */
         oclDWT (const size_t sl1, const size_t sl2,
              const wlfamily wl_fam = WL_FAM, const int wl_mem = WL_MEM, const int wl_scale = WL_SCALE,
-             const int num_threads = NUM_THREADS_DWT, const int group_size_x = OPENCL_GROUP_SIZE, const int group_size_y = OPENCL_GROUP_SIZE, const int global_size_x = OPENCL_GLOBAL_SIZE, const int global_size_y = OPENCL_GLOBAL_SIZE)
+             const int num_threads = NUM_THREADS_DWT, const LaunchInformation & lc = LC)
         : _sl1 (sl1),
           _sl2 (sl2),
           _sl3 (1),
@@ -142,14 +150,10 @@ class oclDWT {
           _min_level (wl_scale),
           _max_level (MaxLevel ()),
           _wl_fam(wl_fam),
-          _fl (wl_mem),
-          _group_size_x (group_size_x),
-          _group_size_y (group_size_y),
-          _global_size_x (global_size_x),
-          _global_size_y (global_size_y)
+          _fl (wl_mem)
         {
             setupWlFilters <T> (wl_fam, wl_mem, _lpf_d, _lpf_r, _hpf_d, _hpf_r);
-            setupOpenCL (wl_mem, _min_sl);
+            setupOpenCL (wl_mem, _min_sl, lc, lc);
         }
 
 
@@ -162,7 +166,7 @@ class oclDWT {
          * @param  wl_scale     Decomposition until side length equals 2^wl_scale.
          */
         oclDWT (const size_t sl1,
-             const wlfamily wl_fam = WL_FAM, const int wl_mem = WL_MEM, const int wl_scale = WL_SCALE, const int group_size_x = OPENCL_GROUP_SIZE, const int group_size_y = OPENCL_GROUP_SIZE, const int global_size_x = OPENCL_GLOBAL_SIZE, const int global_size_y = OPENCL_GLOBAL_SIZE)
+             const wlfamily wl_fam = WL_FAM, const int wl_mem = WL_MEM, const int wl_scale = WL_SCALE, const LaunchInformation & lc = LC)
         : _sl1 (sl1),
           _sl2 (_sl1),
           _sl3 (1),
@@ -171,14 +175,10 @@ class oclDWT {
           _min_level (wl_scale),
           _max_level (MaxLevel ()),
           _wl_fam(wl_fam),
-          _fl (wl_mem),
-          _group_size_x (group_size_x),
-          _group_size_y (group_size_y),
-          _global_size_x (global_size_x),
-          _global_size_y (global_size_y)
+          _fl (wl_mem)
         {
             setupWlFilters <T> (wl_fam, wl_mem, _lpf_d, _lpf_r, _hpf_d, _hpf_r);
-            setupOpenCL (wl_mem, _min_sl);
+            setupOpenCL (wl_mem, _min_sl, lc, lc);
         }
 
 
@@ -216,25 +216,23 @@ class oclDWT {
             oclDataWrapper <T> * p_ocl_lpf = oclOperations <T> :: make_GPU_Obj (_lpf_d, _fl);
             oclDataWrapper <T> * p_ocl_hpf = oclOperations <T> :: make_GPU_Obj (_hpf_d, _fl);
             
-            const int num_loc_mem_size = (m.Dim (0) / (_global_size_x/_group_size_x) + _fl) * (m.Dim (0) / (_global_size_y/_group_size_y) + _fl) + (m.Dim (0) / (_global_size_x/_group_size_x)) * (m.Dim (0) / (_global_size_y/_group_size_y) + _fl);
-            
-            std::vector <PerformanceInformation> vec_perf = oclOperations <T> :: ocl_operator_dwt (p_ocl_m, m.Dim(0), m.Dim(1), m.Dim(2),
+            std::vector <PerformanceInformation> vec_perf;
+            if (m.Dim (2) == 1)
+              vec_perf = oclOperations <T> :: ocl_operator_dwt2 (p_ocl_m, m.Dim(0), m.Dim(1), m.Dim(2),
                                                    p_ocl_lpf, p_ocl_hpf, _fl, _max_level - _min_level,
-                                                   p_ocl_res, num_loc_mem_size,
-                                                   _group_size_x,
-                                                   _group_size_y,
-                                                   _global_size_x,
-                                                   _global_size_y);
+                                                   p_ocl_res);
+            else
+              vec_perf = oclOperations <T> :: ocl_operator_dwt3 (p_ocl_m, m.Dim(0), m.Dim(1), m.Dim(2),
+                                                   p_ocl_lpf, p_ocl_hpf, _fl, _max_level - _min_level,
+                                                   p_ocl_res);
+            
             double time = p_ocl_res->getData();
             p_ocl_m->getData();
             
-            oclConnection :: Instance () -> loadToCPU (p_ocl_m -> getBuffer (), &(res.Container() [0]), p_ocl_m -> getSize ());
+            if (m.Dim (2) > 1)
+              oclConnection :: Instance () -> loadToCPU (p_ocl_m -> getBuffer (), &(res.Container() [0]), p_ocl_m -> getSize ());
             
-            std::vector <PerformanceInformation> vec_perf2 = oclOperations <T> :: ocl_operator_perf_dwt (p_ocl_m, p_ocl_lpf, p_ocl_hpf, p_ocl_res, m.Dim(0), num_loc_mem_size, _fl,
-                                                   _group_size_x,
-                                                   _group_size_y,
-                                                   _global_size_x,
-                                                   _global_size_y);
+//            std::vector <PerformanceInformation> vec_perf2 = oclOperations <T> :: ocl_operator_perf_dwt (p_ocl_m, m.Dim(0), m.Dim(1), m.Dim(2), p_ocl_lpf, p_ocl_hpf, p_ocl_res, m.Dim(0), _fl);
                         
             delete p_ocl_m;
             delete p_ocl_res;
@@ -242,10 +240,10 @@ class oclDWT {
             delete p_ocl_hpf;
             
             vec_perf [0].time_mem_down += time;
-            vec_perf2.insert (vec_perf2.end (), vec_perf.begin (), vec_perf.end ());
+//            vec_perf2.insert (vec_perf2.end (), vec_perf.begin (), vec_perf.end ());
             
             
-            return vec_perf2;
+            return vec_perf;
             
         }
 
@@ -261,43 +259,43 @@ class oclDWT {
         Adjoint      (Matrix <T> & m, Matrix <T> & res)
         {
 
-assert (   m.Dim (0) == _sl1
+            assert (   m.Dim (0) == _sl1
                     && m.Dim (1) == _sl2
                     && (_dim == 2 || m.Dim (2) == _sl3)
                     && m.Dim () == res.Dim ());
-                        
-            /* TODO: call kernel */
+
+            if (_max_level - _min_level == 0)
+            {
+              res = m;
+              return std::vector <PerformanceInformation> ();
+            }
+            
+            // create GPU memory objects for operands
             oclDataWrapper <T> * p_ocl_m   = oclOperations <T> :: make_GPU_Obj (&m.Container()[0], m.Size ());
             oclDataWrapper <T> * p_ocl_res = oclOperations <T> :: make_GPU_Obj (&res[0], res.Size ());
             oclDataWrapper <T> * p_ocl_lpf = oclOperations <T> :: make_GPU_Obj (_lpf_r, _fl);
             oclDataWrapper <T> * p_ocl_hpf = oclOperations <T> :: make_GPU_Obj (_hpf_r, _fl);
             
-            const int num_loc_mem_size = (m.Dim (0) / (_global_size_x/_group_size_x) + 2*(_fl-1)) * (m.Dim (0) / (_global_size_y/_group_size_y) + 2*(_fl-1)) + (m.Dim (0) / (_global_size_x/_group_size_x) + 2*(_fl-1)) * (m.Dim (0) / (_global_size_y/_group_size_y));
-            
-            std::vector <PerformanceInformation> vec_perf = oclOperations <T> :: ocl_operator_idwt (p_ocl_m, m.Dim(0), m.Dim(1), m.Dim(2),
+            // call either 2D or 3D implementation of IDWT
+            std::vector <PerformanceInformation> vec_perf;
+            if (m.Dim (2) == 1)
+              vec_perf = oclOperations <T> :: ocl_operator_idwt2 (p_ocl_m, m.Dim(0), m.Dim(1), m.Dim(2),
                                                    p_ocl_lpf, p_ocl_hpf, _fl, _max_level - _min_level,
-                                                   p_ocl_res, num_loc_mem_size,
-                                                   _group_size_x,
-                                                   _group_size_y,
-                                                   _global_size_x,
-                                                   _global_size_y);
+                                                   p_ocl_res);
+            else
+              vec_perf = oclOperations <T> :: ocl_operator_idwt3 (p_ocl_m, m.Dim(0), m.Dim(1), m.Dim(2),
+                                                   p_ocl_lpf, p_ocl_hpf, _fl, _max_level - _min_level,
+                                                   p_ocl_res);
+            
+            // copy results back to CPU memory
             double time = p_ocl_res->getData();
-//            p_ocl_m->getData();
-//            
-////            std::vector <PerformanceInformation> vec_perf2 = oclOperations <T> :: ocl_operator_perf_dwt (p_ocl_m, p_ocl_lpf, p_ocl_hpf, p_ocl_res, m.Dim(0), num_loc_mem_size, _fl,
-////                                                   _group_size_x,
-////                                                   _group_size_y,
-////                                                   _global_size_x,
-////                                                   _global_size_y);
-//                        
+            
+            // clear GPU memory
             delete p_ocl_m;
             delete p_ocl_res;
             delete p_ocl_lpf;
             delete p_ocl_hpf;
-//            
-//            vec_perf [0].time_mem_down += time;
-//            vec_perf2.push_back (vec_perf [0]);
-//            vec_perf2.push_back (vec_perf [1]);
+            
             
             return vec_perf;
 
@@ -379,11 +377,6 @@ assert (   m.Dim (0) == _sl1
         const wlfamily _wl_fam;
 
         const int _fl;
-        
-        const int _group_size_x;
-        const int _group_size_y;
-        const int _global_size_x;
-        const int _global_size_y;
 
         // low pass filters
         RT * _lpf_d;
