@@ -237,11 +237,20 @@ init_program_kernels    (oclConnection * const con, const std::vector <std::stri
 
     // create program
     prog = clProgram (con -> m_cont, sources, & con -> m_error);
-
     
+    // check for possible build arguments
+    std::string vendor;
+    clPlatforms tmp_platforms;
+    clPlatform::get (&tmp_platforms);
+    tmp_platforms [0].getInfo(CL_PLATFORM_VENDOR, &vendor);
+    std::string build_args;
+    if (!vendor.compare("Advanced Micro Devices, Inc."))
+      build_args = "-cl-std=CL1.0 -cl-mad-enable -cl-fast-relaxed-math";
+    else
+      build_args = "-cl-std=CL1.1 -cl-mad-enable -cl-fast-relaxed-math -cl-nv-maxrregcount=32 -cl-nv-verbose";
     
     // build program
-	  con -> m_error = prog.build (con -> m_devs, "-cl-std=CL1.0 -cl-mad-enable -cl-fast-relaxed-math"); //-cl-nv-maxrregcount=32 -cl-nv-verbose");
+	  con -> m_error = prog.build (con -> m_devs, build_args.c_str ());
     
 //    std::cout << "Build Log:\t "                  << prog.getBuildInfo<CL_PROGRAM_BUILD_LOG>     (con -> m_devs [0]) << std::endl;
 
