@@ -500,13 +500,13 @@ ifiltering_rows          (const int local_c1, const int local_c2,
     for (i = 0; i < i_max - GROUP_SIZE_0; i += GROUP_SIZE_0)
     {
         const int index1 = local_base_1 + j * border_block_size_0 + i;
-        const int index2 = local_base_2 + j * border_block_size_0 + i;
+        const int index2 = local_base_2 + j * double_bbs_0 + i;
         iconv_step2_hi (index1, index2, _hpf, tmp, tmp2, border_block_size_0);
     }
     if (i + local_c1 < i_max)
     {
         const int index1 = local_base_1 + j * border_block_size_0 + i;
-        const int index2 = local_base_2 + j * border_block_size_0 + i;
+        const int index2 = local_base_2 + j * double_bbs_0 + i;
         iconv_step2_hi (index1, index2, _hpf, tmp, tmp2, border_block_size_0);
     }
   }
@@ -516,13 +516,13 @@ ifiltering_rows          (const int local_c1, const int local_c2,
     for (i = 0; i < i_max - GROUP_SIZE_0; i += GROUP_SIZE_0)
     {
         const int index1 = local_base_1 + j * border_block_size_0 + i;
-        const int index2 = local_base_2 + j * border_block_size_0 + i;
+        const int index2 = local_base_2 + j * double_bbs_0 + i;
         iconv_step2_hi (index1, index2, _hpf, tmp, tmp2, border_block_size_0);
     }
     if (i + local_c1 < i_max)
     {
         const int index1 = local_base_1 + j * border_block_size_0 + i;
-        const int index2 = local_base_2 + j * border_block_size_0 + i;
+        const int index2 = local_base_2 + j * double_bbs_0 + i;
         iconv_step2_hi (index1, index2, _hpf, tmp, tmp2, border_block_size_0);
     }
   }
@@ -538,13 +538,13 @@ ifiltering_rows          (const int local_c1, const int local_c2,
     for (i = i_start; i < i_end - GROUP_SIZE_0; i += GROUP_SIZE_0)
     {
         const int index1 = local_base_1 + j * border_block_size_0 + i;
-        const int index2 = local_base_2 + j * border_block_size_0 + i;
+        const int index2 = local_base_2 + j * double_bbs_0 + i;
         iconv_step2_hi (index1, index2, _hpf, tmp, tmp2, border_block_size_0);
     }
     if (i + local_c1 < i_end)
     {
         const int index1 = local_base_1 + j * border_block_size_0 + i;
-        const int index2 = local_base_2 + j * border_block_size_0 + i;
+        const int index2 = local_base_2 + j * double_bbs_0 + i;
         iconv_step2_hi (index1, index2, _hpf, tmp, tmp2, border_block_size_0);
     }
   }
@@ -554,13 +554,13 @@ ifiltering_rows          (const int local_c1, const int local_c2,
     for (i = i_start; i < i_end - GROUP_SIZE_0; i += GROUP_SIZE_0)
     {
         const int index1 = local_base_1 + j * border_block_size_0 + i;
-        const int index2 = local_base_2 + j * border_block_size_0 + i;
+        const int index2 = local_base_2 + j * double_bbs_0 + i;
         iconv_step2_hi (index1, index2, _hpf, tmp, tmp2, border_block_size_0);
     }
     if (i + local_c1 < i_end)
     {
         const int index1 = local_base_1 + j * border_block_size_0 + i;
-        const int index2 = local_base_2 + j * border_block_size_0 + i;
+        const int index2 = local_base_2 + j * double_bbs_0 + i;
         iconv_step2_hi (index1, index2, _hpf, tmp, tmp2, border_block_size_0);
     }
   }
