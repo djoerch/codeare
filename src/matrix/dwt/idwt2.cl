@@ -257,16 +257,16 @@ ilocal2global       (__global A_type * arg2, __local A_type * tmp2,
     int i;
     for (i = 0; i < block_size_0-GROUP_SIZE_0; i += GROUP_SIZE_0)
     {
-      const int index = index_base + j * LDA + i
-                      + ((c1_base + i < 0)
-                      +  (c2_base + j < 0) * LDA) * *line_length;
+      const int index = index_base + j * LDA + i;
+//                      + ((c1_base + i < 0)
+//                      +  (c2_base + j < 0) * LDA) * *line_length;
       arg2 [index] = tmp2 [local_base + j * block_size_0 + i];
     }
     if (i + local_c1 < block_size_0)
     {
-      const int index = index_base + j * LDA + i
-                      + ((c1_base + i < 0)
-                      +  (c2_base + j < 0) * LDA) * *line_length;
+      const int index = index_base + j * LDA + i;
+//                      + ((c1_base + i < 0)
+//                      +  (c2_base + j < 0) * LDA) * *line_length;
       arg2 [index] = tmp2 [local_base + j * block_size_0 + i];
     }
   }
@@ -275,16 +275,16 @@ ilocal2global       (__global A_type * arg2, __local A_type * tmp2,
     int i;
     for (i = 0; i < block_size_0-GROUP_SIZE_0; i += GROUP_SIZE_0)
     {
-      const int index = index_base + j * LDA + i
-                      + ((c1_base + i < 0)
-                      +  (c2_base + j < 0) * LDA) * *line_length;
+      const int index = index_base + j * LDA + i;
+//                      + ((c1_base + i < 0)
+//                      +  (c2_base + j < 0) * LDA) * *line_length;
       arg2 [index] = tmp2 [local_base + j * block_size_0 + i];
     }
     if (i + local_c1 < block_size_0)
     {
-      const int index = index_base + j * LDA + i
-                      + ((c1_base + i < 0)
-                      +  (c2_base + j < 0) * LDA) * *line_length;
+      const int index = index_base + j * LDA + i;
+//                      + ((c1_base + i < 0)
+//                      +  (c2_base + j < 0) * LDA) * *line_length;
       arg2 [index] = tmp2 [local_base + j * block_size_0 + i];
     }
   }

@@ -87,6 +87,7 @@ class oclDWT {
             filenames.push_back (base_kernel_path + "src/matrix/dwt/dwt2_alt.cl");
             filenames.push_back (base_kernel_path + "src/matrix/dwt/idwt2.cl");
             filenames.push_back (base_kernel_path + "src/matrix/dwt/dwt3.cl");
+            filenames.push_back (base_kernel_path + "src/matrix/dwt/idwt3.cl");
             oclOperations <T> :: addKernelSources (filenames, makros);
             oclConnection :: Instance () -> setThreadConfig (std::string ("perf_dwtGlobalToLocal"), lc1);
             oclConnection :: Instance () -> setThreadConfig (std::string ("perf_dwtLocalToGlobal"), lc1);
@@ -97,6 +98,7 @@ class oclDWT {
             oclConnection :: Instance () -> setThreadConfig (std::string ("idwt2"), lc1);
             oclConnection :: Instance () -> setThreadConfig (std::string ("idwt2_prepare"), lc1);
             oclConnection :: Instance () -> setThreadConfig (std::string ("dwt3"), lc2);
+            oclConnection :: Instance () -> setThreadConfig (std::string ("idwt3"), lc2);
       }
       
   
@@ -289,6 +291,10 @@ class oclDWT {
             
             // copy results back to CPU memory
             double time = p_ocl_res->getData();
+
+            if (m.Dim (2) > 1)
+              oclConnection :: Instance () -> loadToCPU (p_ocl_m -> getBuffer (), &(res.Container() [0]), p_ocl_m -> getSize ());
+            
             
             // clear GPU memory
             delete p_ocl_m;

@@ -1353,7 +1353,7 @@
           const int num_loc_mem_elems = (n / (lc.global_x/lc.local_x) + fl) * (n / (lc.global_y/lc.local_y) + fl) + (n / (lc.global_x/lc.local_x)) * (n / (lc.global_y/lc.local_y) + fl);
           oclDataObject * loc_mem = new oclLocalMemObject <elem_type> (num_loc_mem_elems);
           
-          std::cout << " loc_mem: " << num_loc_mem_elems * sizeof (elem_type) << " Bytes " << std::endl;
+          std::cout << " loc_mem (dwt2): " << num_loc_mem_elems * sizeof (elem_type) << " Bytes " << std::endl;
           
           std::vector <ProfilingInformation> vec_pi;
           std::vector <ProfilingInformation> vec_pi2;
@@ -1465,18 +1465,19 @@
           const int num_loc_mem_elems2 = (2 * k + 8) * lc2.local_x * lc2.local_y;
           oclDataObject * loc_mem2 = new oclLocalMemObject <elem_type> (num_loc_mem_elems2);
           
-          std::cout << " loc_mem: " << num_loc_mem_elems * sizeof (elem_type) << " Bytes " << std::endl;
-          std::cout << " loc_mem2: " << num_loc_mem_elems2 * sizeof (elem_type) << " Bytes " << std::endl;
+          std::cout << " loc_mem (dwt2): " << num_loc_mem_elems * sizeof (elem_type) << " Bytes " << std::endl;
+          std::cout << " loc_mem2 (dwt3): " << num_loc_mem_elems2 * sizeof (elem_type) << " Bytes " << std::endl;
           
           std::vector <ProfilingInformation> vec_pi;
           std::vector <ProfilingInformation> vec_pi2;
           
-          const int num_slices = k;
+//          const int num_slices = k;
           
           // launch kernels
           for (int i = 0; i < levels; i++)
           {
             const int line_length = n / pow (2, i);
+            const int num_slices = line_length;
             lc2.global_z = lc2.local_z = lc2.local_z > line_length ? line_length : lc2.local_z;
             ProfilingInformation pi = ocl_basic_operator_kernel_56 ("dwt2", arg1, lpf, hpf, arg2, loc_mem, n, m, k, line_length, num_slices, num_loc_mem_elems, lc);
             
@@ -1586,7 +1587,7 @@
           std::vector <PerformanceInformation> vec_perf;
         
           print_optional ("oclOperations <", trait1 :: print_elem_type (), ", ",
-                                             trait2 :: print_elem_type (), "> :: ocl_operator_idwt", op_v_level);
+                                             trait2 :: print_elem_type (), "> :: ocl_operator_idwt2", op_v_level);
 
           
           // create launch configuration
@@ -1595,7 +1596,7 @@
           // dynamically allocate local memory
           const int num_loc_mem_elems = (n / (lc.global_x/lc.local_x) + 2*(fl-1)) * (n / (lc.global_y/lc.local_y) + 2*(fl-1)) + (n / (lc.global_x/lc.local_x) + 2*(fl-1)) * (n / (lc.global_y/lc.local_y));
           oclDataObject * loc_mem = new oclLocalMemObject <elem_type> (num_loc_mem_elems);
-          std::cout << " local_mem: " << num_loc_mem_elems * sizeof (elem_type) << " Bytes " << std::endl;
+          std::cout << " local_mem (idwt2): " << num_loc_mem_elems * sizeof (elem_type) << " Bytes " << std::endl;
           
           std::vector <ProfilingInformation> vec_pi_1, vec_pi_2;
           
@@ -1696,32 +1697,42 @@
           std::vector <PerformanceInformation> vec_perf;
         
           print_optional ("oclOperations <", trait1 :: print_elem_type (), ", ",
-                                             trait2 :: print_elem_type (), "> :: ocl_operator_idwt", op_v_level);
+                                             trait2 :: print_elem_type (), "> :: ocl_operator_idwt3", op_v_level);
 
           
           // create launch configuration
-//          LaunchInformation lc (group_size_x, group_size_y, 1, global_x, global_y, 32);
-          const LaunchInformation & lc = oclConnection :: Instance () -> getThreadConfig (std::string ("idwt2"));
+          LaunchInformation lc = oclConnection :: Instance () -> getThreadConfig (std::string ("idwt2"));
+          LaunchInformation lc2 = oclConnection :: Instance () -> getThreadConfig (std::string ("idwt3"));
           
           // dynamically allocate local memory
           const int num_loc_mem_elems = (n / (lc.global_x/lc.local_x) + 2*(fl-1)) * (n / (lc.global_y/lc.local_y) + 2*(fl-1)) + (n / (lc.global_x/lc.local_x) + 2*(fl-1)) * (n / (lc.global_y/lc.local_y));
           oclDataObject * loc_mem = new oclLocalMemObject <elem_type> (num_loc_mem_elems);
-          std::cout << " local_mem: " << num_loc_mem_elems * sizeof (elem_type) << " Bytes " << std::endl;
           
-          const int num_slices = k;
+          const int num_loc_mem_elems2 = (2 * (k + 8)) * lc2.local_x * lc2.local_y;
+          oclDataObject * loc_mem2 = new oclLocalMemObject <elem_type> (num_loc_mem_elems);
+          
+          std::cout << " local_mem (idwt3): " << num_loc_mem_elems * sizeof (elem_type) << " Bytes " << std::endl;
+          std::cout << " local_mem2 (idwt3): " << num_loc_mem_elems2 * sizeof (elem_type) << " Bytes " << std::endl;
+          
+//          const int num_slices = k;
           
           std::vector <ProfilingInformation> vec_pi_1, vec_pi_2;
           
           const int line_length = n/pow (2,levels-1);
-          ProfilingInformation pi = ocl_basic_operator_kernel_56 ("idwt2", arg1, lpf, hpf, arg2, loc_mem, n, m, k, line_length, num_slices, num_loc_mem_elems, lc);
+          const int num_slices = line_length;
+          ProfilingInformation tmp_ = ocl_basic_operator_kernel_56 ("idwt3", arg1, lpf, hpf, arg2, loc_mem2, n, m, k, line_length, num_slices, num_loc_mem_elems2, lc2);
+          ProfilingInformation pi = ocl_basic_operator_kernel_56 ("idwt2", arg2, lpf, hpf, arg1, loc_mem, n, m, k, line_length, num_slices, num_loc_mem_elems, lc);
           vec_pi_1.push_back (pi);
           
           for (int i = levels-2; i >= 0; i--)
           {
             const int line_length2 = n / pow (2, i);
-            ProfilingInformation pi_tmp2 = ocl_basic_operator_kernel_25 ("idwt2_prepare", arg1, arg2, n, m, k, line_length2/2, num_slices, lc);
-            ProfilingInformation pi_tmp1 = ocl_basic_operator_kernel_56 ("idwt2", arg1, lpf, hpf, arg2, loc_mem, n, m, k, line_length2, num_slices, num_loc_mem_elems, lc);
-            vec_pi_2.push_back (pi_tmp2);
+            const int num_slices2 = line_length2;
+            lc2.local_z = lc.local_z += (num_slices2 < lc2.local_z ? num_slices2 : 0);
+//            ProfilingInformation pi_tmp2 = ocl_basic_operator_kernel_25 ("idwt2_prepare", arg1, arg2, n, m, k, line_length2/2, num_slices, lc);
+            ProfilingInformation tmp = ocl_basic_operator_kernel_56 ("idwt3", arg1, lpf, hpf, arg2, loc_mem2, n, m, k, line_length2, num_slices2, num_loc_mem_elems2, lc2);
+            ProfilingInformation pi_tmp1 = ocl_basic_operator_kernel_56 ("idwt2", arg2, lpf, hpf, arg1, loc_mem, n, m, k, line_length2, num_slices2, num_loc_mem_elems, lc);
+//            vec_pi_2.push_back (pi_tmp2);
             vec_pi_1.push_back (pi_tmp1);
           }
           
