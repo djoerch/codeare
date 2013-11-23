@@ -1708,8 +1708,8 @@
           const int num_loc_mem_elems = (n / (lc.global_x/lc.local_x) + 2*(fl-1)) * (n / (lc.global_y/lc.local_y) + 2*(fl-1)) + (n / (lc.global_x/lc.local_x) + 2*(fl-1)) * (n / (lc.global_y/lc.local_y));
           oclDataObject * loc_mem = new oclLocalMemObject <elem_type> (num_loc_mem_elems);
           
-          const int num_loc_mem_elems2 = (2 * (k + 8)) * lc2.local_x * lc2.local_y;
-          oclDataObject * loc_mem2 = new oclLocalMemObject <elem_type> (num_loc_mem_elems);
+          const int num_loc_mem_elems2 = (2 * (k + fl-1)) * lc2.local_x * lc2.local_y;
+          oclDataObject * loc_mem2 = new oclLocalMemObject <elem_type> (num_loc_mem_elems2);
           
           std::cout << " local_mem (idwt3): " << num_loc_mem_elems * sizeof (elem_type) << " Bytes " << std::endl;
           std::cout << " local_mem2 (idwt3): " << num_loc_mem_elems2 * sizeof (elem_type) << " Bytes " << std::endl;
@@ -1729,6 +1729,10 @@
             const int line_length2 = n / pow (2, i);
             const int num_slices2 = line_length2;
             lc2.local_z = lc.local_z += (num_slices2 < lc2.local_z ? num_slices2 : 0);
+            lc2.global_x /= (line_length2 < lc2.global_x ? 2 : 1);
+            lc.global_x /= (line_length2 < lc.global_x ? 2 : 1);
+            lc2.global_y /= (line_length2 < lc2.global_y ? 2 : 1);
+            lc.global_y /= (line_length2 < lc.global_y ? 2 : 1);
 //            ProfilingInformation pi_tmp2 = ocl_basic_operator_kernel_25 ("idwt2_prepare", arg1, arg2, n, m, k, line_length2/2, num_slices, lc);
             ProfilingInformation tmp = ocl_basic_operator_kernel_56 ("idwt3", arg1, lpf, hpf, arg2, loc_mem2, n, m, k, line_length2, num_slices2, num_loc_mem_elems2, lc2);
             ProfilingInformation pi_tmp1 = ocl_basic_operator_kernel_56 ("idwt2", arg2, lpf, hpf, arg1, loc_mem, n, m, k, line_length2, num_slices2, num_loc_mem_elems, lc);

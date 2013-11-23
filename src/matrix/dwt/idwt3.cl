@@ -171,16 +171,19 @@ kernel void idwt3 (__global A_type * arg1,
         /////
         // memory transfer: local -> global
         /////
-        int i;
-        for (i = 0; i < block_size - lsize_2; i += lsize_2)
+        if (lid_2 < block_size)
         {
-          const int index = base_index + (lid_2 + i) * slice;
-          arg2 [index] = tmp2 [lid_2 + i];
-        }
-        if (i + lid_2 < block_size)
-        {
-          const int index = base_index + (lid_2 + i) * slice;
-          arg2 [index] = tmp2 [lid_2 + i];
+          int i;
+          for (i = 0; i < block_size - lsize_2; i += lsize_2)
+          {
+            const int index = base_index + (lid_2 + i) * slice;
+            arg2 [index] = tmp2 [lid_2 + i];
+          }
+          if (i + lid_2 < block_size)
+          {
+            const int index = base_index + (lid_2 + i) * slice;
+            arg2 [index] = tmp2 [lid_2 + i];
+          }
         }
 
       } // loop over global blocks in second dimension
