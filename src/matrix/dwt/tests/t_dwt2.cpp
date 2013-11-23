@@ -11,7 +11,7 @@
 /**********************
  ** type definitions **
  **********************/
-typedef float elem_type;
+typedef cxfl elem_type;
 
 
 using namespace codeare::matrix::io;

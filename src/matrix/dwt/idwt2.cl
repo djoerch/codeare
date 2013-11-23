@@ -294,7 +294,7 @@ ilocal2global       (__global A_type * arg2, __local A_type * tmp2,
 
 void
 iconv_step1_lo              (const int index1, const int index2,
-                             __constant A_type * filter,
+                             __constant B_type * filter,
                              __local A_type * tmp, __local A_type * tmp2,
                              const int increment)
 {
@@ -322,7 +322,7 @@ iconv_step1_lo              (const int index1, const int index2,
 
 void
 iconv_step2_lo              (const int index1, const int index2,
-                             __constant A_type * filter,
+                             __constant B_type * filter,
                              __local A_type * tmp, __local A_type * tmp2,
                              const int increment)
 {
@@ -349,7 +349,7 @@ iconv_step2_lo              (const int index1, const int index2,
 
 void
 iconv_step2_hi              (const int index1, const int index2,
-                             __constant A_type * filter,
+                             __constant B_type * filter,
                              __local A_type * tmp, __local A_type * tmp2,
                              const int increment)
 {
@@ -378,7 +378,7 @@ iconv_step2_hi              (const int index1, const int index2,
 void
 ifiltering1_rows         (const int local_c1, const int local_c2,
                           __local A_type * tmp, __local A_type * tmp2,
-                          __constant A_type * _lpf, __constant A_type * _hpf,
+                          __constant B_type * _lpf, __constant B_type * _hpf,
                           const int block_size_0, const int block_size_1,
                           const int border_block_size_0, const int border_block_size_1)
 {
@@ -477,7 +477,7 @@ ifiltering1_rows         (const int local_c1, const int local_c2,
 void
 ifiltering_rows          (const int local_c1, const int local_c2,
                           __local A_type * tmp, __local A_type * tmp2,
-                          __constant A_type * _lpf, __constant A_type * _hpf,
+                          __constant B_type * _lpf, __constant B_type * _hpf,
                           const int block_size_0, const int block_size_1,
                           const int border_block_size_0, const int border_block_size_1)
 {
@@ -572,7 +572,7 @@ ifiltering_rows          (const int local_c1, const int local_c2,
 void
 ifiltering1_cols         (const int local_c1, const int local_c2,
                           __local A_type * tmp, __local A_type * tmp2,
-                          __constant A_type * _lpf, __constant A_type * _hpf,
+                          __constant B_type * _lpf, __constant B_type * _hpf,
                           const int block_size_0, const int block_size_1,
                           const int border_block_size_0, const int border_block_size_1)
 {
@@ -630,7 +630,7 @@ ifiltering1_cols         (const int local_c1, const int local_c2,
 void
 ifiltering_cols          (const int local_c1, const int local_c2,
                           __local A_type * tmp, __local A_type * tmp2,
-                          __constant A_type * _lpf, __constant A_type * _hpf,
+                          __constant B_type * _lpf, __constant B_type * _hpf,
                           const int block_size_0, const int block_size_1,
                           const int border_block_size_0, const int border_block_size_1)
 {
@@ -759,8 +759,8 @@ kernel void idwt2_prepare (__global A_type * input,
  * @author djoergens
  */
 kernel void idwt2 (__global A_type * input,
-          __constant A_type * _lpf,
-          __constant A_type * _hpf,
+          __constant B_type * _lpf,
+          __constant B_type * _hpf,
           __global A_type * output,
           __local A_type * loc_mem,
           __constant int * n,

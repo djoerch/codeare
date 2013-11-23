@@ -88,7 +88,7 @@ class oclDWT {
             filenames.push_back (base_kernel_path + "src/matrix/dwt/idwt2.cl");
             filenames.push_back (base_kernel_path + "src/matrix/dwt/dwt3.cl");
             filenames.push_back (base_kernel_path + "src/matrix/dwt/idwt3.cl");
-            oclOperations <T> :: addKernelSources (filenames, makros);
+            oclOperations <T, RT> :: addKernelSources (filenames, makros);
             oclConnection :: Instance () -> setThreadConfig (std::string ("perf_dwtGlobalToLocal"), lc1);
             oclConnection :: Instance () -> setThreadConfig (std::string ("perf_dwtLocalToGlobal"), lc1);
             oclConnection :: Instance () -> setThreadConfig (std::string ("perf_dwtFilter"), lc1);
@@ -215,16 +215,16 @@ class oclDWT {
             /* TODO: call kernel */
             oclDataWrapper <T> * p_ocl_m   = oclOperations <T> :: make_GPU_Obj (&m.Container()[0], m.Size ());
             oclDataWrapper <T> * p_ocl_res = oclOperations <T> :: make_GPU_Obj (&res[0], res.Size ());
-            oclDataWrapper <T> * p_ocl_lpf = oclOperations <T> :: make_GPU_Obj (_lpf_d, _fl);
-            oclDataWrapper <T> * p_ocl_hpf = oclOperations <T> :: make_GPU_Obj (_hpf_d, _fl);
+            oclDataWrapper <RT> * p_ocl_lpf = oclOperations <RT> :: make_GPU_Obj (_lpf_d, _fl);
+            oclDataWrapper <RT> * p_ocl_hpf = oclOperations <RT> :: make_GPU_Obj (_hpf_d, _fl);
             
             std::vector <PerformanceInformation> vec_perf;
             if (m.Dim (2) == 1)
-              vec_perf = oclOperations <T> :: ocl_operator_dwt2 (p_ocl_m, m.Dim(0), m.Dim(1), m.Dim(2),
+              vec_perf = oclOperations <T, RT> :: ocl_operator_dwt2 (p_ocl_m, m.Dim(0), m.Dim(1), m.Dim(2),
                                                    p_ocl_lpf, p_ocl_hpf, _fl, _max_level - _min_level,
                                                    p_ocl_res);
             else
-              vec_perf = oclOperations <T> :: ocl_operator_dwt3 (p_ocl_m, m.Dim(0), m.Dim(1), m.Dim(2),
+              vec_perf = oclOperations <T, RT> :: ocl_operator_dwt3 (p_ocl_m, m.Dim(0), m.Dim(1), m.Dim(2),
                                                    p_ocl_lpf, p_ocl_hpf, _fl, _max_level - _min_level,
                                                    p_ocl_res);
             
@@ -275,17 +275,17 @@ class oclDWT {
             // create GPU memory objects for operands
             oclDataWrapper <T> * p_ocl_m   = oclOperations <T> :: make_GPU_Obj (&m.Container()[0], m.Size ());
             oclDataWrapper <T> * p_ocl_res = oclOperations <T> :: make_GPU_Obj (&res[0], res.Size ());
-            oclDataWrapper <T> * p_ocl_lpf = oclOperations <T> :: make_GPU_Obj (_lpf_r, _fl);
-            oclDataWrapper <T> * p_ocl_hpf = oclOperations <T> :: make_GPU_Obj (_hpf_r, _fl);
+            oclDataWrapper <RT> * p_ocl_lpf = oclOperations <RT> :: make_GPU_Obj (_lpf_r, _fl);
+            oclDataWrapper <RT> * p_ocl_hpf = oclOperations <RT> :: make_GPU_Obj (_hpf_r, _fl);
             
             // call either 2D or 3D implementation of IDWT
             std::vector <PerformanceInformation> vec_perf;
             if (m.Dim (2) == 1)
-              vec_perf = oclOperations <T> :: ocl_operator_idwt2 (p_ocl_m, m.Dim(0), m.Dim(1), m.Dim(2),
+              vec_perf = oclOperations <T, RT> :: ocl_operator_idwt2 (p_ocl_m, m.Dim(0), m.Dim(1), m.Dim(2),
                                                    p_ocl_lpf, p_ocl_hpf, _fl, _max_level - _min_level,
                                                    p_ocl_res);
             else
-              vec_perf = oclOperations <T> :: ocl_operator_idwt3 (p_ocl_m, m.Dim(0), m.Dim(1), m.Dim(2),
+              vec_perf = oclOperations <T, RT> :: ocl_operator_idwt3 (p_ocl_m, m.Dim(0), m.Dim(1), m.Dim(2),
                                                    p_ocl_lpf, p_ocl_hpf, _fl, _max_level - _min_level,
                                                    p_ocl_res);
             

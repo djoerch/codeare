@@ -26,7 +26,7 @@
 void
 filter                   (const int local_c1,
                           __local A_type * tmp, __local A_type * tmp2,
-                          __constant A_type * _lpf, __constant A_type * _hpf,
+                          __constant B_type * _lpf, __constant B_type * _hpf,
                           const int block_size,
                           const int border_block_size)
 {
@@ -93,8 +93,8 @@ filter                   (const int local_c1,
  * @author djoergens
  */
 kernel void dwt3 (__global A_type * arg1,
-          __constant A_type * _lpf,
-          __constant A_type * _hpf,
+          __constant B_type * _lpf,
+          __constant B_type * _hpf,
           __global A_type * arg2,
           __local A_type * loc_mem,
           __constant int * n,

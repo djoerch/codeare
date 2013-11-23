@@ -47,7 +47,7 @@
 
 
 A_type
-conv_step_hi        (const int index, __constant A_type * _filter, __local A_type * tmp,
+conv_step_hi        (const int index, __constant B_type * _filter, __local A_type * tmp,
                      const int increment)
 {
   A_type sum = 0;
@@ -61,7 +61,7 @@ conv_step_hi        (const int index, __constant A_type * _filter, __local A_typ
 
 
 A_type
-conv_step_lo        (const int index, __constant A_type * _filter, __local A_type * tmp,
+conv_step_lo        (const int index, __constant B_type * _filter, __local A_type * tmp,
                      const int increment)
 {
   A_type sum = 0;
@@ -525,7 +525,7 @@ local2global__      (__local A_type * tmp2, __global A_type * arg2,
 void
 filter_columns           (const int local_c1, const int local_c2,
                           __local A_type * tmp, __local A_type * tmp2,
-                          __constant A_type * _lpf, __constant A_type * _hpf,
+                          __constant B_type * _lpf, __constant B_type * _hpf,
                           const int block_size_0, const int block_size_1,
                           const int border_block_size_0, const int border_block_size_1)
 {
@@ -635,7 +635,7 @@ filter_columns           (const int local_c1, const int local_c2,
 void
 filter_rows           (const int local_c1, const int local_c2,
                        __local A_type * tmp, __local A_type * tmp2,
-                       __constant A_type * _lpf, __constant A_type * _hpf,
+                       __constant B_type * _lpf, __constant B_type * _hpf,
                        const int block_size_0, const int block_size_1)
 {
 
@@ -743,7 +743,7 @@ filter_rows           (const int local_c1, const int local_c2,
 
 
 kernel void
-perf_dwtFilter (__local A_type * loc_mem, __constant A_type * _lpf, __constant A_type * _hpf, __constant int * line_length)
+perf_dwtFilter (__local A_type * loc_mem, __constant B_type * _lpf, __constant B_type * _hpf, __constant int * line_length)
 {
 
   const int block_size_0 = *line_length / NUM_GROUPS_0;
@@ -982,8 +982,8 @@ kernel void dwt2_final (__global A_type * arg1,
  * @author djoergens
  */
 kernel void dwt2 (__global A_type * input,
-          __constant A_type * _lpf,
-          __constant A_type * _hpf,
+          __constant B_type * _lpf,
+          __constant B_type * _hpf,
           __global A_type * output,
           __local A_type * loc_mem,
           __constant int * n,
