@@ -15,9 +15,7 @@ ifilter                  (const int local_c1,
 
   // COLS //
 
-  const int start_lo = FL-1;
-
-  const int local_base_1 = local_c1 + start_lo;
+  const int local_base_1 = local_c1 + i_offset;
   const int local_base_2 = 2 * local_c1;
 
 
@@ -36,20 +34,6 @@ ifilter                  (const int local_c1,
         iconv_step1_lo (index1, index2, _lpf, tmp, tmp2, 1);
         iconv_step2_hi (index1 + i_max, index2, _hpf, tmp, tmp2, 1);
     }
-
-//    for (i = 0; i < i_max - lsize_2; i += lsize_2)
-//    {
-//        const int index1 = local_base_1 + i + i_max;
-//        const int index2 = local_base_2 + 2 * i;
-//        iconv_step2_hi (index1, index2, _hpf, tmp, tmp2, 1);
-//    }
-//    if (i + local_c1 < i_max)
-//    {
-//        const int index1 = local_base_1 + i + i_max;
-//        const int index2 = local_base_2 + 2 * i;
-//        iconv_step2_hi (index1, index2, _hpf, tmp, tmp2, 1);
-//    }
-
 }
 
 
@@ -92,6 +76,7 @@ kernel void idwt3 (__global A_type * arg1,
     const int lsize_2 = get_local_size (2);
     
     const int slice = LDA * LDB;
+    const int half_line_length = *line_length/2;
     const int tid = lid_0 + lsize_0 * lid_1;
 
     __local A_type * tmp  = & loc_mem [tid * (border_block_size + block_size)];
@@ -126,32 +111,36 @@ kernel void idwt3 (__global A_type * arg1,
         {
         
           // lowpass
-          const int shift_lo = - i_offset;
+          const int local_base_lo = lid_2 - i_offset;
           int i;
           for (i = 0; i < i_max - lsize_2; i += lsize_2)
           {
-            const int index = base_index + (lid_2 + i + shift_lo) * slice
-                            + (lid_2 + i + shift_lo < 0) * *line_length/2 * slice;
+            const int index = base_index
+                            + ((local_base_lo + i)
+                            +  (local_base_lo + i < 0) * half_line_length) * slice;
             tmp [lid_2 + i] = arg1 [index];
           }
           if (i + lid_2 < i_max)
           {
-            const int index = base_index + (lid_2 + i + shift_lo) * slice
-                            + (lid_2 + i + shift_lo < 0) * *line_length/2 * slice;
+            const int index = base_index
+                            + ((local_base_lo + i)
+                            +  (local_base_lo + i < 0) * half_line_length) * slice;
             tmp [lid_2 + i] = arg1 [index];
           }
 
           // highpass
           for (i = 0; i < i_max - lsize_2; i += lsize_2)
           {
-            const int index = base_index + (lid_2 + *line_length/2 + i) * slice
-                            - (lid_2 + i + 1 > *line_length/2) * *line_length/2 * slice;
+            const int index = base_index
+                            + ((lid_2 + half_line_length + i)
+                            -  (lid_2 + i + 1 > half_line_length) * half_line_length) * slice;
             tmp [lid_2 + i + i_max] = arg1 [index];
           }
           if (i + lid_2 < i_max)
           {
-            const int index = base_index + (lid_2 + *line_length/2 + i) * slice
-                            - (lid_2 + i + 1 > *line_length/2) * *line_length/2 * slice;
+            const int index = base_index
+                            + ((lid_2 + half_line_length + i)
+                            -  (lid_2 + i + 1 > half_line_length) * half_line_length) * slice;
             tmp [lid_2 + i + i_max] = arg1 [index];
           }
         

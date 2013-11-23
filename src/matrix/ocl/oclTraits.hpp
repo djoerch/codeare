@@ -1714,29 +1714,19 @@
           std::cout << " local_mem (idwt3): " << num_loc_mem_elems * sizeof (elem_type) << " Bytes " << std::endl;
           std::cout << " local_mem2 (idwt3): " << num_loc_mem_elems2 * sizeof (elem_type) << " Bytes " << std::endl;
           
-//          const int num_slices = k;
-          
           std::vector <ProfilingInformation> vec_pi_1, vec_pi_2;
           
-          const int line_length = n/pow (2,levels-1);
-          const int num_slices = line_length;
-          ProfilingInformation tmp_ = ocl_basic_operator_kernel_56 ("idwt3", arg1, lpf, hpf, arg2, loc_mem2, n, m, k, line_length, num_slices, num_loc_mem_elems2, lc2);
-          ProfilingInformation pi = ocl_basic_operator_kernel_56 ("idwt2", arg2, lpf, hpf, arg1, loc_mem, n, m, k, line_length, num_slices, num_loc_mem_elems, lc);
-          vec_pi_1.push_back (pi);
-          
-          for (int i = levels-2; i >= 0; i--)
+          for (int i = levels-1; i >= 0; i--)
           {
-            const int line_length2 = n / pow (2, i);
-            const int num_slices2 = line_length2;
-            lc2.local_z = lc.local_z += (num_slices2 < lc2.local_z ? num_slices2 : 0);
-            lc2.global_x /= (line_length2 < lc2.global_x ? 2 : 1);
-            lc.global_x /= (line_length2 < lc.global_x ? 2 : 1);
-            lc2.global_y /= (line_length2 < lc2.global_y ? 2 : 1);
-            lc.global_y /= (line_length2 < lc.global_y ? 2 : 1);
-//            ProfilingInformation pi_tmp2 = ocl_basic_operator_kernel_25 ("idwt2_prepare", arg1, arg2, n, m, k, line_length2/2, num_slices, lc);
-            ProfilingInformation tmp = ocl_basic_operator_kernel_56 ("idwt3", arg1, lpf, hpf, arg2, loc_mem2, n, m, k, line_length2, num_slices2, num_loc_mem_elems2, lc2);
-            ProfilingInformation pi_tmp1 = ocl_basic_operator_kernel_56 ("idwt2", arg2, lpf, hpf, arg1, loc_mem, n, m, k, line_length2, num_slices2, num_loc_mem_elems, lc);
-//            vec_pi_2.push_back (pi_tmp2);
+            const int line_length = n / pow (2, i);
+            lc2.local_z = lc.local_z += (line_length < lc2.local_z ? line_length : 0);
+            lc2.global_x /= (line_length < lc2.global_x ? 2 : 1);
+            lc.global_x /= (line_length < lc.global_x ? 2 : 1);
+            lc2.global_y /= (line_length < lc2.global_y ? 2 : 1);
+            lc.global_y /= (line_length < lc.global_y ? 2 : 1);
+            ProfilingInformation pi_tmp2 = ocl_basic_operator_kernel_56 ("idwt3", arg1, lpf, hpf, arg2, loc_mem2, n, m, k, line_length, line_length, num_loc_mem_elems2, lc2);
+            ProfilingInformation pi_tmp1 = ocl_basic_operator_kernel_56 ("idwt2", arg2, lpf, hpf, arg1, loc_mem, n, m, k, line_length, line_length, num_loc_mem_elems, lc);
+            vec_pi_2.push_back (pi_tmp2);
             vec_pi_1.push_back (pi_tmp1);
           }
           
@@ -1747,19 +1737,22 @@
           
           // data amount for idwt2 over all levels
           int data_size_1 = 0;
+          int data_size_2 = 0;
           for (int i = levels-1; i >= 0; i--)
           {
             const int sl_0 = n / pow (2, i);
             const int sl_1 = m / pow (2, i);
+            const int sl_2 = k / pow (2, i);
             const float block_size_0 = sl_0 / num_groups_0;
             const float block_size_1 = sl_1 / num_groups_1;
             const int offset = fl - 1;
             // global -> local
-            data_size_1 += (block_size_0 + 2 * offset) * (block_size_1 + 2 * offset) * num_groups_0 * num_groups_1;
+            data_size_1 += (block_size_0 + 2 * offset) * (block_size_1 + 2 * offset) * num_groups_0 * num_groups_1 * sl_2;
+            data_size_2 += sl_0 * sl_1 * (sl_2 + fl-1) * 2;
             // local -> global
-            data_size_1 += sl_0 * sl_1;
+            data_size_1 += sl_0 * sl_1 * sl_2;
+            data_size_2 += sl_0 * sl_1 * sl_2;
           }
-          data_size_1 *= num_slices;
           
           float time_seconds_1 = 0,
                 time_mem_up_1 = 0,
@@ -1771,16 +1764,6 @@
             time_mem_down_1 += it -> time_mem_down;
           }
           float effective_bw_1 = ((float) (data_size_1 * sizeof (elem_type)) * 1.0e-9f) / time_seconds_1;
-          
-          // data amount for idwt2_prepare
-          int data_size_2 = 0;
-          for (int l = 2; l <= levels; l++)
-          {
-            const int sl_0 = n / pow (2, l-1);
-            const int sl_1 = m / pow (2, l-1);
-            data_size_2 += sl_0 * sl_1;
-          }
-          data_size_2 *= num_slices;
           
           float time_seconds_2 = 0,
                 time_mem_up_2 = 0,
@@ -1796,9 +1779,9 @@
           // overall bandwidth
           float effective_bw = ((float)((data_size_1 + data_size_2) * sizeof (elem_type)) * 1.0e-9f) / (time_seconds_1 + time_seconds_2);
           
-            vec_perf.push_back (PerformanceInformation ("idwt2 (+prepare)", lc, " Effective bandwidth (GB/s)", time_seconds_1 + time_seconds_2, time_mem_up_1 + time_mem_up_2, time_mem_down_1 + time_mem_down_2, effective_bw));
+            vec_perf.push_back (PerformanceInformation ("idwt2 (+idwt3)", lc, " Effective bandwidth (GB/s)", time_seconds_1 + time_seconds_2, time_mem_up_1 + time_mem_up_2, time_mem_down_1 + time_mem_down_2, effective_bw));
             vec_perf.push_back (PerformanceInformation ("idwt2 (kernel)", lc, " Effective bandwidth (GB/s)", time_seconds_1, time_mem_up_1, time_mem_down_1, effective_bw_1));
-            vec_perf.push_back (PerformanceInformation ("idwt2_prepare (kernel)", lc, " Effective bandwidth (GB/s)", time_seconds_2, time_mem_up_2, time_mem_down_2, effective_bw_2));
+            vec_perf.push_back (PerformanceInformation ("idwt3 (kernel)", lc, " Effective bandwidth (GB/s)", time_seconds_2, time_mem_up_2, time_mem_down_2, effective_bw_2));
                         
 # endif
             
