@@ -24,6 +24,7 @@
   // ocl
   # include "oclSettings.hpp"
   # include "oclError.hpp"
+  # include "oclAccessPattern.hpp"
 
 
 
@@ -159,6 +160,12 @@ modify_kernel        ( std::string const &       source,
                              ::size_t           size,
                              clBuffer   * const buffer);
       
+      template <class T>
+      double
+      loadToGPU             (                     T * const   cpu_arg,
+                             const oclAccessPattern &         ap_host,
+                             const oclAccessPattern &       ap_device,
+                                           clBuffer * const    buffer);
       
       /**
        * @brief             create buffer for given object id
@@ -204,7 +211,13 @@ modify_kernel        ( std::string const &       source,
         }
       
       }
-      
+
+      template <class T>
+      double
+      loadToCPU             (const         clBuffer * const    buffer,
+                                                  T * const   cpu_arg,
+                             const oclAccessPattern &         ap_host,
+                             const oclAccessPattern &       ap_device);      
   
       // activate kernel (stays activated until another kernel is activated
 //      template <class T>
@@ -1242,6 +1255,76 @@ modify_kernel        ( std::string const &       source,
      
   }
 
+  
+  template <class T>
+  double
+  oclConnection ::
+  loadToGPU             (                     T * const   cpu_arg,
+                         const oclAccessPattern &         ap_host,
+                         const oclAccessPattern &       ap_device,
+                                       clBuffer * const    buffer)
+  {
+    
+    print_optional (" * oclConnection :: loadToGPU (AccessPattern)", m_verbose );
+    
+    // loop over command queues, write information to device (global memory)
+    for (clCommandQueues::iterator it = m_comqs.begin(); it < m_comqs.end(); ++it)
+    {
+                   
+      try {
+
+        // TODO: !! blocking !! //
+        double mem_time = omp_get_wtime ();
+        m_error = it -> enqueueWriteBufferRect (*buffer, CL_TRUE, ap_device.Origin (), ap_host.Origin (), ap_device.Region (),
+                                                ap_device.RowPitch (), ap_device.SlicePitch (), ap_host.RowPitch (), ap_host.SlicePitch (),
+                                                cpu_arg, NULL, NULL);
+        
+        return omp_get_wtime () - mem_time;
+        
+      } catch (cl::Error cle) {
+
+        throw oclError (cle.err (), "oclConnection :: loadToGPU (AccessPattern)");
+
+      }
+ 
+    }
+     
+  }
+  
+  
+  template <class T>
+  double
+  oclConnection ::
+  loadToCPU             (const         clBuffer * const    buffer,
+                                              T * const   cpu_arg,
+                         const oclAccessPattern &         ap_host,
+                         const oclAccessPattern &       ap_device)
+  {
+
+    print_optional ("oclConnection :: loadToCPU (AccessPattern)", m_verbose);
+
+    try
+    {
+
+//      print_optional (" -- size: %d Bytes", size, VERB_LOW); //m_verbose);
+
+      // TODO: !! blocking !! //
+      double mem_time = omp_get_wtime ();
+      // read data from given buffer
+      m_error = m_comqs [0] . enqueueReadBufferRect (*buffer, CL_TRUE, ap_device.Origin (), ap_host.Origin (), ap_device.Region (),
+                                                     ap_device.RowPitch (), ap_device.SlicePitch (), ap_host.RowPitch (), ap_host.SlicePitch (),
+                                                     cpu_arg, NULL, NULL);
+      return omp_get_wtime () - mem_time;
+
+    }
+    catch (cl::Error & cle)
+    {
+
+      throw oclError (cle.err(), "oclConnection :: loadToCPU (AcessPattern)");
+
+    }
+
+  }
 
 
 # endif // __OCL_CONNECTION_HPP__

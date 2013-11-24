@@ -24,23 +24,21 @@
 
 
 void
-filter                   (const int local_c1,
+filter                   (const int lid, const int group_size,
                           __local A_type * tmp, __local A_type * tmp2,
                           __constant B_type * _lpf, __constant B_type * _hpf,
                           const int block_size,
                           const int border_block_size)
 {
 
-  const int group_size = get_local_size (2);
-
   // COLUMNS
 
-  if (local_c1 < group_size/2)  // lowpass filter
+  if (lid < group_size/2)  // lowpass filter
   {
 
     // reused index parts
-    const int part_index = 2 * local_c1;
-    const int part_index2 = local_c1;
+    const int part_index = 2 * lid;
+    const int part_index2 = lid;
 
     // i: loop over slices per thread
     int i;
@@ -50,7 +48,7 @@ filter                   (const int local_c1,
       const int index2 = part_index2 + i/2;
       tmp2 [index2] = conv_step_lo (index, _lpf, tmp, 1);
     }
-    if (i + local_c1 < block_size)
+    if (i + lid < block_size)
     {
       const int index = part_index + i;
       const int index2 = part_index2 + i/2;
@@ -65,8 +63,8 @@ filter                   (const int local_c1,
     const int start_hi = FL;
 
     // reused index parts
-    const int part_index = 2 * (local_c1 - group_size / 2) - 1 + start_hi;
-    const int part_index2 = local_c1 - group_size / 2 + block_size / 2;
+    const int part_index = 2 * (lid - group_size / 2) - 1 + start_hi;
+    const int part_index2 = lid - group_size / 2 + block_size / 2;
 
     // i: loop over slices per thread
     int i;
@@ -76,7 +74,7 @@ filter                   (const int local_c1,
       const int index2 = part_index2 + i/2;
       tmp2 [index2] = conv_step_hi (index, _hpf, tmp, 1);
     }
-    if (i + local_c1 - group_size / 2 < block_size)
+    if (i + lid - group_size / 2 < block_size)
     {
       const int index = part_index + i;
       const int index2 = part_index2 + i/2;
@@ -180,7 +178,7 @@ kernel void dwt3 (__global A_type * arg1,
         // perform calculation
 
         // choose active threads
-        filter (lid_2, tmp, tmp2, _lpf, _hpf, block_size, border_block_size);
+        filter (lid_2, lsize_2, tmp, tmp2, _lpf, _hpf, block_size, border_block_size);
 
         barrier (CLK_LOCAL_MEM_FENCE);
 

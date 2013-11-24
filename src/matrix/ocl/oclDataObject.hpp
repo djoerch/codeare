@@ -17,6 +17,7 @@
   # include "oclObservableDataObject.hpp"
   # include "oclSettings.hpp"
   # include "oclConnection.hpp"
+  # include "oclAccessPattern.hpp"
 
   // ViennaCL
 # ifdef __USE_VIENNA_CL__
@@ -103,7 +104,51 @@
        * @name              getters (public)
        */
       //@{
+      
+      
+      /**
+       * @brief             Retrieve oclAccessPattern for modification.
+       */
+      inline
+      oclAccessPattern &
+      APHost             ()
+      {
+        return m_ap_host;
+      }
+      
 
+      /**
+       * @brief             Retrieve oclAccessPattern for modification.
+       */
+      inline
+      oclAccessPattern &
+      APDevice           ()
+      {
+        return m_ap_device;
+      }
+
+
+      /**
+       * @brief             Retrieve oclAccessPattern.
+       */
+      inline
+      oclAccessPattern
+      APHost             () const
+      {
+        return m_ap_host;
+      }
+      
+
+      /**
+       * @brief             Retrieve oclAccessPattern.
+       */
+      inline
+      oclAccessPattern
+      APDevice           () const
+      {
+        return m_ap_device;
+      }
+      
 
       /**
        * @brief             return object's ID
@@ -224,7 +269,9 @@
                             m_on_gpu      (false),              // data loaded to GPU on demand
                             mp_modified   ({true, false}),      // ... so data aren't sync
                             m_lock        (false),              // ... and there're no calculations on GPU
-                            m_release_buffer (false)            // ... and there's no buffer to be released
+                            m_release_buffer (false),            // ... and there's no buffer to be released
+                            m_ap_host     (size),
+                            m_ap_device   (size)
       {
       
         print_optional ("Ctor: \"oclDataObject\" (%d)", m_gpu_obj_id, VERB_MIDDLE);
@@ -252,7 +299,9 @@
                             m_num_elems     (obj.m_num_elems),
                             m_on_gpu        (false),              // for addDataObject (...) !!!
                             m_lock          (obj.m_lock),
-                            m_release_buffer(obj.m_release_buffer)
+                            m_release_buffer(obj.m_release_buffer),
+                            m_ap_host       (obj.m_size),
+                            m_ap_device     (obj.m_size)
       {
       
         print_optional ("Ctor: \"oclDataObject\" (%d) ... copied state from %d", m_gpu_obj_id, obj.m_gpu_obj_id, VERB_MIDDLE);
@@ -438,6 +487,8 @@ protected:
       
                  size_t     m_size;           // size of data (in bytes)
                     int     m_num_elems;      // number of elements
+      oclAccessPattern m_ap_host;
+      oclAccessPattern m_ap_device;
                  
                    bool     m_on_gpu;         // determines wether data is available on GPU
                    bool     mp_modified [2];  // specifies, if data on GPU and CPU are the same

@@ -203,8 +203,9 @@
     {
       
       // update GPU data
-      mem_time = oclConnection :: Instance () -> loadToGPU (mp_cpu_data, oclDataObject :: getSize (), oclDataObject :: getBuffer ());
-
+//      mem_time = oclConnection :: Instance () -> loadToGPU (mp_cpu_data, oclDataObject :: getSize (), oclDataObject :: getBuffer ());
+      mem_time = oclConnection :: Instance () -> loadToGPU (mp_cpu_data, oclDataObject :: APHost (), oclDataObject :: APDevice (), oclDataObject :: getBuffer ());
+      
       // update states
       oclDataObject :: setSync ();
 
@@ -238,7 +239,8 @@
       {
         
         // update CPU data
-        mem_time = oclConnection :: Instance () -> loadToCPU (oclDataObject :: mp_gpu_buffer, mp_cpu_data, oclDataObject :: m_size);
+//        mem_time = oclConnection :: Instance () -> loadToCPU (oclDataObject :: mp_gpu_buffer, mp_cpu_data, oclDataObject :: m_size);
+        mem_time = oclConnection :: Instance () -> loadToCPU (oclDataObject :: mp_gpu_buffer, mp_cpu_data, oclDataObject :: APHost (), oclDataObject :: APDevice ());
         
         // update states
         oclDataObject :: setSync ();
