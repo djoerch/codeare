@@ -212,7 +212,7 @@ class oclDWT {
               return std::vector <PerformanceInformation> ();
             }
             
-            const int chunk_size = 16;
+            const int chunk_size = 64;
             const int buffer_size = m.Dim (2) == 1
                                   ? m.Size ()
                                   : max (res.Dim (0) * res.Dim (1) * chunk_size, res.Dim (2) * chunk_size * chunk_size);
@@ -249,6 +249,7 @@ class oclDWT {
             delete p_ocl_res;
             delete p_ocl_lpf;
             delete p_ocl_hpf;
+            delete p_ocl_tmp;
             
 //            vec_perf [0].time_mem_down += time;
 //            vec_perf2.insert (vec_perf2.end (), vec_perf.begin (), vec_perf.end ());

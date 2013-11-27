@@ -243,7 +243,7 @@ main            (int argc, char ** args)
         oclDWT <elem_type> dwt (mat_in.Dim (0), mat_in.Dim (1), mat_in.Dim (2), wl_fam, wl_mem, wl_scale, lc1, lc2);
         
         std::vector <PerformanceInformation> vec_pi_forward = dwt.Trafo (mat_in, mat_out_dwt);
-        std::vector <PerformanceInformation> vec_pi_backwards = dwt.Adjoint (mat_out_dwt, mat_out_dwt_recon);
+//        std::vector <PerformanceInformation> vec_pi_backwards;// = dwt.Adjoint (mat_out_dwt, mat_out_dwt_recon);
         
           
 //        mat_out_dwt_recon = mat_in;
@@ -264,8 +264,8 @@ main            (int argc, char ** args)
             std::vector <PerformanceInformation> vec_tmp_2 = dwt.Adjoint (mat_out_dwt, mat_out_dwt_recon);
             for (int k = 0; k < vec_tmp_1.size(); k++)
               vec_pi_forward [k] += vec_tmp_1 [k];
-            for (int k = 0; k < vec_tmp_2.size(); k++)
-              vec_pi_backwards [k] += vec_tmp_2 [k];
+//            for (int k = 0; k < vec_tmp_2.size(); k++)
+//              vec_pi_backwards [k] += vec_tmp_2 [k];
         }
         
 //          std::cout << std::endl;
@@ -290,19 +290,19 @@ main            (int argc, char ** args)
           std::cout << tmp_pi << std::endl;
           std::cout << " -------------- " << std::endl;
           
-          PerformanceInformation pi2 = vec_pi_backwards [0];
-          std::cout << " -------------- " << std::endl;
-          std::cout << pi2 << std::endl;
-          std::cout << " -------------- " << std::endl;
+//          PerformanceInformation pi2 = vec_pi_backwards [0];
+//          std::cout << " -------------- " << std::endl;
+//          std::cout << pi2 << std::endl;
+//          std::cout << " -------------- " << std::endl;
 
           fs << setw (indent-5) << (strcmp (name_param, "local")?pi.lc.local_x:pi.lc.global_x) << std::flush <<
               setw (indent) << (strcmp (name_param, "local")?pi.lc.local_y:pi.lc.global_y) << std::flush <<
               setw (indent) << (strcmp (name_param, "local")?pi.lc.local_z:pi.lc.global_z) << std::flush <<
               setw (indent) << pi.time_exec << std::flush <<
-              setw (indent) << pi2.time_exec << std::flush <<
+//              setw (indent) << pi2.time_exec << std::flush <<
               setw (indent) << (pi.time_mem_up + pi.time_mem_down) << std::flush <<
               setw (indent) << pi.parameter << std::flush <<
-              setw (indent) << pi2.parameter << std::flush <<
+//              setw (indent) << pi2.parameter << std::flush <<
               setw (indent) << vec_pi_forward [0].parameter << std::flush <<
               setw (indent) << vec_pi_forward [1].parameter << std::flush <<
               setw (indent) << vec_pi_forward [2].parameter << std::endl;

@@ -1376,7 +1376,7 @@
           ProfilingInformation tmp_pi = ocl_basic_operator_kernel_25 ("dwt2_final", arg1, arg2, n, m, k, n / pow (2, levels-1), levels, lc);
           
           // load data back to CPU
-          arg2 -> getData ();
+          tmp_pi.time_mem_down += arg2 -> getData ();
           
           delete loc_mem;
           
@@ -1506,7 +1506,6 @@
             const int line_length = n / pow (2, i);
             const int num_slices = line_length;
             const int chunk_size_dwt2 = min (num_slices, chunk_size);
-            lc2.global_z = lc2.local_z = lc2.local_z > line_length ? line_length : lc2.local_z;
             
             // run kernel "dwt2" on slices
             ProfilingInformation pi = {0, 0, 0, 0};
@@ -1516,7 +1515,7 @@
             {
               tmp1 -> APHost ().Origin (2) = tmp2 -> APHost ().Origin (2) = l;
               pi += ocl_basic_operator_kernel_56 ("dwt2", tmp1, lpf, hpf, tmp2, loc_mem, n, m, k, line_length, chunk_size_dwt2, num_loc_mem_elems, lc);
-              tmp2 -> getData ();
+              pi.time_mem_down += tmp2 -> getData ();
             }  
             vec_pi.push_back (pi);
             tmp1 -> APHost ().Origin (2) = tmp2 -> APHost ().Origin (2) = 0; // reset
@@ -1530,6 +1529,7 @@
             // run kernel "dwt3" on beams
             ProfilingInformation pi2 = {0, 0, 0, 0};
             const int chunk_size_dwt3 = min (line_length, chunk_size);
+            lc2.global_z = lc2.local_z = lc2.local_z > line_length ? line_length : lc2.local_z;
             const oclAccessPattern tmp_ap_array [4] = {tmp1 -> APHost (), tmp1 -> APDevice (),
                                                        tmp2 -> APHost (), tmp2 -> APDevice ()}; // save current state !!!
             tmp1 -> APHost ().Region (0) = tmp1 -> APDevice ().Region (0) = chunk_size_dwt3 * sizeof (elem_type);
@@ -1545,7 +1545,7 @@
               {
                 tmp1 -> APHost ().Origin (1) = tmp2 -> APHost ().Origin (1) = ll;
                 pi2 += ocl_basic_operator_kernel_56 ("dwt3", tmp2, lpf, hpf, tmp1, loc_mem2, n, m, k, line_length, chunk_size_dwt3, num_loc_mem_elems2, lc2);
-                tmp1 -> getData ();
+                pi2.time_mem_down += tmp1 -> getData ();
               }
             }
             vec_pi2.push_back (pi2);
