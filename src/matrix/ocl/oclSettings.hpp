@@ -152,6 +152,16 @@
     double time_end;
     double time_mem_up;
     double time_mem_down;
+    
+    const ProfilingInformation &
+    operator+= (const ProfilingInformation & pi)
+    {
+      time_start += pi.time_start;
+      time_end += pi.time_end;
+      time_mem_up += pi.time_mem_up;
+      time_mem_down += pi.time_mem_down;
+    }
+    
   };
   
   

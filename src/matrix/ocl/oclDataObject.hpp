@@ -70,6 +70,14 @@
       virtual
       double
       prepare               () = 0;
+      
+      
+      /**
+       * @brief             getter to cpu_data
+       */
+      virtual
+      double
+      getData               () = 0;
 
 
       /**
@@ -113,6 +121,7 @@
       oclAccessPattern &
       APHost             ()
       {
+        setCPUModified ();
         return m_ap_host;
       }
       
@@ -124,6 +133,7 @@
       oclAccessPattern &
       APDevice           ()
       {
+        setCPUModified ();
         return m_ap_device;
       }
 

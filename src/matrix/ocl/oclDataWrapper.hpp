@@ -111,12 +111,12 @@
       //@}
     
     
-      /**
-       * @brief             getter to cpu_data
-       */
-      virtual
-      double
-      getData               () = 0;
+//      /**
+//       * @brief             getter to cpu_data
+//       */
+//      virtual
+//      double
+//      getData               ();
       
       
       /**
@@ -186,8 +186,12 @@
     if (! oclDataObject :: getMemState ())
     {
       
+//      if (oclDataObject :: APHost ().Size () != oclDataObject :: getSize ())
+//        oclDataObject :: m_size = oclDataObject :: APHost ().Size ();
+      
       // create buffer object
       try {
+        
     	  oclConnection :: Instance () -> createBuffer (mp_cpu_data, oclDataObject :: getSize (), oclDataObject :: getID ());
       } catch (oclError & oe) {
     	  throw oclError (oe, "oclDataWrapper :: loadToGPU ()");
@@ -201,6 +205,15 @@
     // precondition: buffer exists now!
     if (oclDataObject :: mp_modified [CPU])
     {
+      
+      if (oclDataObject :: getSize () > 10)
+      {
+        std::cout << "TO GPU: *** " << std::endl;
+        std::cout << " getSize: " << oclDataObject :: getSize () << std::endl;
+        std::cout << " ap.size: " << oclDataObject :: APHost ().Size () << std::endl;
+        std::cout << " aphost: " << oclDataObject :: APHost () << std::endl;
+        std::cout << " apdevice: " << oclDataObject :: APDevice () << std::endl;
+      }
       
       // update GPU data
 //      mem_time = oclConnection :: Instance () -> loadToGPU (mp_cpu_data, oclDataObject :: getSize (), oclDataObject :: getBuffer ());
@@ -237,6 +250,14 @@
       
       if (oclDataObject :: mp_modified [oclDataObject::GPU])
       {
+      if (oclDataObject :: getSize () > 10)
+      {
+        std::cout << "TO CPU: *** " << std::endl;
+        std::cout << " getSize: " << oclDataObject :: getSize () << std::endl;
+        std::cout << " ap.size: " << oclDataObject :: APHost ().Size () << std::endl;
+        std::cout << " aphost: " << oclDataObject :: APHost () << std::endl;
+        std::cout << " apdevice: " << oclDataObject :: APDevice () << std::endl;
+      }
         
         // update CPU data
 //        mem_time = oclConnection :: Instance () -> loadToCPU (oclDataObject :: mp_gpu_buffer, mp_cpu_data, oclDataObject :: m_size);

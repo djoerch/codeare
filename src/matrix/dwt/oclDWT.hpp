@@ -212,9 +212,15 @@ class oclDWT {
               return std::vector <PerformanceInformation> ();
             }
             
+            const int chunk_size = 16;
+            const int buffer_size = m.Dim (2) == 1
+                                  ? m.Size ()
+                                  : max (res.Dim (0) * res.Dim (1) * chunk_size, res.Dim (2) * chunk_size * chunk_size);
+            
             /* TODO: call kernel */
-            oclDataWrapper <T> * p_ocl_m   = oclOperations <T> :: make_GPU_Obj (&m.Container()[0], m.Size ());
-            oclDataWrapper <T> * p_ocl_res = oclOperations <T> :: make_GPU_Obj (&res[0], res.Size ());
+            oclDataWrapper <T> * p_ocl_m   = oclOperations <T> :: make_GPU_Obj (&m.Container()[0], buffer_size);
+            oclDataWrapper <T> * p_ocl_res = oclOperations <T> :: make_GPU_Obj (&res[0], buffer_size);
+            oclDataWrapper <T> * p_ocl_tmp = oclOperations <T> :: make_GPU_Obj (&res[0], buffer_size);
             oclDataWrapper <RT> * p_ocl_lpf = oclOperations <RT> :: make_GPU_Obj (_lpf_d, _fl);
             oclDataWrapper <RT> * p_ocl_hpf = oclOperations <RT> :: make_GPU_Obj (_hpf_d, _fl);
             
@@ -226,22 +232,25 @@ class oclDWT {
             else
               vec_perf = oclOperations <T, RT> :: ocl_operator_dwt3 (p_ocl_m, m.Dim(0), m.Dim(1), m.Dim(2),
                                                    p_ocl_lpf, p_ocl_hpf, _fl, _max_level - _min_level,
-                                                   p_ocl_res);
+                                                   p_ocl_res, p_ocl_tmp, chunk_size);
             
-            double time = p_ocl_res->getData();
-            p_ocl_m->getData();
+//            double time; // = p_ocl_res->getData();
+//            p_ocl_tmp -> getData ();
+//            p_ocl_m->getData();
             
-            if (m.Dim (2) > 1)
-              oclConnection :: Instance () -> loadToCPU (p_ocl_m -> getBuffer (), &(res.Container() [0]), p_ocl_m -> getSize ());
+//            res = m;
+            
+//            if (m.Dim (2) > 1)
+//              oclConnection :: Instance () -> loadToCPU (p_ocl_m -> getBuffer (), &(res.Container() [0]), p_ocl_m -> getSize ());
             
 //            std::vector <PerformanceInformation> vec_perf2 = oclOperations <T> :: ocl_operator_perf_dwt (p_ocl_m, m.Dim(0), m.Dim(1), m.Dim(2), p_ocl_lpf, p_ocl_hpf, p_ocl_res, m.Dim(0), _fl);
-                        
+            
             delete p_ocl_m;
             delete p_ocl_res;
             delete p_ocl_lpf;
             delete p_ocl_hpf;
             
-            vec_perf [0].time_mem_down += time;
+//            vec_perf [0].time_mem_down += time;
 //            vec_perf2.insert (vec_perf2.end (), vec_perf.begin (), vec_perf.end ());
             
             

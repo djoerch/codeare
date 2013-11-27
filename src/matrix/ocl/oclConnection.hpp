@@ -1272,7 +1272,7 @@ modify_kernel        ( std::string const &       source,
     {
                    
       try {
-
+        
         // TODO: !! blocking !! //
         double mem_time = omp_get_wtime ();
         m_error = it -> enqueueWriteBufferRect (*buffer, CL_TRUE, ap_device.Origin (), ap_host.Origin (), ap_device.Region (),
@@ -1282,7 +1282,7 @@ modify_kernel        ( std::string const &       source,
         return omp_get_wtime () - mem_time;
         
       } catch (cl::Error cle) {
-
+        
         throw oclError (cle.err (), "oclConnection :: loadToGPU (AccessPattern)");
 
       }
