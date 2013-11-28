@@ -1855,7 +1855,7 @@
             for (int l = 0; l < line_length; l += chunk_size_idwt2)
             {
               tmp1 -> APHost ().Origin (2) = tmp2 -> APHost ().Origin (2) = l;
-              pi1 = ocl_basic_operator_kernel_56 ("idwt2", tmp2, lpf, hpf, tmp1, loc_mem, n, m, k, line_length, chunk_size_idwt2, num_loc_mem_elems, lc);
+              pi1 += ocl_basic_operator_kernel_56 ("idwt2", tmp2, lpf, hpf, tmp1, loc_mem, n, m, k, line_length, chunk_size_idwt2, num_loc_mem_elems, lc);
               pi1.time_mem_down += tmp1 -> getData ();
             }
             vec_pi_1.push_back (pi1);
