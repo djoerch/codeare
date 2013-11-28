@@ -224,6 +224,7 @@ class oclDWT {
             oclDataWrapper <RT> * p_ocl_hpf = oclOperations <RT> :: make_GPU_Obj (_hpf_d, _fl);
             
             std::vector <PerformanceInformation> vec_perf;
+            double time = omp_get_wtime ();
             if (m.Dim (2) == 1)
               vec_perf = oclOperations <T, RT> :: ocl_operator_dwt2 (p_ocl_m, m.Dim(0), m.Dim(1), m.Dim(2),
                                                    p_ocl_lpf, p_ocl_hpf, _fl, _max_level - _min_level,
@@ -232,27 +233,15 @@ class oclDWT {
               vec_perf = oclOperations <T, RT> :: ocl_operator_dwt3 (p_ocl_m, m.Dim(0), m.Dim(1), m.Dim(2),
                                                    p_ocl_lpf, p_ocl_hpf, _fl, _max_level - _min_level,
                                                    p_ocl_res, p_ocl_tmp, chunk_size);
-            
-//            double time; // = p_ocl_res->getData();
-//            p_ocl_tmp -> getData ();
-//            p_ocl_m->getData();
-            
-//            res = m;
-            
-//            if (m.Dim (2) > 1)
-//              oclConnection :: Instance () -> loadToCPU (p_ocl_m -> getBuffer (), &(res.Container() [0]), p_ocl_m -> getSize ());
-            
-//            std::vector <PerformanceInformation> vec_perf2 = oclOperations <T> :: ocl_operator_perf_dwt (p_ocl_m, m.Dim(0), m.Dim(1), m.Dim(2), p_ocl_lpf, p_ocl_hpf, p_ocl_res, m.Dim(0), _fl);
-            
+            time = omp_get_wtime () - time;
+                        
             delete p_ocl_m;
             delete p_ocl_res;
             delete p_ocl_tmp;
             delete p_ocl_lpf;
             delete p_ocl_hpf;
             
-//            vec_perf [0].time_mem_down += time;
-//            vec_perf2.insert (vec_perf2.end (), vec_perf.begin (), vec_perf.end ());
-            
+            std::cout << " overall (Trafo): " << time << " s " << std::endl;
             
             return vec_perf;
             
@@ -296,6 +285,7 @@ class oclDWT {
             
             // call either 2D or 3D implementation of IDWT
             std::vector <PerformanceInformation> vec_perf;
+            double time = omp_get_wtime ();
             if (m.Dim (2) == 1)
               vec_perf = oclOperations <T, RT> :: ocl_operator_idwt2 (p_ocl_m, m.Dim(0), m.Dim(1), m.Dim(2),
                                                    p_ocl_lpf, p_ocl_hpf, _fl, _max_level - _min_level,
@@ -304,6 +294,7 @@ class oclDWT {
               vec_perf = oclOperations <T, RT> :: ocl_operator_idwt3 (p_ocl_tmp, m.Dim(0), m.Dim(1), m.Dim(2),
                                                    p_ocl_lpf, p_ocl_hpf, _fl, _max_level - _min_level,
                                                    p_ocl_res, chunk_size);
+            time = omp_get_wtime () - time;
             
             // clear GPU memory
             delete p_ocl_m;
@@ -312,6 +303,7 @@ class oclDWT {
             delete p_ocl_lpf;
             delete p_ocl_hpf;
             
+            std::cout << " overall (Adjoint): " << time << " s " << std::endl;
             
             return vec_perf;
 
