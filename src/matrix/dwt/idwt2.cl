@@ -773,7 +773,8 @@ kernel void idwt2 (__global A_type * input,
 
   // choose active threads
   if (get_global_id (0) < *line_length
-    && get_global_id (1) < *line_length)
+    && get_global_id (1) < *line_length
+    && get_global_id (2) < *num_slices)
   {
 
     const int block_size_0 = *line_length / (min (*line_length, (int) get_global_size (0))/GROUP_SIZE_0);
@@ -784,8 +785,9 @@ kernel void idwt2 (__global A_type * input,
     const int local_c1 = get_local_id (0);
     const int local_c2 = get_local_id (1);
 
-    __local A_type * tmp  = & loc_mem [0];
-    __local A_type * tmp2 = & loc_mem [border_block_size_0 * border_block_size_1];
+    __local A_type * tmp  = & loc_mem [get_local_id (2) * (border_block_size_0 * border_block_size_1 + border_block_size_0 * block_size_1)];
+    __local A_type * tmp2 = & loc_mem [get_local_id (2) * (border_block_size_0 * border_block_size_1 + border_block_size_0 * block_size_1)
+                                       + border_block_size_0 * border_block_size_1];
 
     const int upper_left = get_group_id (1) * block_size_1 / 2 * LDA
                          + get_group_id (0) * block_size_0 / 2;

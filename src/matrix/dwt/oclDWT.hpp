@@ -198,7 +198,7 @@ class oclDWT {
         inline
 //        void
         std::vector <PerformanceInformation>
-        Trafo        ( Matrix <T> & m, Matrix <T> & res)
+        Trafo        ( Matrix <T> & m, Matrix <T> & res, const int chunk_size = 16)
         {
 
             assert (   m.Dim (0) == _sl1
@@ -212,7 +212,6 @@ class oclDWT {
               return std::vector <PerformanceInformation> ();
             }
             
-            const int chunk_size = 64;
             const int buffer_size = m.Dim (2) == 1
                                   ? m.Size ()
                                   : max (res.Dim (0) * res.Dim (1) * chunk_size, res.Dim (2) * chunk_size * chunk_size);
@@ -247,9 +246,9 @@ class oclDWT {
             
             delete p_ocl_m;
             delete p_ocl_res;
+            delete p_ocl_tmp;
             delete p_ocl_lpf;
             delete p_ocl_hpf;
-            delete p_ocl_tmp;
             
 //            vec_perf [0].time_mem_down += time;
 //            vec_perf2.insert (vec_perf2.end (), vec_perf.begin (), vec_perf.end ());
@@ -268,7 +267,7 @@ class oclDWT {
          */
         inline
         std::vector <PerformanceInformation>
-        Adjoint      (Matrix <T> & m, Matrix <T> & res)
+        Adjoint      (Matrix <T> & m, Matrix <T> & res, const int chunk_size = 16)
         {
 
             assert (   m.Dim (0) == _sl1
@@ -282,9 +281,16 @@ class oclDWT {
               return std::vector <PerformanceInformation> ();
             }
             
+            const int buffer_size = m.Dim (2) == 1
+                      ? m.Size ()
+                      : max (res.Dim (0) * res.Dim (1) * chunk_size, res.Dim (2) * chunk_size * chunk_size);
+            
+            res = m;
+            
             // create GPU memory objects for operands
-            oclDataWrapper <T> * p_ocl_m   = oclOperations <T> :: make_GPU_Obj (&m.Container()[0], m.Size ());
-            oclDataWrapper <T> * p_ocl_res = oclOperations <T> :: make_GPU_Obj (&res[0], res.Size ());
+            oclDataWrapper <T> * p_ocl_m   = oclOperations <T> :: make_GPU_Obj (&m.Container()[0], buffer_size);
+            oclDataWrapper <T> * p_ocl_res = oclOperations <T> :: make_GPU_Obj (&res[0], buffer_size);
+            oclDataWrapper <T> * p_ocl_tmp = oclOperations <T> :: make_GPU_Obj (&res[0], buffer_size);
             oclDataWrapper <RT> * p_ocl_lpf = oclOperations <RT> :: make_GPU_Obj (_lpf_r, _fl);
             oclDataWrapper <RT> * p_ocl_hpf = oclOperations <RT> :: make_GPU_Obj (_hpf_r, _fl);
             
@@ -295,20 +301,14 @@ class oclDWT {
                                                    p_ocl_lpf, p_ocl_hpf, _fl, _max_level - _min_level,
                                                    p_ocl_res);
             else
-              vec_perf = oclOperations <T, RT> :: ocl_operator_idwt3 (p_ocl_m, m.Dim(0), m.Dim(1), m.Dim(2),
+              vec_perf = oclOperations <T, RT> :: ocl_operator_idwt3 (p_ocl_tmp, m.Dim(0), m.Dim(1), m.Dim(2),
                                                    p_ocl_lpf, p_ocl_hpf, _fl, _max_level - _min_level,
-                                                   p_ocl_res);
-            
-            // copy results back to CPU memory
-            double time = p_ocl_res->getData();
-
-            if (m.Dim (2) > 1)
-              oclConnection :: Instance () -> loadToCPU (p_ocl_m -> getBuffer (), &(res.Container() [0]), p_ocl_m -> getSize ());
-            
+                                                   p_ocl_res, chunk_size);
             
             // clear GPU memory
             delete p_ocl_m;
             delete p_ocl_res;
+            delete p_ocl_tmp;
             delete p_ocl_lpf;
             delete p_ocl_hpf;
             

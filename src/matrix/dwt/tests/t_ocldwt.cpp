@@ -205,9 +205,13 @@ main            (int argc, char ** args)
     std::vector <boost::tuple <int, int, int> > dwt_global;
     extract_sizes (conf, dwt_local, dwt_global, std::string ("/config/gpu/dwt3"));
     
+    const int chunk_size = atoi (conf.GetElement ("/config/gpu/dwt2")->Attribute ("chunk_size"));
+    
     // open measurement output file
     ss.clear (), ss.str (std::string ());
-    ss << base << of_path << "ocldwt2_" << of_name_base << "_wl_fam_" << wl_fam << "_wl_mem_" << wl_mem << "_wl_scale_" << wl_scale;
+    ss << base << of_path << "ocldwt2_";
+    ss << of_name_base << "_wl_fam_" << wl_fam << "_wl_mem_" << wl_mem << "_wl_scale_" << wl_scale;
+    ss << "_cs_" << chunk_size;
     if (strcmp (name_param, "global") == 0)
       ss << "_global_" << global_sizes [0].get <0> () << "_" << global_sizes [0].get <1> () << ".txt";
     else if (strcmp (name_param, "local") == 0)
@@ -242,8 +246,8 @@ main            (int argc, char ** args)
         // do something
         oclDWT <elem_type> dwt (mat_in.Dim (0), mat_in.Dim (1), mat_in.Dim (2), wl_fam, wl_mem, wl_scale, lc1, lc2);
         
-        std::vector <PerformanceInformation> vec_pi_forward = dwt.Trafo (mat_in, mat_out_dwt);
-//        std::vector <PerformanceInformation> vec_pi_backwards;// = dwt.Adjoint (mat_out_dwt, mat_out_dwt_recon);
+        std::vector <PerformanceInformation> vec_pi_forward = dwt.Trafo (mat_in, mat_out_dwt, chunk_size);
+        std::vector <PerformanceInformation> vec_pi_backwards = dwt.Adjoint (mat_out_dwt, mat_out_dwt_recon, chunk_size);
         
           
 //        mat_out_dwt_recon = mat_in;
@@ -264,8 +268,8 @@ main            (int argc, char ** args)
             std::vector <PerformanceInformation> vec_tmp_2 = dwt.Adjoint (mat_out_dwt, mat_out_dwt_recon);
             for (int k = 0; k < vec_tmp_1.size(); k++)
               vec_pi_forward [k] += vec_tmp_1 [k];
-//            for (int k = 0; k < vec_tmp_2.size(); k++)
-//              vec_pi_backwards [k] += vec_tmp_2 [k];
+            for (int k = 0; k < vec_tmp_2.size(); k++)
+              vec_pi_backwards [k] += vec_tmp_2 [k];
         }
         
 //          std::cout << std::endl;
@@ -290,19 +294,19 @@ main            (int argc, char ** args)
           std::cout << tmp_pi << std::endl;
           std::cout << " -------------- " << std::endl;
           
-//          PerformanceInformation pi2 = vec_pi_backwards [0];
-//          std::cout << " -------------- " << std::endl;
-//          std::cout << pi2 << std::endl;
-//          std::cout << " -------------- " << std::endl;
+          PerformanceInformation pi2 = vec_pi_backwards [0];
+          std::cout << " -------------- " << std::endl;
+          std::cout << pi2 << std::endl;
+          std::cout << " -------------- " << std::endl;
 
           fs << setw (indent-5) << (strcmp (name_param, "local")?pi.lc.local_x:pi.lc.global_x) << std::flush <<
               setw (indent) << (strcmp (name_param, "local")?pi.lc.local_y:pi.lc.global_y) << std::flush <<
               setw (indent) << (strcmp (name_param, "local")?pi.lc.local_z:pi.lc.global_z) << std::flush <<
               setw (indent) << pi.time_exec << std::flush <<
-//              setw (indent) << pi2.time_exec << std::flush <<
+              setw (indent) << pi2.time_exec << std::flush <<
               setw (indent) << (pi.time_mem_up + pi.time_mem_down) << std::flush <<
               setw (indent) << pi.parameter << std::flush <<
-//              setw (indent) << pi2.parameter << std::flush <<
+              setw (indent) << pi2.parameter << std::flush <<
               setw (indent) << vec_pi_forward [0].parameter << std::flush <<
               setw (indent) << vec_pi_forward [1].parameter << std::flush <<
               setw (indent) << vec_pi_forward [2].parameter << std::endl;
