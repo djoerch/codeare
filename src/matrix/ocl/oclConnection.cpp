@@ -24,9 +24,31 @@ oclConnection ::
 setThreadConfig            (const std::string & kernel_name, const LaunchInformation & lc)
 {
   
+  std::stringstream ss;
+  
+  // validate given launch configuration
+  if (lc.local_x * lc.local_y * lc.local_z > m_max_wg_size)
+    throw oclError ((ss << "Max. workgroup size exceeded! \n   -> kernel: \"" << kernel_name
+                        << "\", size: " << lc.local_x * lc.local_y * lc.local_z
+                        << " (max: " << m_max_wg_size << ")", ss.str ().c_str ()), "oclConnection :: setThreadConfig");
+  if (lc.global_x > m_max_wi_sizes [0])
+    throw oclError ((ss << "Max. global size in dimension 0 exceeded! \n   -> kernel: \"" << kernel_name
+                       << "\", global_x: " << lc.global_x << " (max: " << m_max_wi_sizes [0]
+                       << ")", ss.str().c_str()), "oclConnection :: setThreadConfig");
+  if (lc.global_y > m_max_wi_sizes [1])
+    throw oclError ((ss << "Max. global size in dimension 1 exceeded! \n   -> kernel: \"" << kernel_name
+                        << "\", global_y: " << lc.global_y << " (max: " << m_max_wi_sizes [1]
+                        << ")", ss.str().c_str()), "oclConnection :: setThreadConfig");
+  if (lc.global_z > m_max_wi_sizes [2])
+    throw oclError ((ss << "Max. global size in dimension 2 exceeded! \n   -> kernel: \"" << kernel_name
+                        << "\", global_z: " << lc.global_z << " (max: " << m_max_wi_sizes [2]
+                        << ")", ss.str().c_str()), "oclConnection :: setThreadConfig");
+  
+  // search for existing configuration
   std::pair <std::map <std::string, LaunchInformation> :: iterator, bool> res
           = m_thread_config.insert (std::make_pair (kernel_name, lc));
   
+  // insert configuration only, if key (kernel_name) existed
   if (!res.second)
     res.first -> second = lc;
   

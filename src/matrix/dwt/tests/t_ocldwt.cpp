@@ -247,7 +247,7 @@ main            (int argc, char ** args)
         oclDWT <elem_type> dwt (mat_in.Dim (0), mat_in.Dim (1), mat_in.Dim (2), wl_fam, wl_mem, wl_scale, lc1, lc2);
         
         std::vector <PerformanceInformation> vec_pi_forward = dwt.Trafo (mat_in, mat_out_dwt, chunk_size);
-//        std::vector <PerformanceInformation> vec_pi_backwards = dwt.Adjoint (mat_out_dwt, mat_out_dwt_recon, chunk_size);
+        std::vector <PerformanceInformation> vec_pi_backwards = dwt.Adjoint (mat_out_dwt, mat_out_dwt_recon, chunk_size);
         
           
 //        mat_out_dwt_recon = mat_in;

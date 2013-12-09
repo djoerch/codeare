@@ -463,10 +463,11 @@
       /**
        * @brief             notify synchronicity of CPU and GPU data
        */
+public:
       inline
       void
       setSync               ();
-      
+protected:      
       
       //@}
       

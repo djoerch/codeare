@@ -295,10 +295,10 @@ class oclDWT {
               vec_perf = oclOperations <T, RT> :: ocl_operator_idwt2 (p_ocl_m, m.Dim(0), m.Dim(1), m.Dim(2),
                                                    p_ocl_lpf, p_ocl_hpf, _fl, _max_level - _min_level,
                                                    p_ocl_res);
-//            else
-//              vec_perf = oclOperations <T, RT> :: ocl_operator_idwt3 (p_ocl_tmp, m.Dim(0), m.Dim(1), m.Dim(2),
-//                                                   p_ocl_lpf, p_ocl_hpf, _fl, _max_level - _min_level,
-//                                                   p_ocl_res, chunk_size);
+            else
+              vec_perf = oclOperations <T, RT> :: ocl_operator_idwt3 (p_ocl_tmp, m.Dim(0), m.Dim(1), m.Dim(2),
+                                                   p_ocl_lpf, p_ocl_hpf, _fl, _max_level - _min_level,
+                                                   p_ocl_res, chunk_size);
             time = omp_get_wtime () - time;
             
             // clear GPU memory

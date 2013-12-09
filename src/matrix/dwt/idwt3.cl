@@ -50,18 +50,19 @@ kernel void idwt3 (__global A_type * arg1,
           __global int * m,
           __global int * k,
           __constant int * line_length,
-          __constant int * chunk_size,
+          __constant int * chunk_size_0,
+          __constant int * chunk_size_1,
           __global int * loc_mem_size)
 {
 
   // choose active threads
-  if (get_global_id (0) < *line_length
-    && get_global_id (1) < *chunk_size
-    && get_global_id (2) < *chunk_size)
+  if (get_global_id (0) < *chunk_size_0
+    && get_global_id (1) < *chunk_size_1
+    && get_global_id (2) < *line_length)
   {
 
-    const int active_threads_0 = min (*chunk_size, (int) get_global_size (0));
-    const int active_threads_1 = min (*chunk_size, (int) get_global_size (1));
+    const int active_threads_0 = min (*chunk_size_0, (int) get_global_size (0));
+    const int active_threads_1 = min (*chunk_size_1, (int) get_global_size (1));
     const int active_threads_2 = min (*line_length, (int) get_global_size (2));
 
     const int block_size = *line_length / (active_threads_2 / get_local_size (2));
@@ -75,19 +76,19 @@ kernel void idwt3 (__global A_type * arg1,
     const int lsize_1 = get_local_size (1);
     const int lsize_2 = get_local_size (2);
     
-    const int slice = *chunk_size * *chunk_size;
+    const int slice = *chunk_size_0 * *chunk_size_1;
     const int half_line_length = *line_length/2;
     const int tid = lid_0 + lsize_0 * lid_1;
 
     __local A_type * tmp  = & loc_mem [tid * (border_block_size + block_size)];
     __local A_type * tmp2 = & loc_mem [tid * (border_block_size + block_size) + border_block_size];
 
-    const int num_blocks_0 = *chunk_size / active_threads_0;
-    const int num_blocks_1 = *chunk_size / active_threads_1;
+    const int num_blocks_0 = *chunk_size_0 / active_threads_0;
+    const int num_blocks_1 = *chunk_size_1 / active_threads_1;
 
 
     const int index_base = get_group_id (0) * lsize_0 + lid_0
-                         + (get_group_id (1) * lsize_1 + lid_1) * *chunk_size;
+                         + (get_group_id (1) * lsize_1 + lid_1) * *chunk_size_0;
                         
 
     for (int d0 = 0; d0 < num_blocks_0; d0 ++) // loop over global blocks in first dimension
@@ -98,7 +99,7 @@ kernel void idwt3 (__global A_type * arg1,
         
         const int base_index = index_base
                              + d0 * active_threads_0
-                             + (d1 * active_threads_1) * *chunk_size;
+                             + (d1 * active_threads_1) * *chunk_size_0;
      
         barrier (CLK_LOCAL_MEM_FENCE);
 

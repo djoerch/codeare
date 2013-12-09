@@ -131,25 +131,26 @@ kernel void dwt_1 (__global A_type * arg1,
     
     const int tid = (lid_1 + lsize_1 * lid_2);
     
-    const int active_threads_0 = min (*chunk_size, (int) get_global_size (0));
-    const int active_threads_1 = min (*chunk_size, (int) get_global_size (1));
-    const int active_threads_2 = min (*line_length, (int) get_global_size (2));
+    const int active_threads_0 = min (*line_length, (int) get_global_size (0));
+    const int active_threads_1 = min (*line_length, (int) get_global_size (1));
+    const int active_threads_2 = min (*chunk_size, (int) get_global_size (2));
 
     const int block_size = *line_length / (active_threads_0 / get_local_size (0));
     const int border_block_size = block_size + offset;
 
-    const int num_blocks_1 = *chunk_size / active_threads_1;
+    const int num_blocks_1 = *line_length / active_threads_1;
     const int num_blocks_2 = *chunk_size / active_threads_2;
 
     __local A_type * tmp = & loc_mem [tid * (border_block_size + block_size)];
     __local A_type * tmp2 = & loc_mem [tid * (border_block_size + block_size) + border_block_size];
 
+    const int slice = *line_length * *line_length;
     const int half_bs = block_size / 2;
     
     const int shift = -offset / 2;
 
     const int index_base = (get_group_id (1) * lsize_1 + lid_1) * *line_length
-                         + (get_group_id (2) * lsize_2 + lid_2) * *line_length * *chunk_size;
+                         + (get_group_id (2) * lsize_2 + lid_2) * slice;
     const int thread_base_1 = lid_0 - offset;
     const int thread_base_2 = lid_0 + shift;
 
@@ -162,7 +163,7 @@ kernel void dwt_1 (__global A_type * arg1,
 
         const int base_index = index_base
                              + (d1 * active_threads_1) * *line_length
-                             + (d2 * active_threads_2) * *line_length * *chunk_size;
+                             + (d2 * active_threads_2) * slice;
                             
           // read: global2local
           int i;
@@ -258,7 +259,7 @@ kernel void dwt_2 (__global A_type * arg1,
 
 
         if (get_global_id (1) < *line_length
-            && get_global_id (0) < *chunk_size
+            && get_global_id (0) < *line_length
             && get_global_id (2) < *chunk_size)
         {          
 
@@ -277,25 +278,26 @@ kernel void dwt_2 (__global A_type * arg1,
     
     const int tid = (lid_0 + lsize_0 * lid_2);
     
-    const int active_threads_0 = min (*chunk_size, (int) get_global_size (0));
-    const int active_threads_1 = min (*chunk_size, (int) get_global_size (1));
-    const int active_threads_2 = min (*line_length, (int) get_global_size (2));
+    const int active_threads_0 = min (*line_length, (int) get_global_size (0));
+    const int active_threads_1 = min (*line_length, (int) get_global_size (1));
+    const int active_threads_2 = min (*chunk_size, (int) get_global_size (2));
 
     const int block_size = *line_length / (active_threads_1 / get_local_size (1));
     const int border_block_size = block_size + offset;
 
-    const int num_blocks_0 = *chunk_size / active_threads_0;
+    const int num_blocks_0 = *line_length / active_threads_0;
     const int num_blocks_2 = *chunk_size / active_threads_2;
 
     __local A_type * tmp = & loc_mem [tid * (border_block_size + block_size)];
     __local A_type * tmp2 = & loc_mem [tid * (border_block_size + block_size) + border_block_size];
 
+    const int slice = *line_length * *line_length;
     const int half_bs = block_size / 2;
     
     const int shift = -offset / 2;
 
     const int index_base = (get_group_id (0) * lsize_0 + lid_0)
-                         + (get_group_id (2) * lsize_2 + lid_2) * *line_length * *chunk_size;
+                         + (get_group_id (2) * lsize_2 + lid_2) * slice;
     const int thread_base_1 = lid_1 - offset;
     const int thread_base_2 = lid_1 + shift;
 
@@ -308,20 +310,20 @@ kernel void dwt_2 (__global A_type * arg1,
 
         const int base_index = index_base
                              + (d0 * active_threads_0)
-                             + (d2 * active_threads_2) * *line_length * *chunk_size;
+                             + (d2 * active_threads_2) * slice;
                             
           // read: global2local
           int i;
           for (i = 0; i < border_block_size - lsize_1; i += lsize_1)
           {
-            const int index = base_index + (i + thread_base_1) * *chunk_size
-                            + (i + thread_base_1 < 0 ? *line_length : 0) * *chunk_size;
+            const int index = base_index + (i + thread_base_1) * *line_length
+                            + (i + thread_base_1 < 0 ? *line_length : 0) * *line_length;
             tmp [lid_1 + i] = arg1 [index];
           }
           if (i + lid_1 < border_block_size)
           {
-            const int index = base_index + (i + thread_base_1) * *chunk_size
-                            + (i + thread_base_1 < 0 ? *line_length : 0) * *chunk_size;
+            const int index = base_index + (i + thread_base_1) * *line_length
+                            + (i + thread_base_1 < 0 ? *line_length : 0) * *line_length;
             tmp [lid_1 + i] = arg1 [index];
           }
 
@@ -347,14 +349,14 @@ kernel void dwt_2 (__global A_type * arg1,
           int i;
           for (i = 0; i < half_bs - lsize_1; i += lsize_1)
           {
-            const int index = base_index + (thread_base_2 + i) * *chunk_size
-                            + (thread_base_2 + i < 0 ? *line_length/2 : 0) * *chunk_size;
+            const int index = base_index + (thread_base_2 + i) * *line_length
+                            + (thread_base_2 + i < 0 ? *line_length/2 : 0) * *line_length;
             arg2 [index] = tmp2 [lid_1 + i];
           }
           if (i + lid_1 < half_bs)
           {
-            const int index = base_index + (thread_base_2 + i) * *chunk_size
-                            + (thread_base_2 + i < 0 ? *line_length/2 : 0) * *chunk_size;
+            const int index = base_index + (thread_base_2 + i) * *line_length
+                            + (thread_base_2 + i < 0 ? *line_length/2 : 0) * *line_length;
             arg2 [index] = tmp2 [lid_1 + i];
           }
 
@@ -363,14 +365,14 @@ kernel void dwt_2 (__global A_type * arg1,
           ///////////
           for (i = 0; i < half_bs - lsize_1; i += lsize_1)
           {
-            const int index = base_index + (lid_1 + i) * *chunk_size
-                            + (lid_1 + i < 0 ? *line_length : *line_length/2) * *chunk_size;
+            const int index = base_index + (lid_1 + i) * *line_length
+                            + (lid_1 + i < 0 ? *line_length : *line_length/2) * *line_length;
             arg2 [index] = tmp2 [lid_1 + i + half_bs];
           }
           if (i + lid_1 < half_bs)
           {
-            const int index = base_index + (lid_1 + i) * *chunk_size
-                            + (lid_1 + i < 0 ? *line_length : *line_length/2) * *chunk_size;
+            const int index = base_index + (lid_1 + i) * *line_length
+                            + (lid_1 + i < 0 ? *line_length : *line_length/2) * *line_length;
             arg2 [index] = tmp2 [lid_1 + i + half_bs];
           }
           

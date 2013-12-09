@@ -240,6 +240,7 @@
       for (int i = 0; i < m_num_args; i++)
       {
         
+        std::cout << " prepare: " << i << std::endl;
         // prepare argument
         *p_mem_time += mpp_args [i] -> prepare();
         

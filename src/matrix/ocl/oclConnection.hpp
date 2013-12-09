@@ -1267,6 +1267,8 @@ modify_kernel        ( std::string const &       source,
     
     print_optional (" * oclConnection :: loadToGPU (AccessPattern)", m_verbose );
     
+    std::cout << " upload " << std::endl;
+    
     // loop over command queues, write information to device (global memory)
     for (clCommandQueues::iterator it = m_comqs.begin(); it < m_comqs.end(); ++it)
     {
