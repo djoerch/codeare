@@ -112,7 +112,7 @@ kernel void dwt_1 (__global A_type * arg1,
 
 
         if (get_global_id (0) < *line_length
-            && get_global_id (1) < *chunk_size
+            && get_global_id (1) < *line_length
             && get_global_id (2) < *chunk_size)
         {          
 
@@ -155,10 +155,10 @@ kernel void dwt_1 (__global A_type * arg1,
     const int thread_base_2 = lid_0 + shift;
 
 
-    for (int d1 = 0; d1 < num_blocks_1; d1 ++) // loop over global blocks in first dimension
+    for (int d1 = 0; d1 < num_blocks_1; d1 ++) // loop over global blocks in second dimension
     {
         
-      for (int d2 = 0; d2 < num_blocks_2; d2 ++) // loop over global blocks in second dimension
+      for (int d2 = 0; d2 < num_blocks_2; d2 ++) // loop over global blocks in third dimension
       {
 
         const int base_index = index_base
@@ -192,7 +192,7 @@ kernel void dwt_1 (__global A_type * arg1,
 
         // write back
 
-        // choose active threads in third dimension
+        // choose active threads in first dimension
         if (lid_0 < half_bs)
         {    
           
@@ -229,11 +229,11 @@ kernel void dwt_1 (__global A_type * arg1,
             arg2 [index] = tmp2 [lid_0 + i + half_bs];
           }
           
-        } // if: choose active threads in third dimension
+        } // if: choose active threads in first dimension
         
-      } // loop over blocks in second dimension
+      } // loop over blocks in third dimension
     
-    } // loop over blocks in first dimension
+    } // loop over blocks in second dimension
     
   } // if: choose active threads
 }
@@ -305,7 +305,7 @@ kernel void dwt_2 (__global A_type * arg1,
     for (int d0 = 0; d0 < num_blocks_0; d0 ++) // loop over global blocks in first dimension
     {
         
-      for (int d2 = 0; d2 < num_blocks_2; d2 ++) // loop over global blocks in second dimension
+      for (int d2 = 0; d2 < num_blocks_2; d2 ++) // loop over global blocks in third dimension
       {
 
         const int base_index = index_base

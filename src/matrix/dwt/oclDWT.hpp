@@ -86,6 +86,7 @@ class oclDWT {
             filenames.push_back (base_kernel_path + "src/matrix/dwt/dwt_alt.cl");
             filenames.push_back (base_kernel_path + "src/matrix/dwt/dwt2.cl");
             filenames.push_back (base_kernel_path + "src/matrix/dwt/dwt2_alt.cl");
+            filenames.push_back (base_kernel_path + "src/matrix/dwt/idwt_alt.cl");
             filenames.push_back (base_kernel_path + "src/matrix/dwt/idwt2.cl");
             filenames.push_back (base_kernel_path + "src/matrix/dwt/dwt3.cl");
             filenames.push_back (base_kernel_path + "src/matrix/dwt/idwt3.cl");
@@ -104,6 +105,8 @@ class oclDWT {
             LaunchInformation lc_2 (lc3.local_x, lc3.local_z, lc3.local_y, lc3.global_x, lc3.global_z, lc3.global_y);
             oclConnection :: Instance () -> setThreadConfig (std::string ("dwt_1"), lc_1);
             oclConnection :: Instance () -> setThreadConfig (std::string ("dwt_2"), lc_2);
+            oclConnection :: Instance () -> setThreadConfig (std::string ("idwt_1"), lc_1);
+            oclConnection :: Instance () -> setThreadConfig (std::string ("idwt_2"), lc_2);
       }
       
   
@@ -278,9 +281,7 @@ class oclDWT {
             const int buffer_size = m.Dim (2) == 1
                       ? m.Size ()
                       : max (res.Dim (0) * res.Dim (1) * chunk_size, res.Dim (2) * chunk_size * chunk_size);
-            
-            res = m;
-            
+                        
             // create GPU memory objects for operands
             oclDataWrapper <T> * p_ocl_m   = oclOperations <T> :: make_GPU_Obj (&m.Container()[0], buffer_size);
             oclDataWrapper <T> * p_ocl_res = oclOperations <T> :: make_GPU_Obj (&res[0], buffer_size);
@@ -291,12 +292,15 @@ class oclDWT {
             // call either 2D or 3D implementation of IDWT
             std::vector <PerformanceInformation> vec_perf;
             double time = omp_get_wtime ();
+            
+            res = m; // needed for 3D version !!!
+            
             if (m.Dim (2) == 1)
               vec_perf = oclOperations <T, RT> :: ocl_operator_idwt2 (p_ocl_m, m.Dim(0), m.Dim(1), m.Dim(2),
                                                    p_ocl_lpf, p_ocl_hpf, _fl, _max_level - _min_level,
                                                    p_ocl_res);
             else
-              vec_perf = oclOperations <T, RT> :: ocl_operator_idwt3 (p_ocl_tmp, m.Dim(0), m.Dim(1), m.Dim(2),
+              vec_perf = oclOperations <T, RT> :: ocl_operator_idwt3_alt (p_ocl_tmp, m.Dim(0), m.Dim(1), m.Dim(2),
                                                    p_ocl_lpf, p_ocl_hpf, _fl, _max_level - _min_level,
                                                    p_ocl_res, chunk_size);
             time = omp_get_wtime () - time;

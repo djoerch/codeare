@@ -1,9 +1,19 @@
 // created on Nov 20, 2013
 
-
+void
+iconv_step1_lo              (const int index1, const int index2,
+                             __constant B_type * filter,
+                             __local A_type * tmp, __local A_type * tmp2,
+                             const int increment);
+                            
+void
+iconv_step2_hi              (const int index1, const int index2,
+                             __constant B_type * filter,
+                             __local A_type * tmp, __local A_type * tmp2,
+                             const int increment);
 
 void
-ifilter                  (const int local_c1,
+ifilter                  (const int lid, const int lsize,
                           __local A_type * tmp, __local A_type * tmp2,
                           __constant B_type * _lpf, __constant B_type * _hpf,
                           const int block_size, const int border_block_size)
@@ -11,23 +21,21 @@ ifilter                  (const int local_c1,
 
   const int i_max = block_size / 2;
 
-  const int lsize_2 = get_local_size (2);
-
   // COLS //
 
-  const int local_base_1 = local_c1 + i_offset;
-  const int local_base_2 = 2 * local_c1;
+  const int local_base_1 = lid + i_offset;
+  const int local_base_2 = 2 * lid;
 
 
     int i;
-    for (i = 0; i < i_max - lsize_2; i += lsize_2)
+    for (i = 0; i < i_max - lsize; i += lsize)
     {
         const int index1 = local_base_1 + i;
         const int index2 = local_base_2 + 2 * i;
         iconv_step1_lo (index1, index2, _lpf, tmp, tmp2, 1);
         iconv_step2_hi (index1 + i_max, index2, _hpf, tmp, tmp2, 1);
     }
-    if (i + local_c1 < i_max)
+    if (i + lid < i_max)
     {
         const int index1 = local_base_1 + i;
         const int index2 = local_base_2 + 2 * i;
@@ -154,7 +162,7 @@ kernel void idwt3 (__global A_type * arg1,
         // filter operations
         /////
         if (lid_2 < block_size / 2)
-          ifilter (lid_2, tmp, tmp2, _lpf, _hpf, block_size, border_block_size);
+          ifilter (lid_2, lsize_2, tmp, tmp2, _lpf, _hpf, block_size, border_block_size);
 
         barrier (CLK_LOCAL_MEM_FENCE);
 

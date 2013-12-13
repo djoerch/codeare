@@ -272,27 +272,29 @@ main            (int argc, char ** args)
 //              vec_pi_backwards [k] += vec_tmp_2 [k];
         }
         
-//          std::cout << std::endl;
-//          for (std::vector <PerformanceInformation> :: const_iterator it = vec_pi_forward.begin ();
-//                  it != vec_pi_forward.end (); ++it)
-//          {
-//            std::cout << *it << std::endl;
-//          }
+          std::cout << std::endl;
+          for (std::vector <PerformanceInformation> :: const_iterator it = vec_pi_forward.begin ();
+                  it != vec_pi_forward.end (); ++it)
+          {
+          std::cout << " -------------- " << std::endl;
+            std::cout << *it << std::endl;
+          std::cout << " -------------- " << std::endl;
+          }
 
           PerformanceInformation pi = vec_pi_forward [0];
-          std::cout << " -------------- " << std::endl;
-          std::cout << pi << std::endl;
-          std::cout << " -------------- " << std::endl;
-
-          PerformanceInformation tmp_pi = vec_pi_forward [1];
-          std::cout << " -------------- " << std::endl;
-          std::cout << tmp_pi << std::endl;
-          std::cout << " -------------- " << std::endl;
-
-          tmp_pi = vec_pi_forward [2];
-          std::cout << " -------------- " << std::endl;
-          std::cout << tmp_pi << std::endl;
-          std::cout << " -------------- " << std::endl;
+//          std::cout << " -------------- " << std::endl;
+//          std::cout << pi << std::endl;
+//          std::cout << " -------------- " << std::endl;
+//
+//          PerformanceInformation tmp_pi = vec_pi_forward [1];
+//          std::cout << " -------------- " << std::endl;
+//          std::cout << tmp_pi << std::endl;
+//          std::cout << " -------------- " << std::endl;
+//
+//          tmp_pi = vec_pi_forward [2];
+//          std::cout << " -------------- " << std::endl;
+//          std::cout << tmp_pi << std::endl;
+//          std::cout << " -------------- " << std::endl;
           
 //          PerformanceInformation pi2 = vec_pi_backwards [0];
 //          std::cout << " -------------- " << std::endl;

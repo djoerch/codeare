@@ -191,7 +191,7 @@
       
       // create buffer object
       try {
-        std::cout << " create buffer " << std::endl;
+//        std::cout << " create buffer " << std::endl;
     	  oclConnection :: Instance () -> createBuffer (mp_cpu_data, oclDataObject :: getSize (), oclDataObject :: getID ());
       } catch (oclError & oe) {
     	  throw oclError (oe, "oclDataWrapper :: loadToGPU ()");
@@ -205,7 +205,7 @@
     // precondition: buffer exists now!
     if (oclDataObject :: mp_modified [CPU])
     {
-      std::cout << " not loaded to GPU " << std::endl;
+//      std::cout << " not loaded to GPU " << std::endl;
 //      if (oclDataObject :: getSize () > 10)
 //      {
 //        std::cout << "TO GPU: *** " << std::endl;
@@ -250,15 +250,15 @@
       
       if (oclDataObject :: mp_modified [oclDataObject::GPU])
       {
-      if (oclDataObject :: getSize () > 10)
-      {
-        std::cout << "TO CPU: *** " << std::endl;
-        std::cout << " getSize: " << oclDataObject :: getSize () << std::endl;
-        std::cout << " ap.size: " << oclDataObject :: APHost ().Size () << std::endl;
-        std::cout << " aphost: " << oclDataObject :: APHost () << std::endl;
-        std::cout << " apdevice: " << oclDataObject :: APDevice () << std::endl;
-      }
-        std::cout << " GPU modified -> download " << std::endl;
+//      if (oclDataObject :: getSize () > 10)
+//      {
+//        std::cout << "TO CPU: *** " << std::endl;
+//        std::cout << " getSize: " << oclDataObject :: getSize () << std::endl;
+//        std::cout << " ap.size: " << oclDataObject :: APHost ().Size () << std::endl;
+//        std::cout << " aphost: " << oclDataObject :: APHost () << std::endl;
+//        std::cout << " apdevice: " << oclDataObject :: APDevice () << std::endl;
+//      }
+//        std::cout << " GPU modified -> download " << std::endl;
         // update CPU data
 //        mem_time = oclConnection :: Instance () -> loadToCPU (oclDataObject :: mp_gpu_buffer, mp_cpu_data, oclDataObject :: m_size);
         mem_time = oclConnection :: Instance () -> loadToCPU (oclDataObject :: mp_gpu_buffer, mp_cpu_data, oclDataObject :: APHost (), oclDataObject :: APDevice ());
