@@ -229,6 +229,8 @@ main            (int argc, char ** args)
 
     double time_ref = 0;
     
+    const oclDWT<elem_type>::kernel_version kv = oclDWT<elem_type>::ONE_D;
+    
     for (int i = 0; i < local_sizes.size (); ++i)
     {
 
@@ -244,7 +246,7 @@ main            (int argc, char ** args)
                                      dwt_global [0].get <0> (), dwt_global [0].get <1> (), dwt_global [0].get <2> ());
                                      
         // do something
-        oclDWT <elem_type> dwt (mat_in.Dim (0), mat_in.Dim (1), mat_in.Dim (2), wl_fam, wl_mem, wl_scale, lc1, lc2);
+        oclDWT <elem_type> dwt (mat_in.Dim (0), mat_in.Dim (1), mat_in.Dim (2), wl_fam, wl_mem, wl_scale, lc1, lc2, kv);
         
         std::vector <PerformanceInformation> vec_pi_forward = dwt.Trafo (mat_in, mat_out_dwt, chunk_size);
         std::vector <PerformanceInformation> vec_pi_backwards = dwt.Adjoint (mat_out_dwt, mat_out_dwt_recon, chunk_size);
@@ -268,13 +270,21 @@ main            (int argc, char ** args)
             std::vector <PerformanceInformation> vec_tmp_2 = dwt.Adjoint (mat_out_dwt, mat_out_dwt_recon);
             for (int k = 0; k < vec_tmp_1.size(); k++)
               vec_pi_forward [k] += vec_tmp_1 [k];
-//            for (int k = 0; k < vec_tmp_2.size(); k++)
-//              vec_pi_backwards [k] += vec_tmp_2 [k];
+            for (int k = 0; k < vec_tmp_2.size(); k++)
+              vec_pi_backwards [k] += vec_tmp_2 [k];
         }
         
           std::cout << std::endl;
           for (std::vector <PerformanceInformation> :: const_iterator it = vec_pi_forward.begin ();
                   it != vec_pi_forward.end (); ++it)
+          {
+          std::cout << " -------------- " << std::endl;
+            std::cout << *it << std::endl;
+          std::cout << " -------------- " << std::endl;
+          }
+          std::cout << std::endl;
+          for (std::vector <PerformanceInformation> :: const_iterator it = vec_pi_backwards.begin ();
+                  it != vec_pi_backwards.end (); ++it)
           {
           std::cout << " -------------- " << std::endl;
             std::cout << *it << std::endl;

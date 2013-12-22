@@ -1729,16 +1729,18 @@
           // dynamically allocate local memory
           ////////////////
                     
+          const int loc_mem_line = 32 + 1;
+          
           // dwt_1
-          const int num_loc_mem_elems1 = (2 * n + 8) * lc1.local_y * lc1.local_z;
+          const int num_loc_mem_elems1 = loc_mem_line * 2 * lc1.local_y * lc1.local_z;//(2 * n + 8) * lc1.local_y * lc1.local_z;
           oclDataObject * loc_mem1 = new oclLocalMemObject <elem_type> (num_loc_mem_elems1);
           
           // dwt_2
-          const int num_loc_mem_elems2 = (2 * m + 8) * lc2.local_x * lc2.local_z;
+          const int num_loc_mem_elems2 = loc_mem_line * 2 * lc2.local_x * lc2.local_z;//(2 * m + 8) * lc2.local_x * lc2.local_z;
           oclDataObject * loc_mem2 = new oclLocalMemObject <elem_type> (num_loc_mem_elems2);
           
           // dwt_3
-          const int num_loc_mem_elems3 = (2 * k + 8) * lc3.local_x * lc3.local_y;
+          const int num_loc_mem_elems3 = loc_mem_line * 2 * lc3.local_x * lc3.local_y;//(2 * k + 8) * lc3.local_x * lc3.local_y;
           oclDataObject * loc_mem3 = new oclLocalMemObject <elem_type> (num_loc_mem_elems3);
           
           std::cout << " loc_mem1 (dwt_1): " << num_loc_mem_elems1 * sizeof (elem_type) << " Bytes " << std::endl;
@@ -1756,12 +1758,15 @@
           //////////
           // prepare access patterns for CPU-GPU-transfers
           //////////
-          arg1 -> APDevice () = oclAccessPattern (0, 0, 0,
-                  n * sizeof (elem_type), n * m * sizeof (elem_type),
-                  n * sizeof (elem_type), m, k);
-          arg1 -> APHost () = arg1 -> APDevice ();
-          arg2 -> APDevice () = arg2 -> APHost () = arg1 -> APHost ();
-          tmp -> APDevice () = tmp -> APHost () = arg1 -> APHost ();
+          const int padding = fl - 2;
+          arg1 -> APDevice () = oclAccessPattern (padding * sizeof (elem_type), 0, 0,
+                  (n + padding) * sizeof (elem_type), (n + padding) * m * sizeof (elem_type),
+                   n * sizeof (elem_type), m, k);
+          arg1 -> APHost () = oclAccessPattern (0, 0, 0,
+                   n * sizeof (elem_type), n * m * sizeof (elem_type),
+                   n * sizeof (elem_type), m, k);
+          arg2 -> APDevice () = arg1 -> APDevice ();
+          tmp -> APDevice () = arg2 -> APHost () = tmp -> APHost () = arg1 -> APHost ();
           
           ////////////
           // temporaries for buffer objects (avoid writing to src memory)
@@ -1797,7 +1802,9 @@
               tmp1 -> setCPUModified (); // upload src
               tmp2 -> setSync (); // do NOT upload dest
               
-              pi += ocl_basic_operator_kernel_56 ("dwt_1", tmp1, lpf, hpf, tmp2, loc_mem1, n, m, k, line_length, chunk_size_dwt12, num_loc_mem_elems1, lc1);
+              pi += ocl_basic_operator_kernel_56 ("dwt_1_alt", tmp1, lpf, hpf, tmp2, loc_mem1, n, m, k, line_length, chunk_size_dwt12, num_loc_mem_elems1, lc1);
+              
+//              tmp2 -> getData ();
               
               // do not write to src image
               if (i == 0)
@@ -1806,7 +1813,7 @@
               tmp1 -> setSync (); // use results on GPU
               tmp2 -> setSync (); // use results on GPU
               
-              pi2 += ocl_basic_operator_kernel_56 ("dwt_2", tmp2, lpf, hpf, tmp1, loc_mem2, n, m, k, line_length, chunk_size_dwt12, num_loc_mem_elems2, lc2);
+              pi2 += ocl_basic_operator_kernel_56 ("dwt_2_alt", tmp2, lpf, hpf, tmp1, loc_mem2, n, m, k, line_length, chunk_size_dwt12, num_loc_mem_elems2, lc2);
                 
               // download results
               pi2.time_mem_down += tmp1 -> getData ();
@@ -1843,9 +1850,15 @@
             tmp2 -> APHost ().Region (1) = tmp2 -> APDevice ().Region (1) = chunk_size_dwt3;
             
             // sizes of rows and slices change accordingly
-            tmp1 -> APDevice ().RowPitch () = tmp2 -> APDevice ().RowPitch () = chunk_size_dwt3 * sizeof (elem_type);
-            tmp1 -> APDevice ().SlicePitch () = tmp2 -> APDevice ().SlicePitch () = chunk_size_dwt3 * chunk_size_dwt3 * sizeof (elem_type);
-            
+            // tmp1: input -> padding
+            // tmp2: output -> without padding
+            tmp1 -> APDevice ().Origin (0) = padding * sizeof (elem_type);
+            tmp1 -> APDevice ().RowPitch () = (chunk_size_dwt3 + padding) * sizeof (elem_type);
+            tmp1 -> APDevice ().SlicePitch () = (chunk_size_dwt3 + padding) * chunk_size_dwt3 * sizeof (elem_type);
+            tmp2 -> APDevice ().Origin (0) = 0;
+            tmp2 -> APDevice ().RowPitch () = chunk_size_dwt3 * sizeof (elem_type);
+            tmp2 -> APDevice ().SlicePitch () = chunk_size_dwt3 * chunk_size_dwt3 * sizeof (elem_type);
+                        
             // loop over chunks of beams along dim0
             for (int l = 0; l < line_length; l += chunk_size_dwt3)
             {
@@ -1863,7 +1876,7 @@
                 tmp1 -> setCPUModified (); // upload src
                 tmp2 -> setSync (); // do NOT upload dest
                 
-                pi3 += ocl_basic_operator_kernel_57 ("dwt3", tmp1, lpf, hpf, tmp2, loc_mem3, n, m, k, line_length, chunk_size_dwt3, chunk_size_dwt3, num_loc_mem_elems3, lc3);
+                pi3 += ocl_basic_operator_kernel_57 ("dwt_3_alt", tmp1, lpf, hpf, tmp2, loc_mem3, n, m, k, line_length, chunk_size_dwt3, chunk_size_dwt3, num_loc_mem_elems3, lc3);
                 
                 // download results from GPU
                 pi3.time_mem_down += tmp2 -> getData ();
@@ -1884,8 +1897,8 @@
             tmp2 -> APHost ().Region (1) = tmp2 -> APDevice ().Region (1) = line_length/2;
             tmp1 -> APHost ().Region (2) = tmp1 -> APDevice ().Region (2) = line_length/2;
             tmp2 -> APHost ().Region (2) = tmp2 -> APDevice ().Region (2) = line_length/2;
-            tmp1 -> APDevice ().RowPitch () = tmp2 -> APDevice ().RowPitch () = line_length/2 * sizeof (elem_type);
-            tmp1 -> APDevice ().SlicePitch () = tmp2 -> APDevice ().SlicePitch () = line_length/2 * line_length/2 * sizeof (elem_type);
+            tmp1 -> APDevice ().RowPitch () = tmp2 -> APDevice ().RowPitch () = (line_length/2 + padding) * sizeof (elem_type);
+            tmp1 -> APDevice ().SlicePitch () = tmp2 -> APDevice ().SlicePitch () = (line_length/2 + padding) * line_length/2 * sizeof (elem_type);
                 
           }
           
@@ -1965,8 +1978,8 @@
           float time_mem_down = time_mem_down_1 + time_mem_down_2 + time_mem_down_3;
           vec_perf.push_back (PerformanceInformation ("dwt1+2+3 (all levels)", lc1, " Effective bandwidth (GB/s)", time_seconds, time_mem_up, time_mem_down, effective_bw));
           vec_perf.push_back (PerformanceInformation ("dwt_1 (all levels)", lc1, " Effective bandwidth (GB/s)", time_seconds_1, time_mem_up_1, time_mem_down_1, effective_bw_1));
-          vec_perf.push_back (PerformanceInformation ("dwt_2 (all levels)", lc1, " Effective bandwidth (GB/s)", time_seconds_2, time_mem_up_2, time_mem_down_2, effective_bw_2));
-          vec_perf.push_back (PerformanceInformation ("dwt3 (all levels)", lc1, " Effective bandwidth (GB/s)", time_seconds_3, time_mem_up_3, time_mem_down_3, effective_bw_3));
+          vec_perf.push_back (PerformanceInformation ("dwt_2 (all levels)", lc2, " Effective bandwidth (GB/s)", time_seconds_2, time_mem_up_2, time_mem_down_2, effective_bw_2));
+          vec_perf.push_back (PerformanceInformation ("dwt3 (all levels)", lc3, " Effective bandwidth (GB/s)", time_seconds_3, time_mem_up_3, time_mem_down_3, effective_bw_3));
 
 # endif
           
@@ -2345,7 +2358,7 @@
           /////////////
           // collect profiling information for each level
           /////////////
-          std::vector <ProfilingInformation> vec_pi_1, vec_pi_2;
+          std::vector <ProfilingInformation> vec_pi_1, vec_pi_2, vec_pi_3;
 
           //////////
           // prepare access patterns for CPU-GPU-transfers
@@ -2373,7 +2386,7 @@
             lc2.global_y /= (chunk_size_idwt3 < lc2.global_y ? 2 : 1);
             
             // run kernel "idwt3"
-            ProfilingInformation pi2 = {0, 0, 0, 0};
+            ProfilingInformation pi3 = {0, 0, 0, 0};
             const oclAccessPattern tmp_ap_array [4] = {tmp1 -> APHost (), tmp1 -> APDevice (),
                                                        tmp2 -> APHost (), tmp2 -> APDevice ()}; // save current state !!!
             tmp1 -> APHost ().Region (0) = tmp1 -> APDevice ().Region (0) = chunk_size_idwt3_dim0 * sizeof (elem_type);
@@ -2392,17 +2405,18 @@
                 tmp1 -> APHost ().Origin (1) = tmp2 -> APHost ().Origin (1) = ll;
                 tmp1 -> setCPUModified (); // upload src
                 tmp2 -> setSync (); // do not upload data to result buffer
-                pi2 += ocl_basic_operator_kernel_57 ("idwt3", tmp1, lpf, hpf, tmp2, loc_mem3, n, m, k, line_length, chunk_size_idwt3_dim0, chunk_size_idwt3, num_loc_mem_elems3, lc3);
-                pi2.time_mem_down += tmp2 -> getData ();
+                pi3 += ocl_basic_operator_kernel_57 ("idwt3", tmp1, lpf, hpf, tmp2, loc_mem3, n, m, k, line_length, chunk_size_idwt3_dim0, chunk_size_idwt3, num_loc_mem_elems3, lc3);
+                pi3.time_mem_down += tmp2 -> getData ();
               }
             }
-            vec_pi_2.push_back (pi2);
+            vec_pi_3.push_back (pi3);
             
             tmp1 -> APHost () = tmp_ap_array [0]; tmp1 -> APDevice () = tmp_ap_array [1]; // reset
             tmp2 -> APHost () = tmp_ap_array [2]; tmp2 -> APDevice () = tmp_ap_array [3]; // reset
             
             // run kernel "idwt_1" and "idwt_2" on slices
             ProfilingInformation pi1 = {0, 0, 0, 0};
+            ProfilingInformation pi2 = {0, 0, 0, 0};
             
             const int chunk_size_idwt12 = min (line_length, chunk_size);
             
@@ -2427,7 +2441,7 @@
               tmp1 -> setCPUModified (); // upload src
               tmp2 -> setSync (); // do not upload data to result buffer
               
-              pi1 += ocl_basic_operator_kernel_56 ("idwt_2", tmp1, lpf, hpf, tmp2, loc_mem2, n, m, k, line_length, chunk_size_idwt12, num_loc_mem_elems2, lc2);
+              pi2 += ocl_basic_operator_kernel_56 ("idwt_2", tmp1, lpf, hpf, tmp2, loc_mem2, n, m, k, line_length, chunk_size_idwt12, num_loc_mem_elems2, lc2);
               
               tmp1 -> setSync (); // do not upload src
               tmp2 -> setSync (); // do not upload data to dest
@@ -2438,6 +2452,7 @@
               
             }
             vec_pi_1.push_back (pi1);
+            vec_pi_2.push_back (pi2);
             
             tmp1 -> APHost ().Region (2) = tmp1 -> APDevice ().Region (2) = k; // reset
             tmp2 -> APHost ().Region (2) = tmp2 -> APDevice ().Region (2) = k; // reset
@@ -2505,9 +2520,10 @@
           float data_size = data_size_1 + data_size_2 + data_size_3;
           float effective_bw = ((float)((data_size) * sizeof (elem_type)) * 1.0e-9f) / (time_seconds);
           
-            vec_perf.push_back (PerformanceInformation ("idwt1+2+3", lc1, " Effective bandwidth (GB/s)", time_seconds_1 + time_seconds_2 + time_secon, time_mem_up_1 + time_mem_up_2, time_mem_down_1 + time_mem_down_2, effective_bw));
-            vec_perf.push_back (PerformanceInformation ("idwt_2 (kernel)", lc2, " Effective bandwidth (GB/s)", time_seconds_1, time_mem_up_1, time_mem_down_1, effective_bw_1));
-            vec_perf.push_back (PerformanceInformation ("idwt3 (kernel)", lc3, " Effective bandwidth (GB/s)", time_seconds_2, time_mem_up_2, time_mem_down_2, effective_bw_2));
+            vec_perf.push_back (PerformanceInformation ("idwt1+2+3", lc1, " Effective bandwidth (GB/s)", time_seconds, time_mem_up_1 + time_mem_up_2 + time_mem_up_3, time_mem_down_1 + time_mem_down_2 + time_mem_down_3, effective_bw));
+            vec_perf.push_back (PerformanceInformation ("idwt_1 (kernel)", lc1, " Effective bandwidth (GB/s)", time_seconds_1, time_mem_up_1, time_mem_down_1, effective_bw_1));
+            vec_perf.push_back (PerformanceInformation ("idwt_2 (kernel)", lc2, " Effective bandwidth (GB/s)", time_seconds_2, time_mem_up_2, time_mem_down_2, effective_bw_2));
+            vec_perf.push_back (PerformanceInformation ("idwt3 (kernel)", lc3, " Effective bandwidth (GB/s)", time_seconds_3, time_mem_up_3, time_mem_down_3, effective_bw_3));
                         
 # endif
             

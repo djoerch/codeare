@@ -269,7 +269,7 @@ init_program_kernels    (oclConnection * const con, const std::vector <std::stri
     if (!vendor.compare("Advanced Micro Devices, Inc."))
       build_args = "-cl-std=CL1.0 -cl-mad-enable -cl-fast-relaxed-math";
     else
-      build_args = "-cl-std=CL1.1 -cl-mad-enable -cl-fast-relaxed-math -cl-nv-maxrregcount=32 -cl-nv-verbose";
+      build_args = "-cl-std=CL1.1 -cl-mad-enable -cl-fast-relaxed-math -cl-nv-maxrregcount=24 -cl-nv-verbose";
     
     // build program
 	  con -> m_error = prog.build (con -> m_devs, build_args.c_str ());
