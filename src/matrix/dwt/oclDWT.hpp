@@ -76,7 +76,10 @@ class oclDWT {
       setupOpenCL           (const int fl,
                              const int side_length,
                              const LaunchInformation & lc1,
-                             const LaunchInformation & lc3)
+                             const LaunchInformation & lc3,
+                             const LaunchInformation & lc_1_alt,
+                             const LaunchInformation & lc_2_alt,
+                             const LaunchInformation & lc_3_alt)
       {
         std::stringstream ss;
             std::vector <std::string> makros;
@@ -107,14 +110,14 @@ class oclDWT {
             oclConnection :: Instance () -> setThreadConfig (std::string ("idwt2"), lc1);
             oclConnection :: Instance () -> setThreadConfig (std::string ("idwt2_prepare"), lc1);
             oclConnection :: Instance () -> setThreadConfig (std::string ("dwt3"), lc3);
-            oclConnection :: Instance () -> setThreadConfig (std::string ("dwt_3_alt"), lc3);
+            oclConnection :: Instance () -> setThreadConfig (std::string ("dwt_3_alt"), lc_3_alt);
             oclConnection :: Instance () -> setThreadConfig (std::string ("idwt3"), lc3);
             LaunchInformation lc_1 (lc3.local_z, lc3.local_y, lc3.local_x, lc3.global_z, lc3.global_y, lc3.global_x);
             LaunchInformation lc_2 (lc3.local_x, lc3.local_z, lc3.local_y, lc3.global_x, lc3.global_z, lc3.global_y);
             oclConnection :: Instance () -> setThreadConfig (std::string ("dwt_1"), lc_1);
-            oclConnection :: Instance () -> setThreadConfig (std::string ("dwt_1_alt"), lc_1);
+            oclConnection :: Instance () -> setThreadConfig (std::string ("dwt_1_alt"), lc_1_alt);
             oclConnection :: Instance () -> setThreadConfig (std::string ("dwt_2"), lc_2);
-            oclConnection :: Instance () -> setThreadConfig (std::string ("dwt_2_alt"), lc_2);
+            oclConnection :: Instance () -> setThreadConfig (std::string ("dwt_2_alt"), lc_2_alt);
             oclConnection :: Instance () -> setThreadConfig (std::string ("idwt_1"), lc_1);
             oclConnection :: Instance () -> setThreadConfig (std::string ("idwt_2"), lc_2);
       }
@@ -134,7 +137,7 @@ class oclDWT {
          * @param  wl_scale     Decomposition until side length equals 2^wl_scale.
          */
         oclDWT (const size_t sl1, const size_t sl2, const size_t sl3,
-             const wlfamily wl_fam = WL_FAM, const int wl_mem = WL_MEM, const int wl_scale = WL_SCALE, const LaunchInformation & lc1 = LC, const LaunchInformation & lc2 = LC, const kernel_version kv = ONE_D)
+             const wlfamily wl_fam = WL_FAM, const int wl_mem = WL_MEM, const int wl_scale = WL_SCALE, const LaunchInformation & lc1 = LC, const LaunchInformation & lc2 = LC, const kernel_version kv = ONE_D, const LaunchInformation & lc_1_alt = LC, const LaunchInformation & lc_2_alt = LC, const LaunchInformation & lc_3_alt = LC)
             : _sl1 (sl1),
               _sl2 (sl2),
               _sl3 (sl3),
@@ -147,7 +150,7 @@ class oclDWT {
               _kv (kv)
         {
             setupWlFilters <T> (wl_fam, wl_mem, _lpf_d, _lpf_r, _hpf_d, _hpf_r);
-            setupOpenCL (wl_mem, _min_sl, lc1, lc2);
+            setupOpenCL (wl_mem, _min_sl, lc1, lc2, lc_1_alt, lc_2_alt, lc_3_alt);
         }
 
 

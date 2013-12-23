@@ -1721,9 +1721,9 @@
           print_optional ("oclOperations <", trait1 :: print_elem_type (), ", ",
                                              trait2 :: print_elem_type (), "> :: ocl_operator_dwt3_alt", op_v_level);
 
-          LaunchInformation lc1 = oclConnection :: Instance () -> getThreadConfig (std::string ("dwt_1"));
-          LaunchInformation lc2 = oclConnection :: Instance () -> getThreadConfig (std::string ("dwt_2"));
-          LaunchInformation lc3 = oclConnection :: Instance () -> getThreadConfig (std::string ("dwt3"));
+          LaunchInformation lc1 = oclConnection :: Instance () -> getThreadConfig (std::string ("dwt_1_alt"));
+          LaunchInformation lc2 = oclConnection :: Instance () -> getThreadConfig (std::string ("dwt_2_alt"));
+          LaunchInformation lc3 = oclConnection :: Instance () -> getThreadConfig (std::string ("dwt_3_alt"));
           
           ////////////////
           // dynamically allocate local memory

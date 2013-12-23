@@ -225,6 +225,16 @@
     { return cl::NDRange (local_x, local_y, local_z); }
   };
   
+  std::ostream &
+  operator<<        (        std::ostream &  os,
+                      const LaunchInformation & lc )
+  {
+    os << " LaunchInformation: " << std::endl;
+    os << "  * local:  " << lc.local_x << ", " << lc.local_y << ", " << lc.local_z << std::endl;
+    os << "  * global: " << lc.global_x << ", " << lc.global_y << ", " << lc.global_z << std::endl;
+    return os;
+  }
+  
   
   struct PerformanceInformation
   {

@@ -201,6 +201,18 @@ main            (int argc, char ** args)
     std::vector <boost::tuple <int, int, int> > global_sizes;
     extract_sizes (conf, local_sizes, global_sizes, std::string ("/config/gpu/dwt2"));
     
+    std::vector <boost::tuple <int, int, int> > tmp_local_1, tmp_local_2, tmp_local_3;
+    std::vector <boost::tuple <int, int, int> > tmp_global_1, tmp_global_2, tmp_global_3;
+    extract_sizes (conf, tmp_local_1, tmp_global_1, std::string ("/config/gpu/dwt_1_alt"));
+    LaunchInformation lc_1_alt (tmp_local_1 [0].get <0> (), tmp_local_1 [0].get <1> (), tmp_local_1 [0].get <2> (),
+                                tmp_global_1 [0].get <0> (), tmp_global_1 [0].get <1> (), tmp_global_1 [0].get <2> ());
+    extract_sizes (conf, tmp_local_2, tmp_global_2, std::string ("/config/gpu/dwt_2_alt"));
+    LaunchInformation lc_2_alt (tmp_local_2 [0].get <0> (), tmp_local_2 [0].get <1> (), tmp_local_2 [0].get <2> (),
+                                tmp_global_2 [0].get <0> (), tmp_global_2 [0].get <1> (), tmp_global_2 [0].get <2> ());
+    extract_sizes (conf, tmp_local_3, tmp_global_3, std::string ("/config/gpu/dwt_3_alt"));
+    LaunchInformation lc_3_alt (tmp_local_3 [0].get <0> (), tmp_local_3 [0].get <1> (), tmp_local_3 [0].get <2> (),
+                                tmp_global_3 [0].get <0> (), tmp_global_3 [0].get <1> (), tmp_global_3 [0].get <2> ());
+    
     std::vector <boost::tuple <int, int, int> > dwt_local;
     std::vector <boost::tuple <int, int, int> > dwt_global;
     extract_sizes (conf, dwt_local, dwt_global, std::string ("/config/gpu/dwt3"));
@@ -246,7 +258,7 @@ main            (int argc, char ** args)
                                      dwt_global [0].get <0> (), dwt_global [0].get <1> (), dwt_global [0].get <2> ());
                                      
         // do something
-        oclDWT <elem_type> dwt (mat_in.Dim (0), mat_in.Dim (1), mat_in.Dim (2), wl_fam, wl_mem, wl_scale, lc1, lc2, kv);
+        oclDWT <elem_type> dwt (mat_in.Dim (0), mat_in.Dim (1), mat_in.Dim (2), wl_fam, wl_mem, wl_scale, lc1, lc2, kv, lc_1_alt, lc_2_alt, lc_3_alt);
         
         std::vector <PerformanceInformation> vec_pi_forward = dwt.Trafo (mat_in, mat_out_dwt, chunk_size);
         std::vector <PerformanceInformation> vec_pi_backwards = dwt.Adjoint (mat_out_dwt, mat_out_dwt_recon, chunk_size);
