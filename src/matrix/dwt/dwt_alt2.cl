@@ -1,14 +1,34 @@
 // created on Dec 19, 2013
 
-# ifndef LOC_MEM_LINE
- # define LOC_MEM_LINE 32
-# endif
-
 # ifndef OFFSET
   __constant const int offset = FL-2;
   # define OFFSET
 # endif
 
+# ifndef LOC_MEM_LINE
+ # define LOC_MEM_LINE 32
+# endif
+
+# ifndef ROUND_TO
+ # define ROUND_TO 32
+# endif
+
+# ifndef CHECKS
+// # define CHECKS
+# endif
+
+int roundUp(const int numToRound, const int multiple) 
+{ 
+ if(multiple == 0) 
+ { 
+  return numToRound; 
+ } 
+
+ int remainder = numToRound % multiple;
+ if (remainder == 0)
+  return numToRound;
+ return numToRound + multiple - remainder;
+} 
 
 /**
  * @author djoergens
@@ -33,7 +53,7 @@ kernel void dwt_1_alt (__global A_type * arg1,
   ///////////////////
   // READING CONFIG
   ///////////////////
-  const int pad_line_length = *line_length + padding;
+  const int pad_line_length = roundUp (*line_length + padding, ROUND_TO);
   const int pad_slice = pad_line_length * *line_length;
 
   ///////////////////
@@ -69,8 +89,8 @@ kernel void dwt_1_alt (__global A_type * arg1,
   // LOCAL MEMORY
   //////////////////
 
-  const int loc_mem_line_IN = LOC_MEM_LINE + 1;
-  const int loc_mem_line_OUT = LOC_MEM_LINE - offset + 1;
+  const int loc_mem_line_IN = LOC_MEM_LINE + offset + 1;
+  const int loc_mem_line_OUT = LOC_MEM_LINE + 1;
 
   __local A_type * input = loc_mem;
   __local A_type * output = loc_mem + lsize_1 * lsize_2 * loc_mem_line_IN;
@@ -80,30 +100,30 @@ kernel void dwt_1_alt (__global A_type * arg1,
   //////////////////////
 
   // loop over blocks in third dimension
-  for (int d2 = gid_2 * lsize_2; d2 + lid_2 < *chunk_size; d2 += gsize_2)
+  for (int d2 = gid_2 * lsize_2; d2 < *chunk_size; d2 += gsize_2)
   {
 
-    barrier (CLK_LOCAL_MEM_FENCE);
-
     // loop over blocks in second dimension
-    for (int d1 = gid_1 * lsize_1; d1 + lid_1 < *line_length; d1 += gsize_1)
+    for (int d1 = gid_1 * lsize_1; d1 < *line_length; d1 += gsize_1)
     {
 
-      barrier (CLK_LOCAL_MEM_FENCE);
-
       // loop over blocks in first dimension
-      for (int d0 = gid_0 * (LOC_MEM_LINE - offset); d0 + lid_0 < *line_length; d0 += ng_0 * (LOC_MEM_LINE - offset))
+      for (int d0 = gid_0 * LOC_MEM_LINE; d0 < *line_length; d0 += ng_0 * LOC_MEM_LINE)
       {
 
         //////////////
         // READ: global -> local
         //////////////
-        barrier (CLK_LOCAL_MEM_FENCE);
-
+        
+        # ifdef CHECKS
+        if (d2 + lid_2 < *chunk_size
+          && d1 + lid_1 < *line_length
+          && d0 + lid_0 < *line_length)
+        # endif
         {
 
           const int pad_index_base = (d2 + lid_2) * pad_slice                   // slice
-                                   + (d1 + lid_1) * (*line_length + padding);   // line in particular slice
+                                   + (d1 + lid_1) * pad_line_length;   // line in particular slice
 
           // local memory
           const int line = get_local_id (1) + get_local_id (2) * get_local_size (1);
@@ -111,9 +131,12 @@ kernel void dwt_1_alt (__global A_type * arg1,
 
           // copy
           const int index = pad_index_base + d0 + lid_0 - offset + padding
-                          + (d0 + lid_0 - offset < 0 ? *line_length : 0);
+                          + ((d0 + lid_0 - offset) < 0 ? *line_length : 0);
           tmp [lid_0]           = arg1 [index];
-          tmp [lid_0 + lsize_0] = arg1 [index + lsize_0];
+          if (d0 + lsize_0 + lid_0 - offset < *line_length)
+            tmp [lid_0 + lsize_0] = arg1 [pad_index_base + d0 + lid_0 - offset + padding + lsize_0];
+          if (d0 + 2 * lsize_0 + lid_0 - offset < *line_length && lid_0 < offset)
+            tmp [lid_0 + 2 * lsize_0] = arg1 [pad_index_base + d0 + lid_0 - offset + padding + 2 * lsize_0];
         
         }
 
@@ -122,8 +145,14 @@ kernel void dwt_1_alt (__global A_type * arg1,
         //////////////////
         barrier (CLK_LOCAL_MEM_FENCE);
         
-        if (2 * lid_1 < (LOC_MEM_LINE - offset)
-         && lid_2 * lsize_0 < lsize_2 * lsize_1)
+        # ifdef CHECKS
+        if (d2 + lid_2 < *chunk_size
+          && d1 + lid_0 < *line_length
+          && d0 + lid_1 < *line_length)
+        if (2 * lid_1 < LOC_MEM_LINE
+         && lid_2 * lsize_0 < lsize_2 * lsize_1
+         && 2 * lid_1 + d0 < *line_length)
+        # endif
         {
         
           // local memory
@@ -139,13 +168,13 @@ kernel void dwt_1_alt (__global A_type * arg1,
           }
           tmp_out [lid_1] = sum;
         
-          sum = 0;
+          A_type sum2 = 0;
           # pragma unroll
           for (int k = FL-1; k >= 0; k--)
           {
-            sum += tmp_in [2 * lid_1 + FL-1 - k] * _hpf [k];
+            sum2 += tmp_in [2 * lid_1 + FL-1 - k] * _hpf [k];
           }
-          tmp_out [lid_1 + LOC_MEM_LINE/2] = sum;
+          tmp_out [lid_1 + LOC_MEM_LINE/2] = sum2;
         
         }
         
@@ -154,8 +183,13 @@ kernel void dwt_1_alt (__global A_type * arg1,
         //////////////
         barrier (CLK_LOCAL_MEM_FENCE);
         
-        if (lid_0 + d0/2 < *line_length/2
-         && lid_0 < (LOC_MEM_LINE - offset)/2)
+        # ifdef CHECKS
+        if (d2 + lid_2 < *chunk_size
+          && d1 + lid_1 < *line_length
+          && d0 + lid_0 < *line_length)
+        if (2 * lid_0 + d0 < *line_length
+         && 2 * lid_0 < LOC_MEM_LINE)
+        # endif
         {
             
           // local memory
@@ -203,7 +237,7 @@ kernel void dwt_2_alt (__global A_type * arg1,
   ///////////////////
   // READING CONFIG
   ///////////////////
-  const int pad_line_length = *line_length + padding;
+  const int pad_line_length = roundUp (*line_length + padding, ROUND_TO);
   const int pad_slice = pad_line_length * *line_length;
 
   ///////////////////
@@ -239,8 +273,8 @@ kernel void dwt_2_alt (__global A_type * arg1,
   // LOCAL MEMORY
   //////////////////
 
-  const int loc_mem_line_IN = LOC_MEM_LINE + 1;
-  const int loc_mem_line_OUT = LOC_MEM_LINE - offset + 1;
+  const int loc_mem_line_IN = LOC_MEM_LINE + offset + 1;
+  const int loc_mem_line_OUT = LOC_MEM_LINE + 1;
 
   __local A_type * input = loc_mem;
   __local A_type * output = loc_mem + lsize_0 * lsize_2 * loc_mem_line_IN;
@@ -250,26 +284,26 @@ kernel void dwt_2_alt (__global A_type * arg1,
   //////////////////////
 
   // loop over blocks in third dimension
-  for (int d2 = gid_2 * lsize_2; d2 + lid_2 < *chunk_size; d2 += gsize_2)
+  for (int d2 = gid_2 * lsize_2; d2 < *chunk_size; d2 += gsize_2)
   {
 
-    barrier (CLK_LOCAL_MEM_FENCE);
-
     // loop over blocks in second dimension
-    for (int d0 = gid_0 * lsize_0; d0 + lid_0 < *line_length; d0 += gsize_0)
+    for (int d0 = gid_0 * lsize_0; d0 < *line_length; d0 += gsize_0)
     {
 
-      barrier (CLK_LOCAL_MEM_FENCE);
-
       // loop over blocks in first dimension
-      for (int d1 = gid_1 * (LOC_MEM_LINE - offset); d1 + lid_1 < *line_length; d1 += ng_1 * (LOC_MEM_LINE - offset))
+      for (int d1 = gid_1 * LOC_MEM_LINE; d1 < *line_length; d1 += ng_1 * LOC_MEM_LINE)
       {
 
         //////////////
         // READ: global -> local
         //////////////
-        barrier (CLK_LOCAL_MEM_FENCE);
 
+        # ifdef CHECKS
+        if (d2 + lid_2 < *chunk_size
+         && d0 + lid_0 < *line_length
+         && d1 + lid_1 < *line_length)
+        # endif
         {
 
         const int pad_index_base = (d2 + lid_2) * pad_slice  // slice
@@ -283,7 +317,10 @@ kernel void dwt_2_alt (__global A_type * arg1,
         const int index = pad_index_base + (d1 + lid_1 - offset) * pad_line_length
                         + (d1 + lid_1 - offset < 0 ? pad_slice : 0);
         tmp [lid_1]           = arg1 [index];
-        tmp [lid_1 + lsize_1] = arg1 [index + lsize_1 * pad_line_length];
+        if (d1 + lid_1 + lsize_1 - offset < *line_length)
+          tmp [lid_1 + lsize_1] = arg1 [pad_index_base + (d1 + lid_1 - offset + lsize_1) * pad_line_length];
+        if (d1 + lid_1 + 2 * lsize_1 - offset < *line_length && lid_1 < offset)
+          tmp [lid_1 + 2 * lsize_1] = arg1 [pad_index_base + (d1 + lid_1 - offset + 2 * lsize_1) * pad_line_length];
 
         }
 
@@ -292,7 +329,12 @@ kernel void dwt_2_alt (__global A_type * arg1,
         //////////////////
         barrier (CLK_LOCAL_MEM_FENCE);
         
-        if (2 * lid_1 < (LOC_MEM_LINE - offset))
+        # ifdef CHECKS
+        if (d2 + lid_2 < *chunk_size
+         && d0 + lid_0 < *line_length
+         && d1 + lid_1 < *line_length)
+        if (2 * lid_1 < LOC_MEM_LINE)
+        # endif
         {
         
           // local memory
@@ -323,8 +365,13 @@ kernel void dwt_2_alt (__global A_type * arg1,
         //////////////
         barrier (CLK_LOCAL_MEM_FENCE);
         
+        # ifdef CHECKS
+        if (d2 + lid_2 < *chunk_size
+         && d0 + lid_0 < *line_length
+         && d1 + lid_1 < *line_length)
         if (lid_1 + d1/2 < *line_length/2
-         && lid_1 < (LOC_MEM_LINE - offset)/2)
+         && lid_1 < LOC_MEM_LINE/2)
+        # endif
         {
         
           // local memory
@@ -374,7 +421,7 @@ kernel void dwt_3_alt (__global A_type * arg1,
   ///////////////////
   // READING CONFIG
   ///////////////////
-  const int pad_line_length = *chunk_size_0 + padding;
+  const int pad_line_length = roundUp (*chunk_size_0 + padding, ROUND_TO);
   const int pad_slice = pad_line_length * *chunk_size_1;
 
   ///////////////////
@@ -410,8 +457,8 @@ kernel void dwt_3_alt (__global A_type * arg1,
   // LOCAL MEMORY
   //////////////////
 
-  const int loc_mem_line_IN = LOC_MEM_LINE + 1;
-  const int loc_mem_line_OUT = LOC_MEM_LINE - offset + 1;
+  const int loc_mem_line_IN = LOC_MEM_LINE + offset + 1;
+  const int loc_mem_line_OUT = LOC_MEM_LINE + 1;
 
   __local A_type * input = loc_mem;
   __local A_type * output = loc_mem + lsize_0 * lsize_1 * loc_mem_line_IN;
@@ -421,27 +468,27 @@ kernel void dwt_3_alt (__global A_type * arg1,
   //////////////////////
 
   // loop over blocks in third dimension
-  for (int d1 = gid_1 * lsize_1; d1 + lid_1 < *chunk_size_1; d1 += gsize_1)
+  for (int d1 = gid_1 * lsize_1; d1 < *chunk_size_1; d1 += gsize_1)
   {
 
-    barrier (CLK_LOCAL_MEM_FENCE);
-
     // loop over blocks in second dimension
-    for (int d0 = gid_0 * lsize_0; d0 + lid_0 < *chunk_size_0; d0 += gsize_0)
+    for (int d0 = gid_0 * lsize_0; d0 < *chunk_size_0; d0 += gsize_0)
     {
 
-      barrier (CLK_LOCAL_MEM_FENCE);
-
       // loop over blocks in first dimension
-      for (int d2 = gid_2 * (LOC_MEM_LINE - offset); d2 + lid_2 < *line_length; d2 += ng_2 * (LOC_MEM_LINE - offset))
+      for (int d2 = gid_2 * LOC_MEM_LINE; d2 < *line_length; d2 += ng_2 * LOC_MEM_LINE)
       {
 
         //////////////
         // READ: global -> local
         //////////////
-        barrier (CLK_LOCAL_MEM_FENCE);
 
-//        {
+        # ifdef CHECKS
+        if (d1 + lid_1 < *chunk_size_1
+         && d0 + lid_0 < *chunk_size_0
+         && d2 + lid_2 < *line_length)
+        # endif
+        {
 
         const int pad_index_base = (d1 + lid_1) * pad_line_length  // ...
                                  + (d0 + lid_0) + padding;         // line in particular slice
@@ -454,19 +501,24 @@ kernel void dwt_3_alt (__global A_type * arg1,
         const int index1 = pad_index_base + (d2 + lid_2 - offset) * pad_slice
                          + (d2 + lid_2 - offset < 0 ? *line_length * pad_slice : 0);
         tmp [lid_2]           = arg1 [index1];
-        const int index2 = pad_index_base + (d2 + lid_2 + lsize_2 - offset) * pad_slice
-                         + (d2 + lid_2 + lsize_2 - offset < 0 ? *line_length * pad_slice : 0);
-        if (index2 < *line_length * pad_slice)  // TODO: ???
-          tmp [lid_2 + lsize_2] = arg1 [index2];
+        if (d2 + lid_2 - offset + lsize_2 < *line_length)
+          tmp [lid_2 + lsize_2] = arg1 [pad_index_base + (d2 + lid_2 - offset + lsize_2) * pad_slice];
+        if (d2 + lid_2 - offset + 2 * lsize_2 < *line_length && lid_2 < offset)
+          tmp [lid_2 + 2 * lsize_2] = arg1 [pad_index_base + (d2 + lid_2 - offset + 2 * lsize_2) * pad_slice];
 
-//        }
+        }
 
         //////////////////
         // COMPUTE: local
         //////////////////
         barrier (CLK_LOCAL_MEM_FENCE);
-        
-        if (2 * lid_2 < (LOC_MEM_LINE - offset))
+
+        # ifdef CHECKS
+        if (d1 + lid_1 < *chunk_size_1
+         && d0 + lid_0 < *chunk_size_0
+         && d2 + lid_2 < *line_length)
+        if (2 * lid_2 < LOC_MEM_LINE)
+        # endif
         {
         
           // local memory
@@ -497,8 +549,13 @@ kernel void dwt_3_alt (__global A_type * arg1,
         //////////////
         barrier (CLK_LOCAL_MEM_FENCE);
 
+        # ifdef CHECKS
+        if (d1 + lid_1 < *chunk_size_1
+         && d0 + lid_0 < *chunk_size_0
+         && d2 + lid_2 < *line_length)
         if (lid_2 + d2/2 < *line_length/2
-         && lid_2 < (LOC_MEM_LINE - offset)/2)
+         && lid_2 < LOC_MEM_LINE/2)
+        # endif
         {
         
           // local memory

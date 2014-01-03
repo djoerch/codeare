@@ -236,7 +236,7 @@ class oclDWT {
               return std::vector <PerformanceInformation> ();
             }
             
-            const int padding = _fl - 2;
+            const int padding = 32;//_fl - 2;   /* whole padding (beginning & end) is 32 */
             const int buffer_size = m.Dim (2) == 1
                                   ? m.Size ()
                                   : max ((res.Dim (0) + padding) * res.Dim (1) * chunk_size, res.Dim (2) * (chunk_size + padding) * chunk_size);

@@ -1701,6 +1701,19 @@
           
       }
       
+      static
+      int roundUp(const int numToRound, const int multiple) 
+      { 
+       if(multiple == 0) 
+       { 
+        return numToRound; 
+       } 
+
+       int remainder = numToRound % multiple;
+       if (remainder == 0)
+        return numToRound;
+       return numToRound + multiple - remainder;
+      } 
       
       
       static inline
@@ -1729,18 +1742,18 @@
           // dynamically allocate local memory
           ////////////////
                     
-          const int loc_mem_line = 32 + 1;
+          const int loc_mem_line = 32 + 6 + 1;
           
           // dwt_1
-          const int num_loc_mem_elems1 = loc_mem_line * 2 * lc1.local_y * lc1.local_z;//(2 * n + 8) * lc1.local_y * lc1.local_z;
+          const int num_loc_mem_elems1 = loc_mem_line * 2 * lc1.local_y * lc1.local_z;
           oclDataObject * loc_mem1 = new oclLocalMemObject <elem_type> (num_loc_mem_elems1);
           
           // dwt_2
-          const int num_loc_mem_elems2 = loc_mem_line * 2 * lc2.local_x * lc2.local_z;//(2 * m + 8) * lc2.local_x * lc2.local_z;
+          const int num_loc_mem_elems2 = loc_mem_line * 2 * lc2.local_x * lc2.local_z;
           oclDataObject * loc_mem2 = new oclLocalMemObject <elem_type> (num_loc_mem_elems2);
           
           // dwt_3
-          const int num_loc_mem_elems3 = loc_mem_line * 2 * lc3.local_x * lc3.local_y;//(2 * k + 8) * lc3.local_x * lc3.local_y;
+          const int num_loc_mem_elems3 = loc_mem_line * 2 * lc3.local_x * lc3.local_y;
           oclDataObject * loc_mem3 = new oclLocalMemObject <elem_type> (num_loc_mem_elems3);
           
           std::cout << " loc_mem1 (dwt_1): " << num_loc_mem_elems1 * sizeof (elem_type) << " Bytes " << std::endl;
@@ -1759,8 +1772,9 @@
           // prepare access patterns for CPU-GPU-transfers
           //////////
           const int padding = fl - 2;
+          const int roundTo = 32;
           arg1 -> APDevice () = oclAccessPattern (padding * sizeof (elem_type), 0, 0,
-                  (n + padding) * sizeof (elem_type), (n + padding) * m * sizeof (elem_type),
+                  roundUp (n + padding, roundTo) * sizeof (elem_type), roundUp (n + padding, roundTo) * m * sizeof (elem_type),
                    n * sizeof (elem_type), m, k);
           arg1 -> APHost () = oclAccessPattern (0, 0, 0,
                    n * sizeof (elem_type), n * m * sizeof (elem_type),
@@ -1777,8 +1791,9 @@
           // loop over levels
           for (int i = 0; i < levels; i++)
           {
-
+            
             const int line_length = n / pow (2, i);
+            const int pad_line_length = roundUp (line_length + padding, roundTo);
             const int num_slices = line_length;
             const int chunk_size_dwt12 = min (num_slices, chunk_size);
             
@@ -1794,21 +1809,37 @@
             // loop over chunks of slices
             for (int l = 0; l < num_slices; l += chunk_size_dwt12)
             {
-              
+                            
               // set origin of current chunk on host
               tmp1 -> APHost ().Origin (2) = tmp2 -> APHost ().Origin (2)
                                            = tmp  -> APHost ().Origin (2) = l;
+              
+              // set padding for tmp1 (READ)
+              tmp1 -> APDevice ().Origin (0) = padding * sizeof (elem_type);
+              tmp1 -> APDevice ().RowPitch () = pad_line_length * sizeof (elem_type);
+              tmp1 -> APDevice ().SlicePitch () = pad_line_length * line_length * sizeof(elem_type);
               
               tmp1 -> setCPUModified (); // upload src
               tmp2 -> setSync (); // do NOT upload dest
               
               pi += ocl_basic_operator_kernel_56 ("dwt_1_alt", tmp1, lpf, hpf, tmp2, loc_mem1, n, m, k, line_length, chunk_size_dwt12, num_loc_mem_elems1, lc1);
               
-//              tmp2 -> getData ();
-              
+//              if (i != 0)
+//              {
+//                tmp2 -> APDevice () = tmp1 -> APDevice ();
+//                tmp2 -> getData ();
+//              }
+                
               // do not write to src image
               if (i == 0)
                 tmp1 = tmp;
+              
+//              if (i == 0)
+              {
+              // set padding for tmp1 (WRITE)
+              tmp1 -> APDevice ().Origin (0) = 0;
+              tmp1 -> APDevice ().RowPitch () = (line_length) * sizeof (elem_type);
+              tmp1 -> APDevice ().SlicePitch () = (line_length) * line_length * sizeof(elem_type);
               
               tmp1 -> setSync (); // use results on GPU
               tmp2 -> setSync (); // use results on GPU
@@ -1818,6 +1849,8 @@
               // download results
               pi2.time_mem_down += tmp1 -> getData ();
                 
+              }
+              
               // do not write to src image
               if (i == 0)
                 tmp1 = arg1;
@@ -1838,6 +1871,7 @@
             // run kernel "dwt3" on beams
             ProfilingInformation pi3 = {0, 0, 0, 0};
             const int chunk_size_dwt3 = min (line_length, chunk_size);
+            const int pad_chunk_size_dwt3 = roundUp (chunk_size_dwt3 + padding, roundTo);
             lc2.global_z = lc2.local_z = lc2.local_z > line_length ? line_length : lc2.local_z;
             
             const oclAccessPattern tmp_ap_array [4] = {tmp1 -> APHost (), tmp1 -> APDevice (),
@@ -1853,12 +1887,12 @@
             // tmp1: input -> padding
             // tmp2: output -> without padding
             tmp1 -> APDevice ().Origin (0) = padding * sizeof (elem_type);
-            tmp1 -> APDevice ().RowPitch () = (chunk_size_dwt3 + padding) * sizeof (elem_type);
-            tmp1 -> APDevice ().SlicePitch () = (chunk_size_dwt3 + padding) * chunk_size_dwt3 * sizeof (elem_type);
+            tmp1 -> APDevice ().RowPitch () = pad_chunk_size_dwt3 * sizeof (elem_type);
+            tmp1 -> APDevice ().SlicePitch () = pad_chunk_size_dwt3 * chunk_size_dwt3 * sizeof (elem_type);
             tmp2 -> APDevice ().Origin (0) = 0;
             tmp2 -> APDevice ().RowPitch () = chunk_size_dwt3 * sizeof (elem_type);
             tmp2 -> APDevice ().SlicePitch () = chunk_size_dwt3 * chunk_size_dwt3 * sizeof (elem_type);
-                        
+//            if (i == 0)
             // loop over chunks of beams along dim0
             for (int l = 0; l < line_length; l += chunk_size_dwt3)
             {
@@ -1897,8 +1931,8 @@
             tmp2 -> APHost ().Region (1) = tmp2 -> APDevice ().Region (1) = line_length/2;
             tmp1 -> APHost ().Region (2) = tmp1 -> APDevice ().Region (2) = line_length/2;
             tmp2 -> APHost ().Region (2) = tmp2 -> APDevice ().Region (2) = line_length/2;
-            tmp1 -> APDevice ().RowPitch () = tmp2 -> APDevice ().RowPitch () = (line_length/2 + padding) * sizeof (elem_type);
-            tmp1 -> APDevice ().SlicePitch () = tmp2 -> APDevice ().SlicePitch () = (line_length/2 + padding) * line_length/2 * sizeof (elem_type);
+            tmp1 -> APDevice ().RowPitch () = tmp2 -> APDevice ().RowPitch () = (roundUp (line_length/2 + padding, roundTo)) * sizeof (elem_type);
+            tmp1 -> APDevice ().SlicePitch () = tmp2 -> APDevice ().SlicePitch () = (roundUp (line_length/2 + padding, roundTo)) * line_length/2 * sizeof (elem_type);
                 
           }
           
