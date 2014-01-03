@@ -9,8 +9,12 @@
  # define LOC_MEM_LINE 32
 # endif
 
+# ifndef PADDING
+ # define PADDING 0
+# endif
+
 # ifndef ROUND_TO
- # define ROUND_TO 32
+ # define ROUND_TO 1
 # endif
 
 # ifndef CHECKS
@@ -48,12 +52,10 @@ kernel void dwt_1_alt (__global A_type * arg1,
   
   const int shift = -offset/2;
 
-  const int padding = offset;
-
   ///////////////////
   // READING CONFIG
   ///////////////////
-  const int pad_line_length = roundUp (*line_length + padding, ROUND_TO);
+  const int pad_line_length = roundUp (*line_length + PADDING, ROUND_TO);
   const int pad_slice = pad_line_length * *line_length;
 
   ///////////////////
@@ -130,13 +132,12 @@ kernel void dwt_1_alt (__global A_type * arg1,
           __local A_type * tmp = input + line * loc_mem_line_IN;
 
           // copy
-          const int index = pad_index_base + d0 + lid_0 - offset + padding
-                          + ((d0 + lid_0 - offset) < 0 ? *line_length : 0);
-          tmp [lid_0]           = arg1 [index];
-          if (d0 + lsize_0 + lid_0 - offset < *line_length)
-            tmp [lid_0 + lsize_0] = arg1 [pad_index_base + d0 + lid_0 - offset + padding + lsize_0];
-          if (d0 + 2 * lsize_0 + lid_0 - offset < *line_length && lid_0 < offset)
-            tmp [lid_0 + 2 * lsize_0] = arg1 [pad_index_base + d0 + lid_0 - offset + padding + 2 * lsize_0];
+          const int index = pad_index_base + d0 + lid_0 + PADDING;
+          tmp [lid_0 + offset]           = arg1 [index];
+          if (d0 + lsize_0 + lid_0 < *line_length)
+            tmp [lid_0 + lsize_0 + offset] = arg1 [index + lsize_0];
+          if (lid_0 < offset)
+            tmp [lid_0] = arg1 [index - offset + ((d0 + lid_0 - offset) < 0 ? *line_length : 0)];
         
         }
 
@@ -199,7 +200,7 @@ kernel void dwt_1_alt (__global A_type * arg1,
           const int index_base = (d2 + lid_2) * pad_slice
                                + (d1 + lid_1) * pad_line_length;
 
-          const int index2 = index_base + d0/2 + lid_0 + padding;
+          const int index2 = index_base + d0/2 + lid_0 + PADDING;
           arg2 [index2 + shift + (d0/2 + lid_0 + shift < 0 ? *line_length/2 : 0)] = tmp_out [lid_0];
           arg2 [index2 + *line_length/2] = tmp_out [lid_0 + LOC_MEM_LINE/2];
 
@@ -232,12 +233,10 @@ kernel void dwt_2_alt (__global A_type * arg1,
   
   const int shift = -offset/2;
 
-  const int padding = offset;
-
   ///////////////////
   // READING CONFIG
   ///////////////////
-  const int pad_line_length = roundUp (*line_length + padding, ROUND_TO);
+  const int pad_line_length = roundUp (*line_length + PADDING, ROUND_TO);
   const int pad_slice = pad_line_length * *line_length;
 
   ///////////////////
@@ -307,7 +306,7 @@ kernel void dwt_2_alt (__global A_type * arg1,
         {
 
         const int pad_index_base = (d2 + lid_2) * pad_slice  // slice
-                                 + (d0 + lid_0) + padding;   // line in particular slice
+                                 + (d0 + lid_0) + PADDING;   // line in particular slice
 
         // local memory
         const int line = get_local_id (0) + get_local_id (2) * get_local_size (0);
@@ -416,12 +415,10 @@ kernel void dwt_3_alt (__global A_type * arg1,
   
   const int shift = -offset/2;
 
-  const int padding = offset;
-
   ///////////////////
   // READING CONFIG
   ///////////////////
-  const int pad_line_length = roundUp (*chunk_size_0 + padding, ROUND_TO);
+  const int pad_line_length = roundUp (*chunk_size_0 + PADDING, ROUND_TO);
   const int pad_slice = pad_line_length * *chunk_size_1;
 
   ///////////////////
@@ -491,7 +488,7 @@ kernel void dwt_3_alt (__global A_type * arg1,
         {
 
         const int pad_index_base = (d1 + lid_1) * pad_line_length  // ...
-                                 + (d0 + lid_0) + padding;         // line in particular slice
+                                 + (d0 + lid_0) + PADDING;         // line in particular slice
 
         // local memory
         const int line = get_local_id (0) + get_local_id (1) * get_local_size (0);

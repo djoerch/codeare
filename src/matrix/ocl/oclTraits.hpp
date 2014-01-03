@@ -1742,7 +1742,7 @@
           // dynamically allocate local memory
           ////////////////
                     
-          const int loc_mem_line = 32 + 6 + 1;
+          const int loc_mem_line = 32 + fl-2 + 1;
           
           // dwt_1
           const int num_loc_mem_elems1 = loc_mem_line * 2 * lc1.local_y * lc1.local_z;
@@ -1771,8 +1771,8 @@
           //////////
           // prepare access patterns for CPU-GPU-transfers
           //////////
-          const int padding = fl - 2;
-          const int roundTo = 32;
+          const int padding = 0;//fl - 2;
+          const int roundTo = 1;
           arg1 -> APDevice () = oclAccessPattern (padding * sizeof (elem_type), 0, 0,
                   roundUp (n + padding, roundTo) * sizeof (elem_type), roundUp (n + padding, roundTo) * m * sizeof (elem_type),
                    n * sizeof (elem_type), m, k);
