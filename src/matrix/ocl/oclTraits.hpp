@@ -1742,7 +1742,7 @@
           // dynamically allocate local memory
           ////////////////
                     
-          const int loc_mem_line = 32 + fl-2 + 1;
+          const int loc_mem_line = 64 + fl-2 + 1;
           
           // dwt_1
           const int num_loc_mem_elems1 = loc_mem_line * 2 * lc1.local_y * lc1.local_z;
@@ -1834,7 +1834,7 @@
               if (i == 0)
                 tmp1 = tmp;
               
-//              if (i == 0)
+////              if (i == 0)
               {
               // set padding for tmp1 (WRITE)
               tmp1 -> APDevice ().Origin (0) = 0;
@@ -1872,7 +1872,7 @@
             ProfilingInformation pi3 = {0, 0, 0, 0};
             const int chunk_size_dwt3 = min (line_length, chunk_size);
             const int pad_chunk_size_dwt3 = roundUp (chunk_size_dwt3 + padding, roundTo);
-            lc2.global_z = lc2.local_z = lc2.local_z > line_length ? line_length : lc2.local_z;
+            lc3.global_z = lc3.local_z = lc3.local_z > line_length ? line_length : lc3.local_z;
             
             const oclAccessPattern tmp_ap_array [4] = {tmp1 -> APHost (), tmp1 -> APDevice (),
                                                        tmp2 -> APHost (), tmp2 -> APDevice ()}; // save current state !!!
@@ -2013,7 +2013,7 @@
           vec_perf.push_back (PerformanceInformation ("dwt1+2+3 (all levels)", lc1, " Effective bandwidth (GB/s)", time_seconds, time_mem_up, time_mem_down, effective_bw));
           vec_perf.push_back (PerformanceInformation ("dwt_1 (all levels)", lc1, " Effective bandwidth (GB/s)", time_seconds_1, time_mem_up_1, time_mem_down_1, effective_bw_1));
           vec_perf.push_back (PerformanceInformation ("dwt_2 (all levels)", lc2, " Effective bandwidth (GB/s)", time_seconds_2, time_mem_up_2, time_mem_down_2, effective_bw_2));
-          vec_perf.push_back (PerformanceInformation ("dwt3 (all levels)", lc3, " Effective bandwidth (GB/s)", time_seconds_3, time_mem_up_3, time_mem_down_3, effective_bw_3));
+          vec_perf.push_back (PerformanceInformation ("dwt_3 (all levels)", lc3, " Effective bandwidth (GB/s)", time_seconds_3, time_mem_up_3, time_mem_down_3, effective_bw_3));
 
 # endif
           
