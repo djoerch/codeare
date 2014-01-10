@@ -1745,7 +1745,7 @@
           const int loc_mem_line = 64 + fl-2 + 1;
           
           // dwt_1
-          const int num_loc_mem_elems1 = loc_mem_line * 2 * lc1.local_y * lc1.local_z;
+          const int num_loc_mem_elems1 = loc_mem_line * 2 * max (lc1.local_x, lc1.local_y) * lc1.local_z;
           oclDataObject * loc_mem1 = new oclLocalMemObject <elem_type> (num_loc_mem_elems1);
           
           // dwt_2
@@ -1787,7 +1787,7 @@
           ////////////
           oclDataObject * tmp1 = arg1;
           oclDataObject * tmp2 = arg2;
-          
+                    
           // loop over levels
           for (int i = 0; i < levels; i++)
           {
@@ -1796,7 +1796,7 @@
             const int pad_line_length = roundUp (line_length + padding, roundTo);
             const int num_slices = line_length;
             const int chunk_size_dwt12 = min (num_slices, chunk_size);
-            
+                    
             // run kernels "dwt_2" and "dwt_1" on slices
             ProfilingInformation pi = {0, 0, 0, 0};
             ProfilingInformation pi2 = {0, 0, 0, 0};
@@ -1848,7 +1848,6 @@
                 
               // download results
               pi2.time_mem_down += tmp1 -> getData ();
-                
               }
               
               // do not write to src image
@@ -1871,15 +1870,17 @@
             // run kernel "dwt3" on beams
             ProfilingInformation pi3 = {0, 0, 0, 0};
             const int chunk_size_dwt3 = min (line_length, chunk_size);
+            const int chunk_size_dwt3_dim0 = line_length;
             const int pad_chunk_size_dwt3 = roundUp (chunk_size_dwt3 + padding, roundTo);
+            const int pad_chunk_size_dwt3_dim0 = roundUp (chunk_size_dwt3_dim0 + padding, roundTo);
             lc3.global_z = lc3.local_z = lc3.local_z > line_length ? line_length : lc3.local_z;
             
             const oclAccessPattern tmp_ap_array [4] = {tmp1 -> APHost (), tmp1 -> APDevice (),
                                                        tmp2 -> APHost (), tmp2 -> APDevice ()}; // save current state !!!
             
             // set memory region: shrink dim0 & dim1
-            tmp1 -> APHost ().Region (0) = tmp1 -> APDevice ().Region (0) = chunk_size_dwt3 * sizeof (elem_type);
-            tmp2 -> APHost ().Region (0) = tmp2 -> APDevice ().Region (0) = chunk_size_dwt3 * sizeof (elem_type);
+            tmp1 -> APHost ().Region (0) = tmp1 -> APDevice ().Region (0) = chunk_size_dwt3_dim0 * sizeof (elem_type);
+            tmp2 -> APHost ().Region (0) = tmp2 -> APDevice ().Region (0) = chunk_size_dwt3_dim0 * sizeof (elem_type);
             tmp1 -> APHost ().Region (1) = tmp1 -> APDevice ().Region (1) = chunk_size_dwt3;
             tmp2 -> APHost ().Region (1) = tmp2 -> APDevice ().Region (1) = chunk_size_dwt3;
             
@@ -1887,14 +1888,14 @@
             // tmp1: input -> padding
             // tmp2: output -> without padding
             tmp1 -> APDevice ().Origin (0) = padding * sizeof (elem_type);
-            tmp1 -> APDevice ().RowPitch () = pad_chunk_size_dwt3 * sizeof (elem_type);
-            tmp1 -> APDevice ().SlicePitch () = pad_chunk_size_dwt3 * chunk_size_dwt3 * sizeof (elem_type);
+            tmp1 -> APDevice ().RowPitch () = pad_chunk_size_dwt3_dim0 * sizeof (elem_type);
+            tmp1 -> APDevice ().SlicePitch () = pad_chunk_size_dwt3_dim0 * chunk_size_dwt3 * sizeof (elem_type);
             tmp2 -> APDevice ().Origin (0) = 0;
-            tmp2 -> APDevice ().RowPitch () = chunk_size_dwt3 * sizeof (elem_type);
-            tmp2 -> APDevice ().SlicePitch () = chunk_size_dwt3 * chunk_size_dwt3 * sizeof (elem_type);
+            tmp2 -> APDevice ().RowPitch () = chunk_size_dwt3_dim0 * sizeof (elem_type);
+            tmp2 -> APDevice ().SlicePitch () = chunk_size_dwt3_dim0 * chunk_size_dwt3 * sizeof (elem_type);
 //            if (i == 0)
             // loop over chunks of beams along dim0
-            for (int l = 0; l < line_length; l += chunk_size_dwt3)
+            for (int l = 0; l < line_length; l += chunk_size_dwt3_dim0)
             {
               
               // adjust origin in host memory for dim0
@@ -1910,7 +1911,7 @@
                 tmp1 -> setCPUModified (); // upload src
                 tmp2 -> setSync (); // do NOT upload dest
                 
-                pi3 += ocl_basic_operator_kernel_57 ("dwt_3_alt", tmp1, lpf, hpf, tmp2, loc_mem3, n, m, k, line_length, chunk_size_dwt3, chunk_size_dwt3, num_loc_mem_elems3, lc3);
+                pi3 += ocl_basic_operator_kernel_57 ("dwt_3_alt", tmp1, lpf, hpf, tmp2, loc_mem3, n, m, k, line_length, chunk_size_dwt3_dim0, chunk_size_dwt3, num_loc_mem_elems3, lc3);
                 
                 // download results from GPU
                 pi3.time_mem_down += tmp2 -> getData ();
@@ -1935,7 +1936,7 @@
             tmp1 -> APDevice ().SlicePitch () = tmp2 -> APDevice ().SlicePitch () = (roundUp (line_length/2 + padding, roundTo)) * line_length/2 * sizeof (elem_type);
                 
           }
-          
+                    
           delete loc_mem1;
           delete loc_mem2;
           delete loc_mem3;
@@ -1950,6 +1951,9 @@
           int data_size_1 = 0;
           int data_size_2 = 0;
           int data_size_3 = 0;
+          const int ng_0 = lc1.global_x / lc1.local_x;
+          const int ng_1 = lc2.global_y / lc2.local_y;
+          const int ng_2 = lc3.global_z / lc3.local_z;
           for (int i = 0; i < levels; i++)
           {
             const int sl_0 = n / pow (2, i);
@@ -1957,9 +1961,9 @@
             const int sl_2 = k / pow (2, i);
             const int offset = fl - 2;
             // global -> local
-            data_size_1 += (sl_0 + offset) * sl_1 * sl_2;
-            data_size_2 += (sl_1 + offset) * sl_0 * sl_2;
-            data_size_3 += (sl_2 + offset) * sl_0 * sl_1;
+            data_size_1 += (sl_0 + ng_0 * offset) * sl_1 * sl_2;
+            data_size_2 += (sl_1 + ng_1 * offset) * sl_0 * sl_2;
+            data_size_3 += (sl_2 + ng_2 * offset) * sl_0 * sl_1;
             // local -> global
             data_size_1 += sl_0 * sl_1 * sl_2;
             data_size_2 += sl_1 * sl_0 * sl_2;
@@ -2011,9 +2015,9 @@
           float time_mem_up = time_mem_up_1 + time_mem_up_2 + time_mem_up_3;
           float time_mem_down = time_mem_down_1 + time_mem_down_2 + time_mem_down_3;
           vec_perf.push_back (PerformanceInformation ("dwt1+2+3 (all levels)", lc1, " Effective bandwidth (GB/s)", time_seconds, time_mem_up, time_mem_down, effective_bw));
-          vec_perf.push_back (PerformanceInformation ("dwt_1 (all levels)", lc1, " Effective bandwidth (GB/s)", time_seconds_1, time_mem_up_1, time_mem_down_1, effective_bw_1));
-          vec_perf.push_back (PerformanceInformation ("dwt_2 (all levels)", lc2, " Effective bandwidth (GB/s)", time_seconds_2, time_mem_up_2, time_mem_down_2, effective_bw_2));
-          vec_perf.push_back (PerformanceInformation ("dwt_3 (all levels)", lc3, " Effective bandwidth (GB/s)", time_seconds_3, time_mem_up_3, time_mem_down_3, effective_bw_3));
+          vec_perf.push_back (PerformanceInformation ("dwt_1_alt (all levels)", lc1, " Effective bandwidth (GB/s)", time_seconds_1, time_mem_up_1, time_mem_down_1, effective_bw_1));
+          vec_perf.push_back (PerformanceInformation ("dwt_2_alt (all levels)", lc2, " Effective bandwidth (GB/s)", time_seconds_2, time_mem_up_2, time_mem_down_2, effective_bw_2));
+          vec_perf.push_back (PerformanceInformation ("dwt_3_alt (all levels)", lc3, " Effective bandwidth (GB/s)", time_seconds_3, time_mem_up_3, time_mem_down_3, effective_bw_3));
 
 # endif
           
@@ -2364,29 +2368,31 @@
 
           
           // create launch configuration
-          LaunchInformation lc1 = oclConnection :: Instance () -> getThreadConfig (std::string ("idwt_1"));
-          LaunchInformation lc2 = oclConnection :: Instance () -> getThreadConfig (std::string ("idwt_2"));
-          LaunchInformation lc3 = oclConnection :: Instance () -> getThreadConfig (std::string ("idwt3"));
+          LaunchInformation lc1 = oclConnection :: Instance () -> getThreadConfig (std::string ("idwt_1_alt"));
+          LaunchInformation lc2 = oclConnection :: Instance () -> getThreadConfig (std::string ("idwt_2_alt"));
+          LaunchInformation lc3 = oclConnection :: Instance () -> getThreadConfig (std::string ("idwt_3_alt"));
           
           /////////////
           // dynamically allocate local memory
           /////////////
           
+          const int loc_mem_line = 64 + 2 * (fl-1);
+          
           // idwt1
-          const int num_loc_mem_elems1 = (2 * (n + fl-1)) * lc1.local_y * lc1.local_z;
+          const int num_loc_mem_elems1 = 2 * loc_mem_line * lc1.local_y * lc1.local_z; //(2 * (n + fl-1)) * lc1.local_y * lc1.local_z;
           oclDataObject * loc_mem1 = new oclLocalMemObject <elem_type> (num_loc_mem_elems1);
 
           // idwt2
-          const int num_loc_mem_elems2 = (2 * (m + fl-1)) * lc2.local_x * lc2.local_z;
+          const int num_loc_mem_elems2 = 2 * loc_mem_line * lc2.local_x * lc2.local_z; //(2 * (m + fl-1)) * lc2.local_x * lc2.local_z;
           oclDataObject * loc_mem2 = new oclLocalMemObject <elem_type> (num_loc_mem_elems2);
           
           // idwt3
-          const int num_loc_mem_elems3 = (2 * (k + fl-1)) * lc3.local_x * lc3.local_y;
+          const int num_loc_mem_elems3 = 2 * loc_mem_line * lc3.local_x * lc3.local_y; //(2 * (k + fl-1)) * lc3.local_x * lc3.local_y;
           oclDataObject * loc_mem3 = new oclLocalMemObject <elem_type> (num_loc_mem_elems3);
           
-          std::cout << " local_mem (idwt_1): " << num_loc_mem_elems1 * sizeof (elem_type) << " Bytes " << std::endl;
-          std::cout << " local_mem2 (idwt_2): " << num_loc_mem_elems2 * sizeof (elem_type) << " Bytes " << std::endl;
-          std::cout << " local_mem3 (idwt3): " << num_loc_mem_elems3 * sizeof (elem_type) << " Bytes " << std::endl;
+          std::cout << " local_mem (idwt_1_alt): " << num_loc_mem_elems1 * sizeof (elem_type) << " Bytes " << std::endl;
+          std::cout << " local_mem2 (idwt_2_alt): " << num_loc_mem_elems2 * sizeof (elem_type) << " Bytes " << std::endl;
+          std::cout << " local_mem3 (idwt_3_alt): " << num_loc_mem_elems3 * sizeof (elem_type) << " Bytes " << std::endl;
           std::cout << " chunk_size: " << chunk_size << std::endl;
 
           /////////////
@@ -2416,8 +2422,8 @@
             const int chunk_size_idwt3 = min (line_length, chunk_size);
             const int chunk_size_idwt3_dim0 = line_length;
 //            lc2.global_z = lc2.local_z = (line_length/4 < lc2.local_z ? line_length/4 : lc2.local_z);
-            lc2.global_x /= (chunk_size_idwt3_dim0 < lc2.global_x ? 2 : 1);
-            lc2.global_y /= (chunk_size_idwt3 < lc2.global_y ? 2 : 1);
+//            lc2.global_x /= (chunk_size_idwt3_dim0 < lc2.global_x ? 2 : 1);
+//            lc2.global_y /= (chunk_size_idwt3 < lc2.global_y ? 2 : 1);
             
             // run kernel "idwt3"
             ProfilingInformation pi3 = {0, 0, 0, 0};
@@ -2439,7 +2445,7 @@
                 tmp1 -> APHost ().Origin (1) = tmp2 -> APHost ().Origin (1) = ll;
                 tmp1 -> setCPUModified (); // upload src
                 tmp2 -> setSync (); // do not upload data to result buffer
-                pi3 += ocl_basic_operator_kernel_57 ("idwt3", tmp1, lpf, hpf, tmp2, loc_mem3, n, m, k, line_length, chunk_size_idwt3_dim0, chunk_size_idwt3, num_loc_mem_elems3, lc3);
+                pi3 += ocl_basic_operator_kernel_57 ("idwt_3_alt", tmp1, lpf, hpf, tmp2, loc_mem3, n, m, k, line_length, chunk_size_idwt3_dim0, chunk_size_idwt3, num_loc_mem_elems3, lc3);
                 pi3.time_mem_down += tmp2 -> getData ();
               }
             }
@@ -2475,12 +2481,12 @@
               tmp1 -> setCPUModified (); // upload src
               tmp2 -> setSync (); // do not upload data to result buffer
               
-              pi2 += ocl_basic_operator_kernel_56 ("idwt_2", tmp1, lpf, hpf, tmp2, loc_mem2, n, m, k, line_length, chunk_size_idwt12, num_loc_mem_elems2, lc2);
+              pi2 += ocl_basic_operator_kernel_56 ("idwt_2_alt", tmp1, lpf, hpf, tmp2, loc_mem2, n, m, k, line_length, chunk_size_idwt12, num_loc_mem_elems2, lc2);
               
               tmp1 -> setSync (); // do not upload src
               tmp2 -> setSync (); // do not upload data to dest
               
-              pi1 += ocl_basic_operator_kernel_56 ("idwt_1", tmp2, lpf, hpf, tmp1, loc_mem1, n, m, k, line_length, chunk_size_idwt12, num_loc_mem_elems1, lc1);
+              pi1 += ocl_basic_operator_kernel_56 ("idwt_1_alt", tmp2, lpf, hpf, tmp1, loc_mem1, n, m, k, line_length, chunk_size_idwt12, num_loc_mem_elems1, lc1);
               
               pi1.time_mem_down += tmp1 -> getData ();
               
@@ -2500,6 +2506,9 @@
           int data_size_1 = 0;
           int data_size_2 = 0;
           int data_size_3 = 0;
+          const int ng_0 = lc1.global_x / lc1.local_x;
+          const int ng_1 = lc2.global_y / lc2.local_y;
+          const int ng_2 = lc3.global_z / lc3.local_z;
           for (int i = levels-1; i >= 0; i--)
           {
             const int sl_0 = n / pow (2, i);
@@ -2507,9 +2516,9 @@
             const int sl_2 = k / pow (2, i);
             const int offset = fl - 1;
             // global -> local
-            data_size_1 += sl_1 * sl_2 * (sl_0 + fl-1) * 2;
-            data_size_2 += sl_0 * sl_2 * (sl_1 + fl-1) * 2;
-            data_size_3 += sl_0 * sl_1 * (sl_2 + fl-1) * 2;
+            data_size_1 += sl_1 * sl_2 * (sl_0 + ng_0 * 2 * (fl-1)) * 2;
+            data_size_2 += sl_0 * sl_2 * (sl_1 + ng_1 * 2 * (fl-1)) * 2;
+            data_size_3 += sl_0 * sl_1 * (sl_2 + ng_2 * 2 * (fl-1)) * 2;
             // local -> global
             data_size_1 += sl_0 * sl_1 * sl_2;
             data_size_2 += sl_0 * sl_1 * sl_2;
@@ -2555,9 +2564,9 @@
           float effective_bw = ((float)((data_size) * sizeof (elem_type)) * 1.0e-9f) / (time_seconds);
           
             vec_perf.push_back (PerformanceInformation ("idwt1+2+3", lc1, " Effective bandwidth (GB/s)", time_seconds, time_mem_up_1 + time_mem_up_2 + time_mem_up_3, time_mem_down_1 + time_mem_down_2 + time_mem_down_3, effective_bw));
-            vec_perf.push_back (PerformanceInformation ("idwt_1 (kernel)", lc1, " Effective bandwidth (GB/s)", time_seconds_1, time_mem_up_1, time_mem_down_1, effective_bw_1));
-            vec_perf.push_back (PerformanceInformation ("idwt_2 (kernel)", lc2, " Effective bandwidth (GB/s)", time_seconds_2, time_mem_up_2, time_mem_down_2, effective_bw_2));
-            vec_perf.push_back (PerformanceInformation ("idwt3 (kernel)", lc3, " Effective bandwidth (GB/s)", time_seconds_3, time_mem_up_3, time_mem_down_3, effective_bw_3));
+            vec_perf.push_back (PerformanceInformation ("idwt_1_alt (kernel)", lc1, " Effective bandwidth (GB/s)", time_seconds_1, time_mem_up_1, time_mem_down_1, effective_bw_1));
+            vec_perf.push_back (PerformanceInformation ("idwt_2_alt (kernel)", lc2, " Effective bandwidth (GB/s)", time_seconds_2, time_mem_up_2, time_mem_down_2, effective_bw_2));
+            vec_perf.push_back (PerformanceInformation ("idwt_3_alt (kernel)", lc3, " Effective bandwidth (GB/s)", time_seconds_3, time_mem_up_3, time_mem_down_3, effective_bw_3));
                         
 # endif
             

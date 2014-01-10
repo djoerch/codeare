@@ -97,6 +97,7 @@ class oclDWT {
             filenames.push_back (base_kernel_path + "src/matrix/dwt/dwt2.cl");
             filenames.push_back (base_kernel_path + "src/matrix/dwt/dwt2_alt.cl");
             filenames.push_back (base_kernel_path + "src/matrix/dwt/idwt_alt.cl");
+            filenames.push_back (base_kernel_path + "src/matrix/dwt/idwt_alt2.cl");
             filenames.push_back (base_kernel_path + "src/matrix/dwt/idwt2.cl");
             filenames.push_back (base_kernel_path + "src/matrix/dwt/dwt3.cl");
             filenames.push_back (base_kernel_path + "src/matrix/dwt/idwt3.cl");
@@ -112,6 +113,7 @@ class oclDWT {
             oclConnection :: Instance () -> setThreadConfig (std::string ("dwt3"), lc3);
             oclConnection :: Instance () -> setThreadConfig (std::string ("dwt_3_alt"), lc_3_alt);
             oclConnection :: Instance () -> setThreadConfig (std::string ("idwt3"), lc3);
+            oclConnection :: Instance () -> setThreadConfig (std::string ("idwt_3_alt"), lc_3_alt);
             LaunchInformation lc_1 (lc3.local_z, lc3.local_y, lc3.local_x, lc3.global_z, lc3.global_y, lc3.global_x);
             LaunchInformation lc_2 (lc3.local_x, lc3.local_z, lc3.local_y, lc3.global_x, lc3.global_z, lc3.global_y);
             oclConnection :: Instance () -> setThreadConfig (std::string ("dwt_1"), lc_1);
@@ -119,7 +121,9 @@ class oclDWT {
             oclConnection :: Instance () -> setThreadConfig (std::string ("dwt_2"), lc_2);
             oclConnection :: Instance () -> setThreadConfig (std::string ("dwt_2_alt"), lc_2_alt);
             oclConnection :: Instance () -> setThreadConfig (std::string ("idwt_1"), lc_1);
+            oclConnection :: Instance () -> setThreadConfig (std::string ("idwt_1_alt"), lc_1_alt);
             oclConnection :: Instance () -> setThreadConfig (std::string ("idwt_2"), lc_2);
+            oclConnection :: Instance () -> setThreadConfig (std::string ("idwt_2_alt"), lc_2_alt);
       }
       
   
