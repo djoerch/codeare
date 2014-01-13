@@ -89,6 +89,8 @@ kernel void idwt_1_alt (__global A_type * arg1,
       for (int d0 = gid_0 * iLOC_MEM_LINE/2; d0 < *line_length/2; d0 += ng_0 * iLOC_MEM_LINE/2)
       {
 
+        const int current_line_length = min (iLOC_MEM_LINE, *line_length - 2 * d0);
+
         //////////////
         // READ: global -> local
         //////////////
@@ -119,7 +121,7 @@ kernel void idwt_1_alt (__global A_type * arg1,
             // copy
             const int index = index_base + d0 + lid_0;
 
-            const int constraint = *line_length - d0 - lid_0;
+            const int constraint = *line_length/2 - d0 - lid_0;
             for (int i = 0; i < iLOC_MEM_LINE/2; i += lsize_0)
               if (i < constraint)
               {
@@ -129,7 +131,7 @@ kernel void idwt_1_alt (__global A_type * arg1,
             if (lid_0 < i_offset)
             {
               tmp [lid_0] = arg1 [index - i_offset + ((d0 + lid_0 - i_offset) < 0 ? *line_length/2 : 0)];
-              tmp [lid_0 + i_offset + iLOC_MEM_LINE] = arg1 [index + iLOC_MEM_LINE/2 + ((d0 + lid_0 + iLOC_MEM_LINE/2 + 1) > *line_length/2 ? 0 : *line_length/2)];
+              tmp [lid_0 + i_offset + iLOC_MEM_LINE/2 + current_line_length/2] = arg1 [index + current_line_length/2 + ((d0 + lid_0 + current_line_length/2 + 1) > *line_length/2 ? 0 : *line_length/2)];
             }
         
           }
@@ -327,6 +329,8 @@ kernel void idwt_2_alt (__global A_type * arg1,
       for (int d1 = gid_1 * iLOC_MEM_LINE/2; d1 < *line_length/2; d1 += ng_1 * iLOC_MEM_LINE/2)
       {
 
+        const int current_line_length = min (iLOC_MEM_LINE, *line_length - 2 * d1);
+
         //////////////
         // READ: global -> local
         //////////////
@@ -357,7 +361,7 @@ kernel void idwt_2_alt (__global A_type * arg1,
             // copy
             const int index = index_base + (d1 + lid_1) * *line_length;
 
-            const int constraint = *line_length - d1 - lid_1;
+            const int constraint = *line_length/2 - d1 - lid_1;
             for (int i = 0; i < iLOC_MEM_LINE/2; i += lsize_1)
               if (i < constraint)
               {
@@ -367,7 +371,7 @@ kernel void idwt_2_alt (__global A_type * arg1,
             if (lid_1 < i_offset)
             {
               tmp [lid_1] = arg1 [index - i_offset * *line_length + ((d1 + lid_1 - i_offset) < 0 ? *line_length/2 : 0) * *line_length];
-              tmp [lid_1 + i_offset + iLOC_MEM_LINE] = arg1 [index + iLOC_MEM_LINE/2 * *line_length + ((d1 + lid_1 + iLOC_MEM_LINE/2 + 1) > *line_length/2 ? 0 : *line_length/2) * *line_length];
+              tmp [lid_1 + i_offset + iLOC_MEM_LINE/2 + current_line_length/2] = arg1 [index + current_line_length/2 * *line_length + ((d1 + lid_1 + current_line_length/2 + 1) > *line_length/2 ? 0 : *line_length/2) * *line_length];
             }
         
           }
@@ -566,6 +570,8 @@ kernel void idwt_3_alt (__global A_type * arg1,
       for (int d2 = gid_2 * iLOC_MEM_LINE/2; d2 < *line_length/2; d2 += ng_2 * iLOC_MEM_LINE/2)
       {
 
+        const int current_line_length = min (iLOC_MEM_LINE, *line_length - 2 * d2);
+
         //////////////
         // READ: global -> local
         //////////////
@@ -596,7 +602,7 @@ kernel void idwt_3_alt (__global A_type * arg1,
             // copy
             const int index = index_base + (d2 + lid_2) * slice;
 
-            const int constraint = *line_length - d2 - lid_2;
+            const int constraint = *line_length/2 - d2 - lid_2;
             for (int i = 0; i < iLOC_MEM_LINE/2; i += lsize_2)
               if (i < constraint)
               {
@@ -606,7 +612,7 @@ kernel void idwt_3_alt (__global A_type * arg1,
             if (lid_2 < i_offset)
             {
               tmp [lid_2] = arg1 [index - i_offset * slice + ((d2 + lid_2 - i_offset) < 0 ? *line_length/2 : 0) * slice];
-              tmp [lid_2 + i_offset + iLOC_MEM_LINE] = arg1 [index + iLOC_MEM_LINE/2 * slice + ((d2 + lid_2 + iLOC_MEM_LINE/2 + 1) > *line_length/2 ? 0 : *line_length/2) * slice];
+              tmp [lid_2 + i_offset + iLOC_MEM_LINE/2 + current_line_length/2] = arg1 [index + current_line_length/2 * slice + ((d2 + lid_2 + current_line_length/2 + 1) > *line_length/2 ? 0 : *line_length/2) * slice];
             }
         
           }
