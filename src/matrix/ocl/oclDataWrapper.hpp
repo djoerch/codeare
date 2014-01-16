@@ -51,7 +51,9 @@
       oclDataWrapper        (        T * const   cpu_data,
                              const int          num_elems)
                           : oclDataObject (num_elems, num_elems * sizeof (T)),
-                            mp_cpu_data   (cpu_data)
+                            mp_cpu_data   (cpu_data),
+                            mp_ev_mem_up (NULL), mp_ev_mem_down (NULL), mp_ev_compute (NULL),
+                            m_vec_ev_list ()
       {
       
         print_optional ("Ctor: \"oclDataWrapper\"", VERB_HIGH);
@@ -86,7 +88,7 @@
         {
          
           // create buffer object
-          oclConnection :: Instance () -> createBuffer (mp_cpu_data, oclDataObject :: getSize (), oclDataObject :: getID ());
+          oclConnection :: Instance () -> createBuffer (NULL, oclDataObject :: getSize (), oclDataObject :: getID ());
     
           // update memory state
           oclDataObject :: setLoaded ();
@@ -157,6 +159,10 @@
        **********************/
       T * const mp_cpu_data;            // pointer to cpu memory
       
+      cl_event * mp_ev_mem_up, mp_ev_mem_down, mp_ev_compute;
+      
+      std::vector <cl::Event> m_vec_ev_list;
+      
       
     
   }; // class oclDataWrapper
@@ -192,7 +198,7 @@
       // create buffer object
       try {
 //        std::cout << " create buffer " << std::endl;
-    	  oclConnection :: Instance () -> createBuffer (mp_cpu_data, oclDataObject :: getSize (), oclDataObject :: getID ());
+    	  oclConnection :: Instance () -> createBuffer ((T *) NULL, oclDataObject :: getSize (), oclDataObject :: getID ());
       } catch (oclError & oe) {
     	  throw oclError (oe, "oclDataWrapper :: loadToGPU ()");
       }
@@ -217,6 +223,7 @@
       
       // update GPU data
 //      mem_time = oclConnection :: Instance () -> loadToGPU (mp_cpu_data, oclDataObject :: getSize (), oclDataObject :: getBuffer ());
+            
       mem_time = oclConnection :: Instance () -> loadToGPU (mp_cpu_data, oclDataObject :: APHost (), oclDataObject :: APDevice (), oclDataObject :: getBuffer ());
       
       // update states

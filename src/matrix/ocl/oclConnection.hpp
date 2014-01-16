@@ -158,14 +158,18 @@ modify_kernel        ( std::string const &       source,
       double
       loadToGPU             (       T   * const cpu_arg,
                              ::size_t           size,
-                             clBuffer   * const buffer);
+                             clBuffer   * const buffer,
+                                   std::vector<cl::Event> * p_ev_list = NULL,
+                                   cl::Event * p_mem_ev = NULL);
       
       template <class T>
       double
       loadToGPU             (                     T * const   cpu_arg,
                              const oclAccessPattern &         ap_host,
                              const oclAccessPattern &       ap_device,
-                                           clBuffer * const    buffer);
+                                           clBuffer * const    buffer,
+                                   std::vector<cl::Event> * p_ev_list = NULL,
+                                   cl::Event * p_mem_ev = NULL);
       
       /**
        * @brief             create buffer for given object id
@@ -174,7 +178,25 @@ modify_kernel        ( std::string const &       source,
       void
       createBuffer          (                T   * const cpu_arg,
                              const    ::size_t           size,
-                             const oclObjectID           obj_id);
+                             const oclObjectID           obj_id,
+                             const cl_mem_flags          mem_flag = CL_MEM_READ_WRITE);
+      
+      
+      template <class T>
+      void
+      createPinnedBuffer    (                 T * const p_cpu,
+                              const    ::size_t         size,
+                              const oclObjectID         obj_id,
+                              const cl_mem_flags        mem_flag = CL_MEM_ALLOC_HOST_PTR);
+  
+      template <class T>
+      T *
+      getMappedPointer      ( const oclObjectID obj_id );
+      
+      template <class T>
+      void
+      unmapPointer          ( const oclObjectID, T * p_mapped );
+  
       
       
       /**
@@ -1153,6 +1175,85 @@ modify_kernel        ( std::string const &       source,
   }
   
   
+  template <class T>
+  void
+  oclConnection ::
+  createPinnedBuffer    (                 T * const p_cpu,
+                          const    ::size_t         size,
+                          const oclObjectID         obj_id,
+                          const cl_mem_flags        mem_flag)
+  {
+    
+    print_optional (" * oclConnection :: createPinnedBuffer (id: %d)", obj_id, m_verbose);
+    
+    if (p_cpu != NULL)
+    {
+      throw oclError ("CPU argument is not NULL for pinned buffer allocation!", "oclConnection :: createPinnedBuffer");
+    }
+    
+    createBuffer (p_cpu, size, obj_id, mem_flag);
+    
+  }
+  
+  
+  template <class T>
+  T *
+  oclConnection ::
+  getMappedPointer      ( const oclObjectID obj_id )
+  {
+    
+    print_optional (" * oclConnection :: getMappedPointer (id: %d)", obj_id, m_verbose);
+    
+    // find corresponding data object
+    std::map <oclObjectID, oclDataObject * const> :: iterator tmp_it = m_current_ocl_objects.find (obj_id);
+    
+    // check if data object exists
+    if (tmp_it == m_current_ocl_objects.end ())
+    {
+
+      std::stringstream msg;
+      msg << "oclDataObject (" << obj_id << ") does not exist!";
+
+      throw oclError (msg.str (), "oclConnection :: getMappedPointer");
+
+    }
+    
+    T * tmp = (T *) m_comqs [0].enqueueMapBuffer (*(tmp_it->second -> getBuffer()), CL_TRUE, CL_MAP_WRITE, 0, tmp_it -> second -> getSize (), NULL, NULL, &m_error);
+    
+    return tmp;
+    
+  }
+  
+  
+  template <class T>
+  void
+  oclConnection ::
+  unmapPointer          ( const oclObjectID obj_id, T * p_mapped )
+  {
+    
+    print_optional (" * oclConnection :: unmapPointer (id: %d)", obj_id, m_verbose);
+    
+    // find corresponding data object
+    std::map <oclObjectID, oclDataObject * const> :: iterator tmp_it = m_current_ocl_objects.find (obj_id);
+    
+    // check if data object exists
+    if (tmp_it == m_current_ocl_objects.end ())
+    {
+
+      std::stringstream msg;
+      msg << "oclDataObject (" << obj_id << ") does not exist!";
+
+      throw oclError (msg.str (), "oclConnection :: getMappedPointer");
+
+    }
+    
+    m_error = m_comqs [0].enqueueUnmapMemObject(*(tmp_it->second->getBuffer()), (void *) p_mapped, NULL, NULL);
+    
+    std::cout << oclError (m_error, "oclConnection :: unmapPointer");
+    
+  }
+  
+  
   /**
    * @brief             create buffer for given object id
    *
@@ -1163,7 +1264,8 @@ modify_kernel        ( std::string const &       source,
   oclConnection ::
   createBuffer          (                T   * const cpu_arg,
                          const    ::size_t           size,
-                         const oclObjectID           obj_id)
+                         const oclObjectID           obj_id,
+                         const cl_mem_flags          mem_flag)
   {
     
     print_optional (" * oclConnection :: createBuffer (id: %d)", obj_id, m_verbose);
@@ -1190,7 +1292,7 @@ modify_kernel        ( std::string const &       source,
     {
     
       std::stringstream msg;
-      msg << "oclDataObject (" << obj_id << ") already has a GPU buffer!";
+      msg << "oclDataObject (" << obj_id << ") already has a (GPU/CPU) buffer!";
       
       throw oclError (msg.str (), "oclConnection :: createBuffer");
  
@@ -1198,7 +1300,7 @@ modify_kernel        ( std::string const &       source,
 
     // create buffer object
     try {
-    	p_tmp_obj -> setBuffer (new clBuffer (m_cont, CL_MEM_READ_WRITE, size, NULL, &m_error));
+    	p_tmp_obj -> setBuffer (new clBuffer (m_cont, mem_flag, size, cpu_arg, &m_error));
     }
     catch (cl::Error & cle)
     {
@@ -1228,7 +1330,9 @@ modify_kernel        ( std::string const &       source,
   oclConnection ::
   loadToGPU             (       T   * const cpu_arg,
                          ::size_t           size,
-                         clBuffer   * const buffer)
+                         clBuffer   * const buffer,
+                         std::vector <cl::Event> * event_list,
+                         cl::Event * mem_event)
   {
     
     print_optional (" * oclConnection :: loadToGPU", m_verbose );
@@ -1241,7 +1345,7 @@ modify_kernel        ( std::string const &       source,
 
         // TODO: !! blocking !! //
         double mem_time = omp_get_wtime ();
-        m_error = it -> enqueueWriteBuffer (*buffer, CL_TRUE, 0, size, cpu_arg, NULL, NULL);
+        m_error = it -> enqueueWriteBuffer (*buffer, CL_TRUE, 0, size, cpu_arg, event_list, mem_event);
         
         return omp_get_wtime () - mem_time;
         
@@ -1262,7 +1366,9 @@ modify_kernel        ( std::string const &       source,
   loadToGPU             (                     T * const   cpu_arg,
                          const oclAccessPattern &         ap_host,
                          const oclAccessPattern &       ap_device,
-                                       clBuffer * const    buffer)
+                                       clBuffer * const    buffer,
+                         std::vector <cl::Event> * p_event_list,
+                         cl::Event * p_mem_event)
   {
     
     print_optional (" * oclConnection :: loadToGPU (AccessPattern)", m_verbose );
@@ -1279,7 +1385,7 @@ modify_kernel        ( std::string const &       source,
         double mem_time = omp_get_wtime ();
         m_error = it -> enqueueWriteBufferRect (*buffer, CL_TRUE, ap_device.Origin (), ap_host.Origin (), ap_device.Region (),
                                                 ap_device.RowPitch (), ap_device.SlicePitch (), ap_host.RowPitch (), ap_host.SlicePitch (),
-                                                cpu_arg, NULL, NULL);
+                                                cpu_arg, p_event_list, p_mem_event);
         
         return omp_get_wtime () - mem_time;
         

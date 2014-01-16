@@ -47,7 +47,8 @@
        */
       oclCPUDataObject        (           T   * const   cpu_data,
                                const    int   &        num_elems)
-                            : oclDataWrapper <T> (cpu_data, num_elems)
+                            : oclDataWrapper <T> (cpu_data, num_elems),
+                                    mp_pinned_mem (NULL)
       {
       
         print_optional ("Ctor: \"oclCPUDataObject\"", VERB_HIGH);
@@ -77,8 +78,11 @@
       ~oclCPUDataObject       ()
       {
       
-        print_optional ("Dtor: \"oclCPUDataObject\"", VERB_HIGH);
+        print_optional ("Dtor: \"oclCPUDataObject\"", VERB_MIDDLE);
 
+        if (mp_pinned_mem != NULL)
+          oclConnection :: Instance () -> unmapPointer (oclDataObject :: getID (), mp_pinned_mem);
+        
       }
 
       
@@ -89,7 +93,7 @@
        * @brief               inherited (oclDataObject)
        */
       virtual
-      void
+      double
       prepare                 ();
       
       
@@ -97,7 +101,7 @@
        * @brief               inherited (oclObservableDataObject)
        */
       virtual
-      void
+      double
       finish                  ();
       
       
@@ -105,9 +109,20 @@
        * @brief               inherited (oclDataWrapper)
        */
       virtual
-      void
+      double
       getData                 ();
-
+      
+      
+      /**
+       * @brief               get pinned pointer
+       */
+      T *
+      getPinnedPointer        ();
+      
+      
+    private:
+      
+      T * mp_pinned_mem;
     
      
   }; // class oclCPUDataObject
@@ -118,6 +133,24 @@
    ** function definitions **
    **************************/
   
+  template <class T>
+  T *
+  oclCPUDataObject <T> ::
+  getPinnedPointer            ()
+  {
+    
+    print_optional ("oclCPUDataObject :: getPinnedPointer (%d)", oclDataObject :: getID (), VERB_MIDDLE);
+        
+    if (mp_pinned_mem == NULL)
+    {
+      
+      oclConnection :: Instance () -> createPinnedBuffer (mp_pinned_mem, oclDataObject :: getSize (), oclDataObject :: getID ());
+      mp_pinned_mem = oclConnection :: Instance () -> getMappedPointer <T> (oclDataObject :: getID ());
+    }
+    
+    return mp_pinned_mem;
+    
+  }
   
   
   /**
@@ -126,7 +159,7 @@
    *                          !! precondition: data not in use !!
    */
   template <class T>
-  void
+  double
   oclCPUDataObject <T> ::
   prepare                     ()
   {
@@ -137,10 +170,10 @@
     oclDataObject :: setLocked ();
     
     // synchronize GPU data / load to GPU
-    oclDataWrapper <T> :: loadToGPU ();
+//    oclDataWrapper <T> :: loadToGPU ();
     
     // notify modification of GPU data
-    oclDataObject :: setGPUModified ();
+//    oclDataObject :: setGPUModified ();
 
   }
   
@@ -150,7 +183,7 @@
    * @brief                   load data to CPU memory (since it's a CPU object)
    */
   template <class T>
-  void
+  double
   oclCPUDataObject <T> ::
   finish                      ()
   {
@@ -171,7 +204,7 @@
    * @brief                   copy data to CPU memory
    */
   template <class T>
-  void
+  double
   oclCPUDataObject <T> ::
   getData                     ()
   {

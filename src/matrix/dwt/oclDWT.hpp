@@ -45,6 +45,9 @@
 # define LC LaunchInformation (16, 16, 1, 256, 256, 1)
 
 
+# define PINNED
+
+
 # include "Matrix.hpp"
 # include "Wavelet.hpp"
 
@@ -108,6 +111,7 @@ class oclDWT {
             oclConnection :: Instance () -> setThreadConfig (std::string ("dwt2"), lc1);
             oclConnection :: Instance () -> setThreadConfig (std::string ("dwt2_alt"), lc1);
             oclConnection :: Instance () -> setThreadConfig (std::string ("dwt2_final"), lc1);
+            oclConnection :: Instance () -> setThreadConfig (std::string ("dwt_final_alt"), lc_1_alt);
             oclConnection :: Instance () -> setThreadConfig (std::string ("idwt2"), lc1);
             oclConnection :: Instance () -> setThreadConfig (std::string ("idwt2_prepare"), lc1);
             oclConnection :: Instance () -> setThreadConfig (std::string ("dwt3"), lc3);
@@ -118,6 +122,7 @@ class oclDWT {
             LaunchInformation lc_2 (lc3.local_x, lc3.local_z, lc3.local_y, lc3.global_x, lc3.global_z, lc3.global_y);
             oclConnection :: Instance () -> setThreadConfig (std::string ("dwt_1"), lc_1);
             oclConnection :: Instance () -> setThreadConfig (std::string ("dwt_1_alt"), lc_1_alt);
+            oclConnection :: Instance () -> setThreadConfig (std::string ("dwt_1_alt_test"), lc_1_alt);
             oclConnection :: Instance () -> setThreadConfig (std::string ("dwt_2"), lc_2);
             oclConnection :: Instance () -> setThreadConfig (std::string ("dwt_2_alt"), lc_2_alt);
             oclConnection :: Instance () -> setThreadConfig (std::string ("idwt_1"), lc_1);
@@ -240,15 +245,39 @@ class oclDWT {
               return std::vector <PerformanceInformation> ();
             }
             
-            const int padding = 32;//_fl - 2;   /* whole padding (beginning & end) is 32 */
+            const int padding = 0;//_fl - 2;   /* whole padding (beginning & end) is 32 */
             const int buffer_size = m.Dim (2) == 1
                                   ? m.Size ()
                                   : max ((res.Dim (0) + padding) * res.Dim (1) * chunk_size, res.Dim (2) * (chunk_size + padding) * chunk_size);
             
+# ifdef PINNED
+            /* pinned mem usage */
+            oclCPUDataObject <T> * p_pinned_res = (oclCPUDataObject <T> *) oclOperations <T> :: make_CPU_Obj (&res[0], res.Size ());
+            memcpy (p_pinned_res->getPinnedPointer (), &m.Container()[0], res.Size() * sizeof (T));
+# endif
+            
             /* TODO: call kernel */
-            oclDataWrapper <T> * p_ocl_m   = oclOperations <T> :: make_GPU_Obj (&m.Container()[0], buffer_size);
-            oclDataWrapper <T> * p_ocl_res = oclOperations <T> :: make_GPU_Obj (&res[0], buffer_size);
-            oclDataWrapper <T> * p_ocl_tmp = oclOperations <T> :: make_GPU_Obj (&res[0], buffer_size);
+            oclDataWrapper <T> * p_ocl_m   = oclOperations <T> :: make_GPU_Obj (
+                    # ifdef PINNED
+                      p_pinned_res->getPinnedPointer()
+                    # else
+                      &m.Container()[0]
+                    # endif
+                    , buffer_size);
+            oclDataWrapper <T> * p_ocl_res = oclOperations <T> :: make_GPU_Obj (
+                    # ifdef PINNED
+                      p_pinned_res->getPinnedPointer()
+                    # else
+                      &res[0]
+                    # endif
+                    , buffer_size);
+            oclDataWrapper <T> * p_ocl_tmp = oclOperations <T> :: make_GPU_Obj (
+                    # ifdef PINNED
+                      p_pinned_res->getPinnedPointer()
+                    # else
+                      &res[0]
+                    # endif
+                    , buffer_size);
             oclDataWrapper <RT> * p_ocl_lpf = oclOperations <RT> :: make_GPU_Obj (_lpf_d, _fl);
             oclDataWrapper <RT> * p_ocl_hpf = oclOperations <RT> :: make_GPU_Obj (_hpf_d, _fl);
             
@@ -269,6 +298,11 @@ class oclDWT {
                                                      p_ocl_res, p_ocl_tmp, chunk_size);
             time = omp_get_wtime () - time;
                         
+# ifdef PINNED
+            memcpy (&res[0], p_pinned_res->getPinnedPointer (), buffer_size * sizeof (T));
+            delete p_pinned_res;
+# endif
+            
             delete p_ocl_m;
             delete p_ocl_res;
             delete p_ocl_tmp;
@@ -308,10 +342,33 @@ class oclDWT {
                       ? m.Size ()
                       : max (res.Dim (0) * res.Dim (1) * chunk_size, res.Dim (2) * chunk_size * chunk_size);
                         
+# ifdef PINNED
+            /* pinned mem usage */
+            oclCPUDataObject <T> * p_pinned_mem = (oclCPUDataObject <T> *) oclOperations <T> :: make_CPU_Obj (&res[0], res.Size());
+            memcpy (p_pinned_mem -> getPinnedPointer (), &m.Container()[0], res.Size() * sizeof (T));
+# endif
             // create GPU memory objects for operands
-            oclDataWrapper <T> * p_ocl_m   = oclOperations <T> :: make_GPU_Obj (&m.Container()[0], buffer_size);
-            oclDataWrapper <T> * p_ocl_res = oclOperations <T> :: make_GPU_Obj (&res[0], buffer_size);
-            oclDataWrapper <T> * p_ocl_tmp = oclOperations <T> :: make_GPU_Obj (&res[0], buffer_size);
+            oclDataWrapper <T> * p_ocl_m   = oclOperations <T> :: make_GPU_Obj (
+                    # ifdef PINNED
+                      p_pinned_mem -> getPinnedPointer ()
+                    # else
+                      &m.Container()[0]
+                    # endif
+                    , buffer_size);
+            oclDataWrapper <T> * p_ocl_res = oclOperations <T> :: make_GPU_Obj (
+                    # ifdef PINNED
+                      p_pinned_mem -> getPinnedPointer ()
+                    # else
+                      &res[0]
+                    # endif
+                    , buffer_size);
+            oclDataWrapper <T> * p_ocl_tmp = oclOperations <T> :: make_GPU_Obj (
+                    # ifdef PINNED
+                      p_pinned_mem -> getPinnedPointer ()
+                    # else
+                      &res[0]
+                    # endif
+                    , buffer_size);
             oclDataWrapper <RT> * p_ocl_lpf = oclOperations <RT> :: make_GPU_Obj (_lpf_r, _fl);
             oclDataWrapper <RT> * p_ocl_hpf = oclOperations <RT> :: make_GPU_Obj (_hpf_r, _fl);
             
@@ -319,7 +376,9 @@ class oclDWT {
             std::vector <PerformanceInformation> vec_perf;
             double time = omp_get_wtime ();
             
+# ifndef PINNED
             res = m; // needed for 3D version !!!
+# endif
             
             if (m.Dim (2) == 1)
               vec_perf = oclOperations <T, RT> :: ocl_operator_idwt2 (p_ocl_m, m.Dim(0), m.Dim(1), m.Dim(2),
@@ -335,6 +394,11 @@ class oclDWT {
                                                      p_ocl_lpf, p_ocl_hpf, _fl, _max_level - _min_level,
                                                      p_ocl_res, chunk_size);
             time = omp_get_wtime () - time;
+            
+# ifdef PINNED
+            memcpy (&res[0], p_pinned_mem -> getPinnedPointer (), buffer_size * sizeof (T));
+            delete p_pinned_mem;
+# endif
             
             // clear GPU memory
             delete p_ocl_m;
