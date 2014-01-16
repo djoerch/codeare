@@ -34,7 +34,7 @@ kernel void idwt_1_alt (__global A_type * arg1,
   ///////////////////
   // WRITE CONFIG
   ///////////////////
-  const int slice = *line_length * *line_length;
+  const int slice = *n * *n; //*line_length * *line_length;
 
   ///////////////
   // THREAD
@@ -103,7 +103,7 @@ kernel void idwt_1_alt (__global A_type * arg1,
         {
 
           const int index_base = (d2 + lid_2) * slice                   // slice
-                               + (d1 + lid_1) * *line_length;           // line in particular slice
+                               + (d1 + lid_1) * *n; //*line_length;           // line in particular slice
           
 //          # ifdef NON_SQUARE_GROUP
 //          for (int lines = 0; lines < num_mem_lines; lines += lsize_2 * lsize_1)
@@ -229,7 +229,7 @@ kernel void idwt_1_alt (__global A_type * arg1,
             __local A_type * tmp_out = output + line_out * loc_mem_line_IN;
 
             const int index2 = (d2 + lid_2) * slice
-                             + (d1 + lid_1) * *line_length
+                             + (d1 + lid_1) * *n
                              + 2 * d0 + lid_0;
 
             const int constraint = *line_length - 2 * d0 - lid_0;
@@ -274,7 +274,7 @@ kernel void idwt_2_alt (__global A_type * arg1,
   ///////////////////
   // WRITE CONFIG
   ///////////////////
-  const int slice = *line_length * *line_length;
+  const int slice = *n * *m; //*line_length * *line_length;
 
   ///////////////
   // THREAD
@@ -359,19 +359,19 @@ kernel void idwt_2_alt (__global A_type * arg1,
             __local A_type * tmp = input + line * loc_mem_line_IN;
 
             // copy
-            const int index = index_base + (d1 + lid_1) * *line_length;
+            const int index = index_base + (d1 + lid_1) * *n; //*line_length;
 
             const int constraint = *line_length/2 - d1 - lid_1;
             for (int i = 0; i < iLOC_MEM_LINE/2; i += lsize_1)
               if (i < constraint)
               {
-                tmp [lid_1 + i + i_offset] = arg1 [index + i * *line_length];
-                tmp [lid_1 + i + i_offset + iLOC_MEM_LINE/2] = arg1 [index + (i + *line_length/2) * *line_length];
+                tmp [lid_1 + i + i_offset] = arg1 [index + i * *n];
+                tmp [lid_1 + i + i_offset + iLOC_MEM_LINE/2] = arg1 [index + (i + *line_length/2) * *n];
               }
             if (lid_1 < i_offset)
             {
-              tmp [lid_1] = arg1 [index - i_offset * *line_length + ((d1 + lid_1 - i_offset) < 0 ? *line_length/2 : 0) * *line_length];
-              tmp [lid_1 + i_offset + iLOC_MEM_LINE/2 + current_line_length/2] = arg1 [index + current_line_length/2 * *line_length + ((d1 + lid_1 + current_line_length/2 + 1) > *line_length/2 ? 0 : *line_length/2) * *line_length];
+              tmp [lid_1] = arg1 [index - i_offset * *n + ((d1 + lid_1 - i_offset) < 0 ? *line_length/2 : 0) * *n];
+              tmp [lid_1 + i_offset + iLOC_MEM_LINE/2 + current_line_length/2] = arg1 [index + current_line_length/2 * *n + ((d1 + lid_1 + current_line_length/2 + 1) > *line_length/2 ? 0 : *line_length/2) * *n];
             }
         
           }
@@ -469,7 +469,7 @@ kernel void idwt_2_alt (__global A_type * arg1,
             __local A_type * tmp_out = output + line_out * loc_mem_line_IN;
 
             const int index2 = (d2 + lid_2) * slice
-                             + (2 * d1 + lid_1) * *line_length
+                             + (2 * d1 + lid_1) * *n
                              + d0 + lid_0;
 
             const int constraint = *line_length - 2 * d1 - lid_1;
@@ -477,7 +477,7 @@ kernel void idwt_2_alt (__global A_type * arg1,
             {
               if (i < constraint)
               {
-                arg2 [index2 + i * *line_length] = tmp_out [lid_1 + i];
+                arg2 [index2 + i * *n] = tmp_out [lid_1 + i];
 //                arg2 [index2 + i] = tmp_out [lid_0 + i + LOC_MEM_LINE/2];
               }
             }
@@ -515,7 +515,7 @@ kernel void idwt_3_alt (__global A_type * arg1,
   ///////////////////
   // WRITE CONFIG
   ///////////////////
-  const int slice = *chunk_size_0 * *chunk_size_1;
+  const int slice = *n * *m;
 
   ///////////////
   // THREAD
@@ -583,7 +583,7 @@ kernel void idwt_3_alt (__global A_type * arg1,
         # endif
         {
 
-          const int index_base = (d1 + lid_1) * *line_length  // 
+          const int index_base = (d1 + lid_1) * *n //*line_length  // 
                                + (d0 + lid_0);                // line in particular slice
           
 //          # ifdef NON_SQUARE_GROUP
@@ -710,7 +710,7 @@ kernel void idwt_3_alt (__global A_type * arg1,
             __local A_type * tmp_out = output + line_out * loc_mem_line_IN;
 
             const int index2 = (2 * d2 + lid_2) * slice
-                             + (d1 + lid_1) * *line_length
+                             + (d1 + lid_1) * *n //*line_length
                              + d0 + lid_0;
 
             const int constraint = *line_length - 2 * d2 - lid_2;
