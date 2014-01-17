@@ -289,7 +289,7 @@ class oclDWT {
                                                    p_ocl_res);
             else
               if (_kv == ONE_D)
-                vec_perf = oclOperations <T, RT> :: ocl_operator_dwt3_alt (p_ocl_m, m.Dim(0), m.Dim(1), m.Dim(2),
+                vec_perf = oclOperations <T, RT> :: ocl_operator_dwt3_alt_cs (p_ocl_m, m.Dim(0), m.Dim(1), m.Dim(2),
                                                      p_ocl_lpf, p_ocl_hpf, _fl, _max_level - _min_level,
                                                      p_ocl_res, p_ocl_tmp, chunk_size);
               else
@@ -386,7 +386,7 @@ class oclDWT {
                                                    p_ocl_res);
             else
               if (_kv == ONE_D)
-                vec_perf = oclOperations <T, RT> :: ocl_operator_idwt3_alt (p_ocl_tmp, m.Dim(0), m.Dim(1), m.Dim(2),
+                vec_perf = oclOperations <T, RT> :: ocl_operator_idwt3_alt_cs (p_ocl_tmp, m.Dim(0), m.Dim(1), m.Dim(2),
                                                      p_ocl_lpf, p_ocl_hpf, _fl, _max_level - _min_level,
                                                      p_ocl_res, chunk_size);
               else

@@ -1858,10 +1858,9 @@
           //////////
           // prepare access patterns for CPU-GPU-transfers
           //////////
-          const int padding = 0;//fl - 2;
           const int roundTo = 1;
-          arg1 -> APDevice () = oclAccessPattern (padding * sizeof (elem_type), 0, 0,
-                  roundUp (n + padding, roundTo) * sizeof (elem_type), roundUp (n + padding, roundTo) * m * sizeof (elem_type),
+          arg1 -> APDevice () = oclAccessPattern (0, 0, 0,
+                  n * sizeof (elem_type), n * m * sizeof (elem_type),
                    n * sizeof (elem_type), m, k);
           arg1 -> APHost () = oclAccessPattern (0, 0, 0,
                    n * sizeof (elem_type), n * m * sizeof (elem_type),
@@ -1882,201 +1881,51 @@
           {
             
             const int line_length = n / pow (2, i);
-            const int pad_line_length = roundUp (line_length + padding, roundTo);
-            const int num_slices = line_length;
-            const int chunk_size_dwt12 = min (num_slices, chunk_size);
-            const int ld_12 = (chunk_size < line_length ? line_length : n);
-                    
+        
             // run kernels "dwt_2" and "dwt_1" on slices
             ProfilingInformation pi = {0, 0, 0, 0};
             ProfilingInformation pi2 = {0, 0, 0, 0};
             
-            // set memory region to current chunk_size
-            tmp1 -> APHost ().Region (2) = tmp1 -> APDevice ().Region (2) = chunk_size_dwt12;
-            tmp2 -> APHost ().Region (2) = tmp2 -> APDevice ().Region (2) = chunk_size_dwt12;
-            tmp -> APHost ().Region (2) = tmp -> APDevice ().Region (2) = chunk_size_dwt12;
-            
-            // loop over chunks of slices
-            for (int l = 0; l < num_slices; l += chunk_size_dwt12)
-            {
-                            
-              // set origin of current chunk on host
-              tmp1 -> APHost ().Origin (2) = tmp2 -> APHost ().Origin (2)
-                                           = tmp  -> APHost ().Origin (2) = l;
-              
-              // set padding for tmp1 (READ)
-              tmp1 -> APDevice ().Origin (0) = padding * sizeof (elem_type);
-              tmp1 -> APDevice ().RowPitch () = pad_line_length * sizeof (elem_type);
-              tmp1 -> APDevice ().SlicePitch () = pad_line_length * line_length * sizeof(elem_type);
-              
-              if (i == 0 || chunk_size < line_length)
-                tmp1 -> setCPUModified (); // upload src
-              else
-                tmp1 -> setSync ();
-              tmp2 -> setSync (); // do NOT upload dest
-              
-              pi += ocl_basic_operator_kernel_57 ("dwt_1_alt", tmp1, lpf, hpf, tmp2, loc_mem1, n, m, k, line_length, chunk_size_dwt12, num_loc_mem_elems1, ld_12, lc1);
-              
-//              if (i != 0)
-//              {
-//                tmp2 -> APDevice () = tmp1 -> APDevice ();
-//                tmp2 -> getData ();
-//              }
+            if (i == 0)
+              tmp1 -> setCPUModified (); // upload src
+            else
+              tmp1 -> setSync ();
+            tmp2 -> setSync (); // do NOT upload dest
+            pi += ocl_basic_operator_kernel_56 ("dwt_1_alt", tmp1, lpf, hpf, tmp2, loc_mem1, n, m, k, line_length, line_length, num_loc_mem_elems1, lc1);
                 
-              // do not write to src image
-              if (i == 0)
-                tmp1 = tmp;
-              
-////              if (i == 0)
-              {
-              // set padding for tmp1 (WRITE)
-              tmp1 -> APDevice ().Origin (0) = 0;
-              tmp1 -> APDevice ().RowPitch () = (line_length) * sizeof (elem_type);
-              tmp1 -> APDevice ().SlicePitch () = (line_length) * line_length * sizeof(elem_type);
-              
-              tmp1 -> setSync (); // use results on GPU
-              tmp2 -> setSync (); // use results on GPU
-              
-              pi2 += ocl_basic_operator_kernel_57 ("dwt_2_alt", tmp2, lpf, hpf, tmp1, loc_mem2, n, m, k, line_length, chunk_size_dwt12, num_loc_mem_elems2, ld_12, lc2);
-
-              if (chunk_size < line_length)
-              {
-                // download results
-                pi2.time_mem_down += tmp1 -> getData ();
-              }
-              
-              }
-              
-              // do not write to src image
-              if (i == 0)
-                tmp1 = arg1;
-            }
-            
-            vec_pi.push_back (pi);
-            vec_pi2.push_back (pi2);
-            
-            tmp1 -> APHost ().Origin (2) = tmp2 -> APHost ().Origin (2) = tmp -> APHost ().Origin (2) = 0; // reset
-            tmp1 -> APDevice ().Region (2) = tmp1 -> APHost ().Region (2) = line_length; // reset
-            tmp2 -> APDevice ().Region (2) = tmp2 -> APHost ().Region (2) = line_length; // reset
-            tmp -> APDevice ().Region (2) = tmp -> APHost ().Region (2) = line_length; // reset
-            
-            // switch to temporary memory for writing (not to src image)
+            // do not write to src image
             if (i == 0)
               tmp1 = tmp;
-            
+              
+            tmp1 -> setSync (); // use results on GPU
+            tmp2 -> setSync (); // use results on GPU
+            pi2 += ocl_basic_operator_kernel_56 ("dwt_2_alt", tmp2, lpf, hpf, tmp1, loc_mem2, n, m, k, line_length, line_length, num_loc_mem_elems2, lc2);
+            vec_pi.push_back (pi);
+            vec_pi2.push_back (pi2);
+                        
             // run kernel "dwt3" on beams
             ProfilingInformation pi3 = {0, 0, 0, 0};
-            const int chunk_size_dwt3 = min (line_length, chunk_size);
-            const int chunk_size_dwt3_dim0 = line_length;
-            const int pad_chunk_size_dwt3 = roundUp (chunk_size_dwt3 + padding, roundTo);
-            const int pad_chunk_size_dwt3_dim0 = roundUp (chunk_size_dwt3_dim0 + padding, roundTo);
-            const int ld_3 = (chunk_size < line_length ? chunk_size_dwt3 : n);
-            const int ld_3_dim0 = (chunk_size < line_length ? chunk_size_dwt3_dim0 : n);
-//            lc3.global_z = lc3.local_z = lc3.local_z > line_length ? line_length : lc3.local_z;
-            
-            const oclAccessPattern tmp_ap_array [4] = {tmp1 -> APHost (), tmp1 -> APDevice (),
-                                                       tmp2 -> APHost (), tmp2 -> APDevice ()}; // save current state !!!
-            
-            // set memory region: shrink dim0 & dim1
-            tmp1 -> APHost ().Region (0) = tmp1 -> APDevice ().Region (0) = chunk_size_dwt3_dim0 * sizeof (elem_type);
-            tmp2 -> APHost ().Region (0) = tmp2 -> APDevice ().Region (0) = chunk_size_dwt3_dim0 * sizeof (elem_type);
-            tmp1 -> APHost ().Region (1) = tmp1 -> APDevice ().Region (1) = chunk_size_dwt3;
-            tmp2 -> APHost ().Region (1) = tmp2 -> APDevice ().Region (1) = chunk_size_dwt3;
-            
-            // sizes of rows and slices change accordingly
-            // tmp1: input -> padding
-            // tmp2: output -> without padding
-            tmp1 -> APDevice ().Origin (0) = padding * sizeof (elem_type);
-            tmp1 -> APDevice ().RowPitch () = pad_chunk_size_dwt3_dim0 * sizeof (elem_type);
-            tmp1 -> APDevice ().SlicePitch () = pad_chunk_size_dwt3_dim0 * chunk_size_dwt3 * sizeof (elem_type);
-            tmp2 -> APDevice ().Origin (0) = 0;
-            tmp2 -> APDevice ().RowPitch () = chunk_size_dwt3_dim0 * sizeof (elem_type);
-            tmp2 -> APDevice ().SlicePitch () = chunk_size_dwt3_dim0 * chunk_size_dwt3 * sizeof (elem_type);
-//            if (i == 0)
-            // loop over chunks of beams along dim0
-            for (int l = 0; l < line_length; l += chunk_size_dwt3_dim0)
-            {
-              
-              // adjust origin in host memory for dim0
-              tmp1 -> APHost ().Origin (0) = tmp2 -> APHost ().Origin (0) = l * sizeof (elem_type);
-              
-              // loop over chunks of beams along dim1
-              for (int ll = 0; ll < line_length; ll += chunk_size_dwt3)
-              {
-                
-                // adjust origin in host memory for dim1
-                tmp1 -> APHost ().Origin (1) = tmp2 -> APHost ().Origin (1) = ll;
-                
-                if (chunk_size >= line_length)
-                  tmp1 -> setSync ();
-                else
-                  tmp1 -> setCPUModified (); // upload src
-                tmp2 -> setSync (); // do NOT upload dest
-                
-                pi3 += ocl_basic_operator_kernel_58 ("dwt_3_alt", tmp1, lpf, hpf, tmp2, loc_mem3, n, m, k, line_length, chunk_size_dwt3_dim0, chunk_size_dwt3, ld_3, ld_3_dim0, lc3);
-                
-                if (chunk_size < line_length)
-                {
-                  // download results from GPU
-                  pi3.time_mem_down += tmp2 -> getData ();
-                }
 
-              }
-              
-            }
-            
-//            if (chunk_size >= line_length)
-//            {
-//              oclDataObject * cpy = tmp1;
-//              tmp1 = tmp2;
-//              tmp2 = cpy;
-//            }
-                   
-            if (chunk_size >= line_length)
+            tmp1 -> setSync ();
+            tmp2 -> setSync (); // do NOT upload dest
+            pi3 += ocl_basic_operator_kernel_56 ("dwt_3_alt", tmp1, lpf, hpf, tmp2, loc_mem3, n, m, k, line_length, line_length, line_length, lc3);
+                
+            if (i != 0)
             {
-              if (i != 0)
-              {
-                pi_final += ocl_basic_operator_kernel_56 ("dwt_final_alt", tmp2, lpf, hpf, tmp1, loc_mem1, n, m, k, line_length, line_length, num_loc_mem_elems1, lc1);
-              }
-              else
-              {
-                oclDataObject * cpy = tmp1;
-                tmp1 = tmp2;
-                tmp2 = cpy;
-              }
+              pi_final += ocl_basic_operator_kernel_56 ("dwt_final_alt", tmp2, lpf, hpf, tmp1, loc_mem1, n, m, k, line_length, line_length, num_loc_mem_elems1, lc1);
             }
-              
+            else
+            {
+              oclDataObject * cpy = tmp1;
+              tmp1 = tmp2;
+              tmp2 = cpy;
+            }
             vec_pi3.push_back (pi3);
             
-            tmp1 -> APHost () = tmp_ap_array [0]; tmp1 -> APDevice () = tmp_ap_array [1]; // reset
-            tmp2 -> APHost () = tmp_ap_array [2]; tmp2 -> APDevice () = tmp_ap_array [3]; // reset
-            
-            // shrink memory region for NEXT LEVEL
-            tmp1 -> APHost ().Region (0) = tmp1 -> APDevice ().Region (0) = line_length/2 * sizeof (elem_type);
-            tmp2 -> APHost ().Region (0) = tmp2 -> APDevice ().Region (0) = line_length/2 * sizeof (elem_type);
-            tmp1 -> APHost ().Region (1) = tmp1 -> APDevice ().Region (1) = line_length/2;
-            tmp2 -> APHost ().Region (1) = tmp2 -> APDevice ().Region (1) = line_length/2;
-            tmp1 -> APHost ().Region (2) = tmp1 -> APDevice ().Region (2) = line_length/2;
-            tmp2 -> APHost ().Region (2) = tmp2 -> APDevice ().Region (2) = line_length/2;
-            tmp1 -> APDevice ().RowPitch () = tmp2 -> APDevice ().RowPitch () = (roundUp (line_length/2 + padding, roundTo)) * sizeof (elem_type);
-            tmp1 -> APDevice ().SlicePitch () = tmp2 -> APDevice ().SlicePitch () = (roundUp (line_length/2 + padding, roundTo)) * line_length/2 * sizeof (elem_type);
-                
           }
-                    
-          const int line_length = n / pow (2, levels);
-//          
-          if (chunk_size >= line_length)
-          {
-            tmp1 -> APHost ().Region (0) = tmp1 -> APDevice ().Region (0) = n * sizeof (elem_type);
-            tmp1 -> APHost ().Region (1) = tmp1 -> APDevice ().Region (1) = n;
-            tmp1 -> APHost ().Region (2) = tmp1 -> APDevice ().Region (2) = n;
-            tmp1 -> APDevice ().RowPitch () = (roundUp (n + padding, roundTo)) * sizeof (elem_type);
-            tmp1 -> APDevice ().SlicePitch () = (roundUp (n + padding, roundTo)) * n * sizeof (elem_type);
-            
-            pi_final.time_mem_down += tmp1 -> getData ();
-            
-          }
-            
+          
+          pi_final.time_mem_down += tmp1 -> getData ();
+          
           delete loc_mem1;
           delete loc_mem2;
           delete loc_mem3;
@@ -2200,26 +2049,15 @@
               tmp1 -> APDevice ().RowPitch () = pad_line_length * sizeof (elem_type);
               tmp1 -> APDevice ().SlicePitch () = pad_line_length * line_length * sizeof(elem_type);
               
-              if (i == 0 || chunk_size < line_length)
-                tmp1 -> setCPUModified (); // upload src
-              else
-                tmp1 -> setSync ();
+              tmp1 -> setCPUModified (); // upload src
               tmp2 -> setSync (); // do NOT upload dest
               
-              pi += ocl_basic_operator_kernel_57 ("dwt_1_alt", tmp1, lpf, hpf, tmp2, loc_mem1, n, m, k, line_length, chunk_size_dwt12, num_loc_mem_elems1, ld_12, lc1);
+              pi += ocl_basic_operator_kernel_56 ("dwt_1_alt", tmp1, lpf, hpf, tmp2, loc_mem1, line_length, line_length, chunk_size_dwt12, line_length, chunk_size_dwt12, num_loc_mem_elems1, lc1);
               
-//              if (i != 0)
-//              {
-//                tmp2 -> APDevice () = tmp1 -> APDevice ();
-//                tmp2 -> getData ();
-//              }
-                
               // do not write to src image
               if (i == 0)
                 tmp1 = tmp;
               
-////              if (i == 0)
-              {
               // set padding for tmp1 (WRITE)
               tmp1 -> APDevice ().Origin (0) = 0;
               tmp1 -> APDevice ().RowPitch () = (line_length) * sizeof (elem_type);
@@ -2228,15 +2066,10 @@
               tmp1 -> setSync (); // use results on GPU
               tmp2 -> setSync (); // use results on GPU
               
-              pi2 += ocl_basic_operator_kernel_57 ("dwt_2_alt", tmp2, lpf, hpf, tmp1, loc_mem2, n, m, k, line_length, chunk_size_dwt12, num_loc_mem_elems2, ld_12, lc2);
+              pi2 += ocl_basic_operator_kernel_56 ("dwt_2_alt", tmp2, lpf, hpf, tmp1, loc_mem2, line_length, line_length, chunk_size_dwt12, line_length, chunk_size_dwt12, num_loc_mem_elems2, lc2);
 
-              if (chunk_size < line_length)
-              {
-                // download results
-                pi2.time_mem_down += tmp1 -> getData ();
-              }
-              
-              }
+              // download results
+              pi2.time_mem_down += tmp1 -> getData ();
               
               // do not write to src image
               if (i == 0)
@@ -2263,7 +2096,6 @@
             const int pad_chunk_size_dwt3_dim0 = roundUp (chunk_size_dwt3_dim0 + padding, roundTo);
             const int ld_3 = (chunk_size < line_length ? chunk_size_dwt3 : n);
             const int ld_3_dim0 = (chunk_size < line_length ? chunk_size_dwt3_dim0 : n);
-//            lc3.global_z = lc3.local_z = lc3.local_z > line_length ? line_length : lc3.local_z;
             
             const oclAccessPattern tmp_ap_array [4] = {tmp1 -> APHost (), tmp1 -> APDevice (),
                                                        tmp2 -> APHost (), tmp2 -> APDevice ()}; // save current state !!!
@@ -2283,7 +2115,7 @@
             tmp2 -> APDevice ().Origin (0) = 0;
             tmp2 -> APDevice ().RowPitch () = chunk_size_dwt3_dim0 * sizeof (elem_type);
             tmp2 -> APDevice ().SlicePitch () = chunk_size_dwt3_dim0 * chunk_size_dwt3 * sizeof (elem_type);
-//            if (i == 0)
+
             // loop over chunks of beams along dim0
             for (int l = 0; l < line_length; l += chunk_size_dwt3_dim0)
             {
@@ -2298,45 +2130,18 @@
                 // adjust origin in host memory for dim1
                 tmp1 -> APHost ().Origin (1) = tmp2 -> APHost ().Origin (1) = ll;
                 
-                if (chunk_size >= line_length)
-                  tmp1 -> setSync ();
-                else
-                  tmp1 -> setCPUModified (); // upload src
+                tmp1 -> setCPUModified (); // upload src
                 tmp2 -> setSync (); // do NOT upload dest
                 
-                pi3 += ocl_basic_operator_kernel_58 ("dwt_3_alt", tmp1, lpf, hpf, tmp2, loc_mem3, n, m, k, line_length, chunk_size_dwt3_dim0, chunk_size_dwt3, ld_3, ld_3_dim0, lc3);
+                pi3 += ocl_basic_operator_kernel_56 ("dwt_3_alt", tmp1, lpf, hpf, tmp2, loc_mem3, chunk_size_dwt3_dim0, chunk_size_dwt3, line_length, line_length, chunk_size_dwt3_dim0, chunk_size_dwt3, lc3);
                 
-                if (chunk_size < line_length)
-                {
-                  // download results from GPU
-                  pi3.time_mem_down += tmp2 -> getData ();
-                }
-
+                // download results from GPU
+                pi3.time_mem_down += tmp2 -> getData ();
+                
               }
               
             }
-            
-//            if (chunk_size >= line_length)
-//            {
-//              oclDataObject * cpy = tmp1;
-//              tmp1 = tmp2;
-//              tmp2 = cpy;
-//            }
-                   
-            if (chunk_size >= line_length)
-            {
-              if (i != 0)
-              {
-                pi_final += ocl_basic_operator_kernel_56 ("dwt_final_alt", tmp2, lpf, hpf, tmp1, loc_mem1, n, m, k, line_length, line_length, num_loc_mem_elems1, lc1);
-              }
-              else
-              {
-                oclDataObject * cpy = tmp1;
-                tmp1 = tmp2;
-                tmp2 = cpy;
-              }
-            }
-              
+                          
             vec_pi3.push_back (pi3);
             
             tmp1 -> APHost () = tmp_ap_array [0]; tmp1 -> APDevice () = tmp_ap_array [1]; // reset
@@ -2353,20 +2158,7 @@
             tmp1 -> APDevice ().SlicePitch () = tmp2 -> APDevice ().SlicePitch () = (roundUp (line_length/2 + padding, roundTo)) * line_length/2 * sizeof (elem_type);
                 
           }
-                    
-          const int line_length = n / pow (2, levels);
-//          
-          if (chunk_size >= line_length)
-          {
-            tmp1 -> APHost ().Region (0) = tmp1 -> APDevice ().Region (0) = n * sizeof (elem_type);
-            tmp1 -> APHost ().Region (1) = tmp1 -> APDevice ().Region (1) = n;
-            tmp1 -> APHost ().Region (2) = tmp1 -> APDevice ().Region (2) = n;
-            tmp1 -> APDevice ().RowPitch () = (roundUp (n + padding, roundTo)) * sizeof (elem_type);
-            tmp1 -> APDevice ().SlicePitch () = (roundUp (n + padding, roundTo)) * n * sizeof (elem_type);
-            
-            pi_final.time_mem_down += tmp1 -> getData ();
-            
-          }
+          
             
           delete loc_mem1;
           delete loc_mem2;

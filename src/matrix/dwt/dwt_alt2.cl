@@ -290,8 +290,7 @@ kernel void dwt_1_alt (__global A_type * arg1,
           __global int * k,
           __constant int * line_length,
           __constant int * chunk_size,
-          __global int * loc_mem_size,
-          __constant int * lda)
+          __global int * loc_mem_size)
 {
   
   const int shift = -offset/2;
@@ -299,13 +298,13 @@ kernel void dwt_1_alt (__global A_type * arg1,
   ///////////////////
   // READING CONFIG
   ///////////////////
-  const int pad_line_length = roundUp (*lda /* *line_length*/ + PADDING, ROUND_TO);
-  const int pad_slice = pad_line_length * *lda /* *line_length*/;
+  const int pad_line_length = roundUp (*n /* *line_length*/ + PADDING, ROUND_TO);
+  const int pad_slice = pad_line_length * *m /* *line_length*/;
 
   ///////////////////
   // WRITE CONFIG
   ///////////////////
-  const int slice = *lda * *lda; //*line_length * *line_length;
+  const int slice = *n * *m; //*line_length * *line_length;
 
   ///////////////
   // THREAD
@@ -522,8 +521,7 @@ kernel void dwt_2_alt (__global A_type * arg1,
           __global int * k,
           __constant int * line_length,
           __constant int * chunk_size,
-          __global int * loc_mem_size,
-          __constant int * lda)
+          __global int * loc_mem_size)
 {
   
   const int shift = -offset/2;
@@ -531,13 +529,13 @@ kernel void dwt_2_alt (__global A_type * arg1,
   ///////////////////
   // READING CONFIG
   ///////////////////
-  const int pad_line_length = roundUp (*lda /* *line_length */ + PADDING, ROUND_TO);
-  const int pad_slice = pad_line_length * *lda; //*line_length;
+  const int pad_line_length = roundUp (*n /* *line_length */ + PADDING, ROUND_TO);
+  const int pad_slice = pad_line_length * *m; //*line_length;
 
   ///////////////////
   // WRITE CONFIG
   ///////////////////
-  const int slice = *lda * *lda; //*line_length * *line_length;
+  const int slice = *n * *m; //*line_length * *line_length;
 
   ///////////////
   // THREAD
@@ -679,15 +677,15 @@ kernel void dwt_2_alt (__global A_type * arg1,
         
           const int index2 = (d2 + lid_2) * slice
                            + (d0 + lid_0)
-                           + (d1/2 + lid_1) * *lda /* *line_length*/;
+                           + (d1/2 + lid_1) * *n /* *line_length*/;
         
           const int constraint = (*line_length - d1) / 2 - lid_1;
           for (int i = 0; i < LOC_MEM_LINE/2; i += lsize_1)
           {
             if (i < constraint)
             {
-              arg2 [index2 + (i + shift + (d1/2 + lid_1 + i + shift < 0 ? *line_length/2 : 0)) * *lda /* *line_length*/] = tmp_out [i + lid_1];
-              arg2 [index2 + (i + *line_length/2) * *lda /* *line_length*/] = tmp_out [i + lid_1 + LOC_MEM_LINE/2];
+              arg2 [index2 + (i + shift + (d1/2 + lid_1 + i + shift < 0 ? *line_length/2 : 0)) * *n /* *line_length*/] = tmp_out [i + lid_1];
+              arg2 [index2 + (i + *line_length/2) * *n /* *line_length*/] = tmp_out [i + lid_1 + LOC_MEM_LINE/2];
             }
           }
     
@@ -716,9 +714,7 @@ kernel void dwt_3_alt (__global A_type * arg1,
           __global int * k,
           __constant int * line_length,
           __constant int * chunk_size_0,
-          __constant int * chunk_size_1,
-          __constant int * ldb,
-          __constant int * lda)
+          __constant int * chunk_size_1)
 {
   
   const int shift = -offset/2;
@@ -726,13 +722,13 @@ kernel void dwt_3_alt (__global A_type * arg1,
   ///////////////////
   // READING CONFIG
   ///////////////////
-  const int pad_line_length = roundUp (*lda /* *chunk_size_0*/ + PADDING, ROUND_TO);
-  const int pad_slice = pad_line_length * *ldb /* *chunk_size_1*/;
+  const int pad_line_length = roundUp (*n /* *chunk_size_0*/ + PADDING, ROUND_TO);
+  const int pad_slice = pad_line_length * *m /* *chunk_size_1*/;
 
   ///////////////////
   // WRITE CONFIG
   ///////////////////
-  const int slice = *lda * *ldb; //*chunk_size_0 * *chunk_size_1;
+  const int slice = *n * *m; //*lda * *ldb; //*chunk_size_0 * *chunk_size_1;
 
   ///////////////
   // THREAD
@@ -872,7 +868,7 @@ kernel void dwt_3_alt (__global A_type * arg1,
           const int line_out = get_local_id (0) + get_local_id (1) * get_local_size (0);
           __local A_type * tmp_out = output + line_out * loc_mem_line_IN;
         
-          const int index2 = (d1 + lid_1) * *lda//*chunk_size_0
+          const int index2 = (d1 + lid_1) * *n//*chunk_size_0
                            + (d0 + lid_0)
                            + (d2/2 + lid_2) * slice;
                         
@@ -923,7 +919,7 @@ kernel void dwt_final_alt (__global A_type * arg1,
   ///////////////////
   // WRITE CONFIG
   ///////////////////
-  const int slice = LDA * LDA; //*line_length * *line_length;
+  const int slice = *n * *n; //*line_length * *line_length;
 
   ///////////////
   // THREAD
@@ -980,7 +976,7 @@ kernel void dwt_final_alt (__global A_type * arg1,
         {
 
           const int pad_index_base = (d2 + lid_2) * slice                   // slice
-                                   + (d1 + lid_1) * LDA;   // line in particular slice
+                                   + (d1 + lid_1) * *n;   // line in particular slice
           
           # ifdef NON_SQUARE_GROUP
           for (int lines = 0; lines < num_mem_lines; lines += lsize_2 * lsize_1)
@@ -990,10 +986,10 @@ kernel void dwt_final_alt (__global A_type * arg1,
             // copy
             const int index = pad_index_base + d0 + lid_0 + PADDING;
 
-            const int constraint = *line_length - d0 - lid_0;
-            for (int i = 0; i < LOC_MEM_LINE; i += lsize_0)
-              if (i < constraint)
-                arg2 [index + i] = arg1 [index + i];
+//            const int constraint = *line_length - d0 - lid_0;
+//            for (int i = 0; i < LOC_MEM_LINE; i += lsize_0)
+//              if (constraint > 0)
+                arg2 [index] = arg1 [index];
           
           }
         
