@@ -2086,7 +2086,27 @@
           ///////////////
           
 # ifdef __PERFORMANCE_INFO__
+          return dwt_performance (vec_pi, vec_pi2, vec_pi3, pi_final, lc1, lc2, lc3, levels, n, m, k, fl);
+# else
+          return std::vector <PerformanceInformation> (); 
+# endif
           
+      }
+      
+      
+      static inline
+      std::vector <PerformanceInformation>
+      dwt_performance (const std::vector <ProfilingInformation> & vec_pi1,
+                       const std::vector <ProfilingInformation> & vec_pi2,
+                       const std::vector <ProfilingInformation> & vec_pi3,
+                       const ProfilingInformation & pi_final,
+                       const LaunchInformation & lc1,
+                       const LaunchInformation & lc2,
+                       const LaunchInformation & lc3,
+                       const int levels,
+                       const int n, const int m, const int k, const int fl)
+      {
+        
           // data amount for dwt1/2/3 over all levels
           int data_size_1 = 0;
           int data_size_2 = 0;
@@ -2121,7 +2141,7 @@
           float time_seconds_1 = 0,
                 time_mem_up_1 = 0,
                 time_mem_down_1 = 0;
-          for (std::vector <ProfilingInformation> :: const_iterator it_pi = vec_pi.begin (); it_pi != vec_pi.end (); ++it_pi)
+          for (std::vector <ProfilingInformation> :: const_iterator it_pi = vec_pi1.begin (); it_pi != vec_pi1.end (); ++it_pi)
           {
             time_seconds_1 += it_pi -> time_end - it_pi -> time_start;
             time_mem_up_1   += it_pi -> time_mem_up;
@@ -2168,11 +2188,10 @@
           vec_perf.push_back (PerformanceInformation ("dwt_3_alt (all levels)", lc3, " Effective bandwidth (GB/s)", time_seconds_3, time_mem_up_3, time_mem_down_3, effective_bw_3));
           vec_perf.push_back (PerformanceInformation ("dwt_final_alt (all levels)", lc1, " Effective bandwidth (GB/s)", time_seconds_final, pi_final.time_mem_up, pi_final.time_mem_down, effective_bw_final));
 
-# endif
-          
           return vec_perf;
           
       }
+      
       
       
       
@@ -2509,9 +2528,7 @@
                                         oclDataObject * const arg2,
                                             const int         chunk_size)
       {
-        
-          std::vector <PerformanceInformation> vec_perf;
-        
+                
           print_optional ("oclOperations <", trait1 :: print_elem_type (), ", ",
                                              trait2 :: print_elem_type (), "> :: ocl_operator_idwt3", op_v_level);
 
@@ -2602,9 +2619,35 @@
           }
           
           pi_final.time_mem_down += tmp1 -> getData ();
-                    
+          
+          delete loc_mem1;
+          delete loc_mem2;
+          delete loc_mem3;
+          
 # ifdef __PERFORMANCE_INFO__
-                    
+          return idwt_performance (vec_pi_1, vec_pi_2, vec_pi_3, pi_final, lc1, lc2, lc3, levels, n, m, k, fl);
+# else
+          return std::vector <PerformanceInformation> ();
+# endif
+          
+      }
+            
+            
+      static inline
+      std::vector <PerformanceInformation>
+      idwt_performance (const std::vector <ProfilingInformation> & vec_pi1,
+                        const std::vector <ProfilingInformation> & vec_pi2,
+                        const std::vector <ProfilingInformation> & vec_pi3,
+                        const ProfilingInformation & pi_final,
+                        const LaunchInformation & lc1,
+                        const LaunchInformation & lc2,
+                        const LaunchInformation & lc3,
+                        const int levels,
+                        const int n, const int m, const int k, const int fl)
+      {
+        
+          std::vector <PerformanceInformation> vec_perf;
+        
           // data amount for idwt2 over all levels
           int data_size_1 = 0;
           int data_size_2 = 0;
@@ -2636,7 +2679,7 @@
           float time_seconds_1 = 0,
                 time_mem_up_1 = 0,
                 time_mem_down_1 = 0;
-          for (std::vector <ProfilingInformation> :: const_iterator it = vec_pi_1.begin (); it != vec_pi_1.end (); ++it)
+          for (std::vector <ProfilingInformation> :: const_iterator it = vec_pi1.begin (); it != vec_pi1.end (); ++it)
           {
             time_seconds_1 += it -> time_end - it -> time_start;
             time_mem_up_1 += it -> time_mem_up;
@@ -2647,7 +2690,7 @@
           float time_seconds_2 = 0,
                 time_mem_up_2 = 0,
                 time_mem_down_2 = 0;
-          for (std::vector <ProfilingInformation> :: const_iterator it = vec_pi_2.begin (); it != vec_pi_2.end (); ++it)
+          for (std::vector <ProfilingInformation> :: const_iterator it = vec_pi2.begin (); it != vec_pi2.end (); ++it)
           {
             time_seconds_2 += it -> time_end - it -> time_start;
             time_mem_up_2 += it -> time_mem_up;
@@ -2658,7 +2701,7 @@
           float time_seconds_3 = 0,
                 time_mem_up_3 = 0,
                 time_mem_down_3 = 0;
-          for (std::vector <ProfilingInformation> :: const_iterator it = vec_pi_3.begin (); it != vec_pi_3.end (); ++it)
+          for (std::vector <ProfilingInformation> :: const_iterator it = vec_pi3.begin (); it != vec_pi3.end (); ++it)
           {
             time_seconds_3 += it -> time_end - it -> time_start;
             time_mem_up_3 += it -> time_mem_up;
@@ -2679,15 +2722,9 @@
             vec_perf.push_back (PerformanceInformation ("idwt_2_alt (kernel)", lc2, " Effective bandwidth (GB/s)", time_seconds_2, time_mem_up_2, time_mem_down_2, effective_bw_2));
             vec_perf.push_back (PerformanceInformation ("idwt_3_alt (kernel)", lc3, " Effective bandwidth (GB/s)", time_seconds_3, time_mem_up_3, time_mem_down_3, effective_bw_3));
             vec_perf.push_back (PerformanceInformation ("idwt_final_alt (kernel)", lc1, " Effective bandwidth (GB/s)", time_seconds_final, pi_final.time_mem_up, pi_final.time_mem_down, effective_bw_final));
-                        
-# endif
+
+            return vec_perf;
             
-          delete loc_mem1;
-          delete loc_mem2;
-          delete loc_mem3;
-          
-          return vec_perf;
-          
       }
       
       
