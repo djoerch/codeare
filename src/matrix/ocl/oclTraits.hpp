@@ -2096,6 +2096,297 @@
       
       static inline
       std::vector <PerformanceInformation>
+      ocl_operator_dwt3_alt_cs        ( oclDataObject * const arg1,
+                                                  int            n,
+                                                  int            m,
+                                                  int            k,
+                                        oclDataObject * const  lpf,
+                                        oclDataObject * const  hpf,
+                                                  int           fl,
+                                            const int         levels,
+                                        oclDataObject * const arg2,
+                                        oclDataObject * const tmp,
+                                            const int         chunk_size)
+      {
+        
+          print_optional ("oclOperations <", trait1 :: print_elem_type (), ", ",
+                                             trait2 :: print_elem_type (), "> :: ocl_operator_dwt3_alt_cs", op_v_level);
+
+          LaunchInformation lc1 = oclConnection :: Instance () -> getThreadConfig (std::string ("dwt_1_alt"));
+          LaunchInformation lc2 = oclConnection :: Instance () -> getThreadConfig (std::string ("dwt_2_alt"));
+          LaunchInformation lc3 = oclConnection :: Instance () -> getThreadConfig (std::string ("dwt_3_alt"));
+          
+          ////////////////
+          // dynamically allocate local memory
+          ////////////////
+                    
+          const int loc_mem_line = 64 + fl-2 + 1;
+          
+          // dwt_1
+          const int num_loc_mem_elems1 = loc_mem_line * 2 * max (lc1.local_x, lc1.local_y) * lc1.local_z;
+          oclDataObject * loc_mem1 = new oclLocalMemObject <elem_type> (num_loc_mem_elems1);
+          
+          // dwt_2
+          const int num_loc_mem_elems2 = loc_mem_line * 2 * lc2.local_x * lc2.local_z;
+          oclDataObject * loc_mem2 = new oclLocalMemObject <elem_type> (num_loc_mem_elems2);
+          
+          // dwt_3
+          const int num_loc_mem_elems3 = loc_mem_line * 2 * lc3.local_x * lc3.local_y;
+          oclDataObject * loc_mem3 = new oclLocalMemObject <elem_type> (num_loc_mem_elems3);
+          
+          std::cout << " loc_mem1 (dwt_1_alt): " << num_loc_mem_elems1 * sizeof (elem_type) << " Bytes " << std::endl;
+          std::cout << " loc_mem2 (dwt_2_alt): " << num_loc_mem_elems2 * sizeof (elem_type) << " Bytes " << std::endl;
+          std::cout << " loc_mem3 (dwt_3_alt): " << num_loc_mem_elems3 * sizeof (elem_type) << " Bytes " << std::endl;
+          std::cout << " chunk_size: " << chunk_size << std::endl;
+          
+          //////////
+          // collect profiling information for each level
+          //////////
+          std::vector <ProfilingInformation> vec_pi;
+          std::vector <ProfilingInformation> vec_pi2;
+          std::vector <ProfilingInformation> vec_pi3;
+          
+          //////////
+          // prepare access patterns for CPU-GPU-transfers
+          //////////
+          const int padding = 0;//fl - 2;
+          const int roundTo = 1;
+          arg1 -> APDevice () = oclAccessPattern (padding * sizeof (elem_type), 0, 0,
+                  roundUp (n + padding, roundTo) * sizeof (elem_type), roundUp (n + padding, roundTo) * m * sizeof (elem_type),
+                   n * sizeof (elem_type), m, k);
+          arg1 -> APHost () = oclAccessPattern (0, 0, 0,
+                   n * sizeof (elem_type), n * m * sizeof (elem_type),
+                   n * sizeof (elem_type), m, k);
+          arg2 -> APDevice () = arg1 -> APDevice ();
+          tmp -> APDevice () = arg2 -> APHost () = tmp -> APHost () = arg1 -> APHost ();
+          
+          ////////////
+          // temporaries for buffer objects (avoid writing to src memory)
+          ////////////
+          oclDataObject * tmp1 = arg1;
+          oclDataObject * tmp2 = arg2;
+                    
+          ProfilingInformation pi_final = {0, 0, 0, 0};
+          
+          // loop over levels
+          for (int i = 0; i < levels; i++)
+          {
+            
+            const int line_length = n / pow (2, i);
+            const int pad_line_length = roundUp (line_length + padding, roundTo);
+            const int num_slices = line_length;
+            const int chunk_size_dwt12 = min (num_slices, chunk_size);
+            const int ld_12 = (chunk_size < line_length ? line_length : n);
+                    
+            // run kernels "dwt_2" and "dwt_1" on slices
+            ProfilingInformation pi = {0, 0, 0, 0};
+            ProfilingInformation pi2 = {0, 0, 0, 0};
+            
+            // set memory region to current chunk_size
+            tmp1 -> APHost ().Region (2) = tmp1 -> APDevice ().Region (2) = chunk_size_dwt12;
+            tmp2 -> APHost ().Region (2) = tmp2 -> APDevice ().Region (2) = chunk_size_dwt12;
+            tmp -> APHost ().Region (2) = tmp -> APDevice ().Region (2) = chunk_size_dwt12;
+            
+            // loop over chunks of slices
+            for (int l = 0; l < num_slices; l += chunk_size_dwt12)
+            {
+                            
+              // set origin of current chunk on host
+              tmp1 -> APHost ().Origin (2) = tmp2 -> APHost ().Origin (2)
+                                           = tmp  -> APHost ().Origin (2) = l;
+              
+              // set padding for tmp1 (READ)
+              tmp1 -> APDevice ().Origin (0) = padding * sizeof (elem_type);
+              tmp1 -> APDevice ().RowPitch () = pad_line_length * sizeof (elem_type);
+              tmp1 -> APDevice ().SlicePitch () = pad_line_length * line_length * sizeof(elem_type);
+              
+              if (i == 0 || chunk_size < line_length)
+                tmp1 -> setCPUModified (); // upload src
+              else
+                tmp1 -> setSync ();
+              tmp2 -> setSync (); // do NOT upload dest
+              
+              pi += ocl_basic_operator_kernel_57 ("dwt_1_alt", tmp1, lpf, hpf, tmp2, loc_mem1, n, m, k, line_length, chunk_size_dwt12, num_loc_mem_elems1, ld_12, lc1);
+              
+//              if (i != 0)
+//              {
+//                tmp2 -> APDevice () = tmp1 -> APDevice ();
+//                tmp2 -> getData ();
+//              }
+                
+              // do not write to src image
+              if (i == 0)
+                tmp1 = tmp;
+              
+////              if (i == 0)
+              {
+              // set padding for tmp1 (WRITE)
+              tmp1 -> APDevice ().Origin (0) = 0;
+              tmp1 -> APDevice ().RowPitch () = (line_length) * sizeof (elem_type);
+              tmp1 -> APDevice ().SlicePitch () = (line_length) * line_length * sizeof(elem_type);
+              
+              tmp1 -> setSync (); // use results on GPU
+              tmp2 -> setSync (); // use results on GPU
+              
+              pi2 += ocl_basic_operator_kernel_57 ("dwt_2_alt", tmp2, lpf, hpf, tmp1, loc_mem2, n, m, k, line_length, chunk_size_dwt12, num_loc_mem_elems2, ld_12, lc2);
+
+              if (chunk_size < line_length)
+              {
+                // download results
+                pi2.time_mem_down += tmp1 -> getData ();
+              }
+              
+              }
+              
+              // do not write to src image
+              if (i == 0)
+                tmp1 = arg1;
+            }
+            
+            vec_pi.push_back (pi);
+            vec_pi2.push_back (pi2);
+            
+            tmp1 -> APHost ().Origin (2) = tmp2 -> APHost ().Origin (2) = tmp -> APHost ().Origin (2) = 0; // reset
+            tmp1 -> APDevice ().Region (2) = tmp1 -> APHost ().Region (2) = line_length; // reset
+            tmp2 -> APDevice ().Region (2) = tmp2 -> APHost ().Region (2) = line_length; // reset
+            tmp -> APDevice ().Region (2) = tmp -> APHost ().Region (2) = line_length; // reset
+            
+            // switch to temporary memory for writing (not to src image)
+            if (i == 0)
+              tmp1 = tmp;
+            
+            // run kernel "dwt3" on beams
+            ProfilingInformation pi3 = {0, 0, 0, 0};
+            const int chunk_size_dwt3 = min (line_length, chunk_size);
+            const int chunk_size_dwt3_dim0 = line_length;
+            const int pad_chunk_size_dwt3 = roundUp (chunk_size_dwt3 + padding, roundTo);
+            const int pad_chunk_size_dwt3_dim0 = roundUp (chunk_size_dwt3_dim0 + padding, roundTo);
+            const int ld_3 = (chunk_size < line_length ? chunk_size_dwt3 : n);
+            const int ld_3_dim0 = (chunk_size < line_length ? chunk_size_dwt3_dim0 : n);
+//            lc3.global_z = lc3.local_z = lc3.local_z > line_length ? line_length : lc3.local_z;
+            
+            const oclAccessPattern tmp_ap_array [4] = {tmp1 -> APHost (), tmp1 -> APDevice (),
+                                                       tmp2 -> APHost (), tmp2 -> APDevice ()}; // save current state !!!
+            
+            // set memory region: shrink dim0 & dim1
+            tmp1 -> APHost ().Region (0) = tmp1 -> APDevice ().Region (0) = chunk_size_dwt3_dim0 * sizeof (elem_type);
+            tmp2 -> APHost ().Region (0) = tmp2 -> APDevice ().Region (0) = chunk_size_dwt3_dim0 * sizeof (elem_type);
+            tmp1 -> APHost ().Region (1) = tmp1 -> APDevice ().Region (1) = chunk_size_dwt3;
+            tmp2 -> APHost ().Region (1) = tmp2 -> APDevice ().Region (1) = chunk_size_dwt3;
+            
+            // sizes of rows and slices change accordingly
+            // tmp1: input -> padding
+            // tmp2: output -> without padding
+            tmp1 -> APDevice ().Origin (0) = padding * sizeof (elem_type);
+            tmp1 -> APDevice ().RowPitch () = pad_chunk_size_dwt3_dim0 * sizeof (elem_type);
+            tmp1 -> APDevice ().SlicePitch () = pad_chunk_size_dwt3_dim0 * chunk_size_dwt3 * sizeof (elem_type);
+            tmp2 -> APDevice ().Origin (0) = 0;
+            tmp2 -> APDevice ().RowPitch () = chunk_size_dwt3_dim0 * sizeof (elem_type);
+            tmp2 -> APDevice ().SlicePitch () = chunk_size_dwt3_dim0 * chunk_size_dwt3 * sizeof (elem_type);
+//            if (i == 0)
+            // loop over chunks of beams along dim0
+            for (int l = 0; l < line_length; l += chunk_size_dwt3_dim0)
+            {
+              
+              // adjust origin in host memory for dim0
+              tmp1 -> APHost ().Origin (0) = tmp2 -> APHost ().Origin (0) = l * sizeof (elem_type);
+              
+              // loop over chunks of beams along dim1
+              for (int ll = 0; ll < line_length; ll += chunk_size_dwt3)
+              {
+                
+                // adjust origin in host memory for dim1
+                tmp1 -> APHost ().Origin (1) = tmp2 -> APHost ().Origin (1) = ll;
+                
+                if (chunk_size >= line_length)
+                  tmp1 -> setSync ();
+                else
+                  tmp1 -> setCPUModified (); // upload src
+                tmp2 -> setSync (); // do NOT upload dest
+                
+                pi3 += ocl_basic_operator_kernel_58 ("dwt_3_alt", tmp1, lpf, hpf, tmp2, loc_mem3, n, m, k, line_length, chunk_size_dwt3_dim0, chunk_size_dwt3, ld_3, ld_3_dim0, lc3);
+                
+                if (chunk_size < line_length)
+                {
+                  // download results from GPU
+                  pi3.time_mem_down += tmp2 -> getData ();
+                }
+
+              }
+              
+            }
+            
+//            if (chunk_size >= line_length)
+//            {
+//              oclDataObject * cpy = tmp1;
+//              tmp1 = tmp2;
+//              tmp2 = cpy;
+//            }
+                   
+            if (chunk_size >= line_length)
+            {
+              if (i != 0)
+              {
+                pi_final += ocl_basic_operator_kernel_56 ("dwt_final_alt", tmp2, lpf, hpf, tmp1, loc_mem1, n, m, k, line_length, line_length, num_loc_mem_elems1, lc1);
+              }
+              else
+              {
+                oclDataObject * cpy = tmp1;
+                tmp1 = tmp2;
+                tmp2 = cpy;
+              }
+            }
+              
+            vec_pi3.push_back (pi3);
+            
+            tmp1 -> APHost () = tmp_ap_array [0]; tmp1 -> APDevice () = tmp_ap_array [1]; // reset
+            tmp2 -> APHost () = tmp_ap_array [2]; tmp2 -> APDevice () = tmp_ap_array [3]; // reset
+            
+            // shrink memory region for NEXT LEVEL
+            tmp1 -> APHost ().Region (0) = tmp1 -> APDevice ().Region (0) = line_length/2 * sizeof (elem_type);
+            tmp2 -> APHost ().Region (0) = tmp2 -> APDevice ().Region (0) = line_length/2 * sizeof (elem_type);
+            tmp1 -> APHost ().Region (1) = tmp1 -> APDevice ().Region (1) = line_length/2;
+            tmp2 -> APHost ().Region (1) = tmp2 -> APDevice ().Region (1) = line_length/2;
+            tmp1 -> APHost ().Region (2) = tmp1 -> APDevice ().Region (2) = line_length/2;
+            tmp2 -> APHost ().Region (2) = tmp2 -> APDevice ().Region (2) = line_length/2;
+            tmp1 -> APDevice ().RowPitch () = tmp2 -> APDevice ().RowPitch () = (roundUp (line_length/2 + padding, roundTo)) * sizeof (elem_type);
+            tmp1 -> APDevice ().SlicePitch () = tmp2 -> APDevice ().SlicePitch () = (roundUp (line_length/2 + padding, roundTo)) * line_length/2 * sizeof (elem_type);
+                
+          }
+                    
+          const int line_length = n / pow (2, levels);
+//          
+          if (chunk_size >= line_length)
+          {
+            tmp1 -> APHost ().Region (0) = tmp1 -> APDevice ().Region (0) = n * sizeof (elem_type);
+            tmp1 -> APHost ().Region (1) = tmp1 -> APDevice ().Region (1) = n;
+            tmp1 -> APHost ().Region (2) = tmp1 -> APDevice ().Region (2) = n;
+            tmp1 -> APDevice ().RowPitch () = (roundUp (n + padding, roundTo)) * sizeof (elem_type);
+            tmp1 -> APDevice ().SlicePitch () = (roundUp (n + padding, roundTo)) * n * sizeof (elem_type);
+            
+            pi_final.time_mem_down += tmp1 -> getData ();
+            
+          }
+            
+          delete loc_mem1;
+          delete loc_mem2;
+          delete loc_mem3;
+          
+          ///////////////
+          // performance
+          ///////////////
+          
+# ifdef __PERFORMANCE_INFO__
+          return dwt_performance (vec_pi, vec_pi2, vec_pi3, pi_final, lc1, lc2, lc3, levels, n, m, k, fl);
+# else
+          return std::vector <PerformanceInformation> (); 
+# endif
+          
+      }
+      
+      
+      static inline
+      std::vector <PerformanceInformation>
       dwt_performance (const std::vector <ProfilingInformation> & vec_pi1,
                        const std::vector <ProfilingInformation> & vec_pi2,
                        const std::vector <ProfilingInformation> & vec_pi3,
@@ -2545,15 +2836,15 @@
           const int loc_mem_line = 64 + 2 * (fl-1);
           
           // idwt1
-          const int num_loc_mem_elems1 = 2 * loc_mem_line * lc1.local_y * lc1.local_z; //(2 * (n + fl-1)) * lc1.local_y * lc1.local_z;
+          const int num_loc_mem_elems1 = 2 * loc_mem_line * lc1.local_y * lc1.local_z;
           oclDataObject * loc_mem1 = new oclLocalMemObject <elem_type> (num_loc_mem_elems1);
 
           // idwt2
-          const int num_loc_mem_elems2 = 2 * loc_mem_line * lc2.local_x * lc2.local_z; //(2 * (m + fl-1)) * lc2.local_x * lc2.local_z;
+          const int num_loc_mem_elems2 = 2 * loc_mem_line * lc2.local_x * lc2.local_z;
           oclDataObject * loc_mem2 = new oclLocalMemObject <elem_type> (num_loc_mem_elems2);
           
           // idwt3
-          const int num_loc_mem_elems3 = 2 * loc_mem_line * lc3.local_x * lc3.local_y; //(2 * (k + fl-1)) * lc3.local_x * lc3.local_y;
+          const int num_loc_mem_elems3 = 2 * loc_mem_line * lc3.local_x * lc3.local_y;
           oclDataObject * loc_mem3 = new oclLocalMemObject <elem_type> (num_loc_mem_elems3);
           
           std::cout << " local_mem (idwt_1_alt): " << num_loc_mem_elems1 * sizeof (elem_type) << " Bytes " << std::endl;
@@ -2729,236 +3020,161 @@
       
       
       
-//      static inline
-//      std::vector <PerformanceInformation>
-//      ocl_operator_idwt3_alt           ( oclDataObject * const arg1,
-//                                                  int            n,
-//                                                  int            m,
-//                                                  int            k,
-//                                        oclDataObject * const  lpf,
-//                                        oclDataObject * const  hpf,
-//                                                  int           fl,
-//                                            const int         levels,
-//                                        oclDataObject * const arg2,
-//                                            const int         chunk_size)
-//      {
-//        
-//          std::vector <PerformanceInformation> vec_perf;
-//        
-//          print_optional ("oclOperations <", trait1 :: print_elem_type (), ", ",
-//                                             trait2 :: print_elem_type (), "> :: ocl_operator_idwt3", op_v_level);
-//
-//          
-//          // create launch configuration
-//          LaunchInformation lc1 = oclConnection :: Instance () -> getThreadConfig (std::string ("idwt_1_alt"));
-//          LaunchInformation lc2 = oclConnection :: Instance () -> getThreadConfig (std::string ("idwt_2_alt"));
-//          LaunchInformation lc3 = oclConnection :: Instance () -> getThreadConfig (std::string ("idwt_3_alt"));
-//          
-//          /////////////
-//          // dynamically allocate local memory
-//          /////////////
-//          
-//          const int loc_mem_line = 64 + 2 * (fl-1);
-//          
-//          // idwt1
-//          const int num_loc_mem_elems1 = 2 * loc_mem_line * lc1.local_y * lc1.local_z; //(2 * (n + fl-1)) * lc1.local_y * lc1.local_z;
-//          oclDataObject * loc_mem1 = new oclLocalMemObject <elem_type> (num_loc_mem_elems1);
-//
-//          // idwt2
-//          const int num_loc_mem_elems2 = 2 * loc_mem_line * lc2.local_x * lc2.local_z; //(2 * (m + fl-1)) * lc2.local_x * lc2.local_z;
-//          oclDataObject * loc_mem2 = new oclLocalMemObject <elem_type> (num_loc_mem_elems2);
-//          
-//          // idwt3
-//          const int num_loc_mem_elems3 = 2 * loc_mem_line * lc3.local_x * lc3.local_y; //(2 * (k + fl-1)) * lc3.local_x * lc3.local_y;
-//          oclDataObject * loc_mem3 = new oclLocalMemObject <elem_type> (num_loc_mem_elems3);
-//          
-//          std::cout << " local_mem (idwt_1_alt): " << num_loc_mem_elems1 * sizeof (elem_type) << " Bytes " << std::endl;
-//          std::cout << " local_mem2 (idwt_2_alt): " << num_loc_mem_elems2 * sizeof (elem_type) << " Bytes " << std::endl;
-//          std::cout << " local_mem3 (idwt_3_alt): " << num_loc_mem_elems3 * sizeof (elem_type) << " Bytes " << std::endl;
-//          std::cout << " chunk_size: " << chunk_size << std::endl;
-//
-//          /////////////
-//          // collect profiling information for each level
-//          /////////////
-//          std::vector <ProfilingInformation> vec_pi_1, vec_pi_2, vec_pi_3;
-//
-//          //////////
-//          // prepare access patterns for CPU-GPU-transfers
-//          //////////
-//          arg1 -> APDevice () = oclAccessPattern (0, 0, 0,
-//                  n * sizeof (elem_type), n * m * sizeof (elem_type),
-//                  n * sizeof (elem_type), m, k);
-//          arg1 -> APHost () = arg1 -> APDevice ();
-//          arg2 -> APDevice () = arg2 -> APHost () = arg1 -> APHost ();
-//          
-//          ///////////
-//          // temporaries (avoid writing to source memory)
-//          ///////////
-//          oclDataObject * tmp1 = arg1;
-//          oclDataObject * tmp2 = arg2;
-//          
-//          for (int i = levels-1; i >= 0; i--)
-//          {
-//            const int line_length = n / pow (2, i);
-//            
-//            const int chunk_size_idwt3 = min (line_length, chunk_size);
-//            const int chunk_size_idwt3_dim0 = line_length;
-////            lc2.global_z = lc2.local_z = (line_length/4 < lc2.local_z ? line_length/4 : lc2.local_z);
-////            lc2.global_x /= (chunk_size_idwt3_dim0 < lc2.global_x ? 2 : 1);
-////            lc2.global_y /= (chunk_size_idwt3 < lc2.global_y ? 2 : 1);
-//            
-//            // run kernel "idwt3"
-//            ProfilingInformation pi3 = {0, 0, 0, 0};
-//            const oclAccessPattern tmp_ap_array [4] = {tmp1 -> APHost (), tmp1 -> APDevice (),
-//                                                       tmp2 -> APHost (), tmp2 -> APDevice ()}; // save current state !!!
-//            tmp1 -> APHost ().Region (0) = tmp1 -> APDevice ().Region (0) = chunk_size_idwt3_dim0 * sizeof (elem_type);
-//            tmp2 -> APHost ().Region (0) = tmp2 -> APDevice ().Region (0) = chunk_size_idwt3_dim0 * sizeof (elem_type);
-//            tmp1 -> APHost ().Region (1) = tmp1 -> APDevice ().Region (1) = chunk_size_idwt3;
-//            tmp2 -> APHost ().Region (1) = tmp2 -> APDevice ().Region (1) = chunk_size_idwt3;
-//            tmp1 -> APHost ().Region (2) = tmp1 -> APDevice ().Region (2) = line_length;
-//            tmp2 -> APHost ().Region (2) = tmp2 -> APDevice ().Region (2) = line_length;
-//            tmp1 -> APDevice ().RowPitch () = tmp2 -> APDevice ().RowPitch () = chunk_size_idwt3_dim0 * sizeof (elem_type);
-//            tmp1 -> APDevice ().SlicePitch () = tmp2 -> APDevice ().SlicePitch () = chunk_size_idwt3_dim0 * chunk_size_idwt3 * sizeof (elem_type);
-//            for (int l = 0; l < line_length; l += chunk_size_idwt3_dim0)
-//            {
-//              tmp1 -> APHost ().Origin (0) = tmp2 -> APHost ().Origin (0) = l * sizeof (elem_type);
-//              for (int ll = 0; ll < line_length; ll += chunk_size_idwt3)
-//              {
-//                tmp1 -> APHost ().Origin (1) = tmp2 -> APHost ().Origin (1) = ll;
-//                tmp1 -> setCPUModified (); // upload src
-//                tmp2 -> setSync (); // do not upload data to result buffer
-//                pi3 += ocl_basic_operator_kernel_57 ("idwt_3_alt", tmp1, lpf, hpf, tmp2, loc_mem3, n, m, k, line_length, chunk_size_idwt3_dim0, chunk_size_idwt3, num_loc_mem_elems3, lc3);
-//                pi3.time_mem_down += tmp2 -> getData ();
-//              }
-//            }
-//            vec_pi_3.push_back (pi3);
-//            
-//            tmp1 -> APHost () = tmp_ap_array [0]; tmp1 -> APDevice () = tmp_ap_array [1]; // reset
-//            tmp2 -> APHost () = tmp_ap_array [2]; tmp2 -> APDevice () = tmp_ap_array [3]; // reset
-//            
-//            // run kernel "idwt_1" and "idwt_2" on slices
-//            ProfilingInformation pi1 = {0, 0, 0, 0};
-//            ProfilingInformation pi2 = {0, 0, 0, 0};
-//            
-//            const int chunk_size_idwt12 = min (line_length, chunk_size);
-//            
-////            lc2.local_z = lc1.local_z = (chunk_size_idwt12 < lc1.local_z ? chunk_size_idwt12 : lc1.local_z);
-////            lc2.global_z = lc1.global_z = (chunk_size_idwt12 < lc1.global_z ? chunk_size_idwt12 : lc1.global_z);
-////            lc2.global_x = lc1.global_x /= (line_length < lc1.global_x ? 2 : 1);
-////            lc2.global_y = lc1.global_y /= (line_length < lc1.global_y ? 2 : 1);
-//            tmp1 -> APHost ().Region (0) = tmp1 -> APDevice ().Region (0) = line_length * sizeof (elem_type);
-//            tmp2 -> APHost ().Region (0) = tmp2 -> APDevice ().Region (0) = line_length * sizeof (elem_type);
-//            tmp1 -> APHost ().Region (1) = tmp1 -> APDevice ().Region (1) = line_length;
-//            tmp2 -> APHost ().Region (1) = tmp2 -> APDevice ().Region (1) = line_length;
-//            tmp1 -> APHost ().Region (2) = tmp1 -> APDevice ().Region (2) = chunk_size_idwt12;
-//            tmp2 -> APHost ().Region (2) = tmp2 -> APDevice ().Region (2) = chunk_size_idwt12;
-//            tmp1 -> APDevice ().RowPitch () = tmp2 -> APDevice ().RowPitch () = line_length * sizeof (elem_type);
-//            tmp1 -> APDevice ().SlicePitch () = tmp2 -> APDevice ().SlicePitch () = line_length * line_length * sizeof (elem_type);
-//            
-//            for (int l = 0; l < line_length; l += chunk_size_idwt12)
-//            {
-//              
-//              tmp1 -> APHost ().Origin (2) = tmp2 -> APHost ().Origin (2) = l;
-//              
-//              tmp1 -> setCPUModified (); // upload src
-//              tmp2 -> setSync (); // do not upload data to result buffer
-//              
-//              pi2 += ocl_basic_operator_kernel_56 ("idwt_2_alt", tmp1, lpf, hpf, tmp2, loc_mem2, n, m, k, line_length, chunk_size_idwt12, num_loc_mem_elems2, lc2);
-//              
-//              tmp1 -> setSync (); // do not upload src
-//              tmp2 -> setSync (); // do not upload data to dest
-//              
-//              pi1 += ocl_basic_operator_kernel_56 ("idwt_1_alt", tmp2, lpf, hpf, tmp1, loc_mem1, n, m, k, line_length, chunk_size_idwt12, num_loc_mem_elems1, lc1);
-//              
-//              pi1.time_mem_down += tmp1 -> getData ();
-//              
-//            }
-//            vec_pi_1.push_back (pi1);
-//            vec_pi_2.push_back (pi2);
-//            
-//            tmp1 -> APHost ().Region (2) = tmp1 -> APDevice ().Region (2) = k; // reset
-//            tmp2 -> APHost ().Region (2) = tmp2 -> APDevice ().Region (2) = k; // reset
-//            tmp1 -> APHost ().Origin (2) = tmp2 -> APHost ().Origin (2) = 0; // reset
-//                        
-//          }
-//          
-//# ifdef __PERFORMANCE_INFO__
-//                    
-//          // data amount for idwt2 over all levels
-//          int data_size_1 = 0;
-//          int data_size_2 = 0;
-//          int data_size_3 = 0;
-//          const int ng_0 = lc1.global_x / lc1.local_x;
-//          const int ng_1 = lc2.global_y / lc2.local_y;
-//          const int ng_2 = lc3.global_z / lc3.local_z;
-//          for (int i = levels-1; i >= 0; i--)
-//          {
-//            const int sl_0 = n / pow (2, i);
-//            const int sl_1 = m / pow (2, i);
-//            const int sl_2 = k / pow (2, i);
-//            const int offset = fl - 1;
-//            // global -> local
-//            data_size_1 += sl_1 * sl_2 * (sl_0 + ng_0 * 2 * (fl-1)) * 2;
-//            data_size_2 += sl_0 * sl_2 * (sl_1 + ng_1 * 2 * (fl-1)) * 2;
-//            data_size_3 += sl_0 * sl_1 * (sl_2 + ng_2 * 2 * (fl-1)) * 2;
-//            // local -> global
-//            data_size_1 += sl_0 * sl_1 * sl_2;
-//            data_size_2 += sl_0 * sl_1 * sl_2;
-//            data_size_3 += sl_0 * sl_1 * sl_2;
-//          }
-//          
-//          float time_seconds_1 = 0,
-//                time_mem_up_1 = 0,
-//                time_mem_down_1 = 0;
-//          for (std::vector <ProfilingInformation> :: const_iterator it = vec_pi_1.begin (); it != vec_pi_1.end (); ++it)
-//          {
-//            time_seconds_1 += it -> time_end - it -> time_start;
-//            time_mem_up_1 += it -> time_mem_up;
-//            time_mem_down_1 += it -> time_mem_down;
-//          }
-//          float effective_bw_1 = ((float) (data_size_1 * sizeof (elem_type)) * 1.0e-9f) / time_seconds_1;
-//
-//          float time_seconds_2 = 0,
-//                time_mem_up_2 = 0,
-//                time_mem_down_2 = 0;
-//          for (std::vector <ProfilingInformation> :: const_iterator it = vec_pi_2.begin (); it != vec_pi_2.end (); ++it)
-//          {
-//            time_seconds_2 += it -> time_end - it -> time_start;
-//            time_mem_up_2 += it -> time_mem_up;
-//            time_mem_down_2 += it -> time_mem_down;
-//          }
-//          float effective_bw_2 = ((float) (data_size_2 * sizeof (elem_type)) * 1.0e-9f) / time_seconds_2;
-//                    
-//          float time_seconds_3 = 0,
-//                time_mem_up_3 = 0,
-//                time_mem_down_3 = 0;
-//          for (std::vector <ProfilingInformation> :: const_iterator it = vec_pi_3.begin (); it != vec_pi_3.end (); ++it)
-//          {
-//            time_seconds_3 += it -> time_end - it -> time_start;
-//            time_mem_up_3 += it -> time_mem_up;
-//            time_mem_down_3 += it -> time_mem_down;
-//          }
-//          float effective_bw_3 = ((float)(data_size_3 * sizeof (elem_type)) * 1.0e-9f) / time_seconds_3;
-//          
-//          // overall bandwidth
-//          float time_seconds = time_seconds_1 + time_seconds_2 + time_seconds_3;
-//          float data_size = data_size_1 + data_size_2 + data_size_3;
-//          float effective_bw = ((float)((data_size) * sizeof (elem_type)) * 1.0e-9f) / (time_seconds);
-//          
-//            vec_perf.push_back (PerformanceInformation ("idwt1+2+3", lc1, " Effective bandwidth (GB/s)", time_seconds, time_mem_up_1 + time_mem_up_2 + time_mem_up_3, time_mem_down_1 + time_mem_down_2 + time_mem_down_3, effective_bw));
-//            vec_perf.push_back (PerformanceInformation ("idwt_1_alt (kernel)", lc1, " Effective bandwidth (GB/s)", time_seconds_1, time_mem_up_1, time_mem_down_1, effective_bw_1));
-//            vec_perf.push_back (PerformanceInformation ("idwt_2_alt (kernel)", lc2, " Effective bandwidth (GB/s)", time_seconds_2, time_mem_up_2, time_mem_down_2, effective_bw_2));
-//            vec_perf.push_back (PerformanceInformation ("idwt_3_alt (kernel)", lc3, " Effective bandwidth (GB/s)", time_seconds_3, time_mem_up_3, time_mem_down_3, effective_bw_3));
-//                        
-//# endif
-//            
-//          delete loc_mem1;
-//          delete loc_mem2;
-//          delete loc_mem3;
-//          
-//          return vec_perf;
-//          
-//      }
+      static inline
+      std::vector <PerformanceInformation>
+      ocl_operator_idwt3_alt_cs       ( oclDataObject * const arg1,
+                                                  int            n,
+                                                  int            m,
+                                                  int            k,
+                                        oclDataObject * const  lpf,
+                                        oclDataObject * const  hpf,
+                                                  int           fl,
+                                            const int         levels,
+                                        oclDataObject * const arg2,
+                                            const int         chunk_size)
+      {
+        
+          print_optional ("oclOperations <", trait1 :: print_elem_type (), ", ",
+                                             trait2 :: print_elem_type (), "> :: ocl_operator_idwt3_alt_cs", op_v_level);
+
+          
+          // create launch configuration
+          LaunchInformation lc1 = oclConnection :: Instance () -> getThreadConfig (std::string ("idwt_1_alt"));
+          LaunchInformation lc2 = oclConnection :: Instance () -> getThreadConfig (std::string ("idwt_2_alt"));
+          LaunchInformation lc3 = oclConnection :: Instance () -> getThreadConfig (std::string ("idwt_3_alt"));
+          
+          /////////////
+          // dynamically allocate local memory
+          /////////////
+          
+          const int loc_mem_line = 64 + 2 * (fl-1);
+          
+          // idwt1
+          const int num_loc_mem_elems1 = 2 * loc_mem_line * lc1.local_y * lc1.local_z;
+          oclDataObject * loc_mem1 = new oclLocalMemObject <elem_type> (num_loc_mem_elems1);
+
+          // idwt2
+          const int num_loc_mem_elems2 = 2 * loc_mem_line * lc2.local_x * lc2.local_z;
+          oclDataObject * loc_mem2 = new oclLocalMemObject <elem_type> (num_loc_mem_elems2);
+          
+          // idwt3
+          const int num_loc_mem_elems3 = 2 * loc_mem_line * lc3.local_x * lc3.local_y;
+          oclDataObject * loc_mem3 = new oclLocalMemObject <elem_type> (num_loc_mem_elems3);
+          
+          std::cout << " local_mem (idwt_1_alt): " << num_loc_mem_elems1 * sizeof (elem_type) << " Bytes " << std::endl;
+          std::cout << " local_mem2 (idwt_2_alt): " << num_loc_mem_elems2 * sizeof (elem_type) << " Bytes " << std::endl;
+          std::cout << " local_mem3 (idwt_3_alt): " << num_loc_mem_elems3 * sizeof (elem_type) << " Bytes " << std::endl;
+          std::cout << " chunk_size: " << chunk_size << std::endl;
+
+          /////////////
+          // collect profiling information for each level
+          /////////////
+          std::vector <ProfilingInformation> vec_pi_1, vec_pi_2, vec_pi_3;
+
+          //////////
+          // prepare access patterns for CPU-GPU-transfers
+          //////////
+          arg1 -> APDevice () = oclAccessPattern (0, 0, 0,
+                  n * sizeof (elem_type), n * m * sizeof (elem_type),
+                  n * sizeof (elem_type), m, k);
+          arg1 -> APHost () = arg1 -> APDevice ();
+          arg2 -> APDevice () = arg2 -> APHost () = arg1 -> APHost ();
+          
+          ///////////
+          // temporaries (avoid writing to source memory)
+          ///////////
+          oclDataObject * tmp1 = arg1;
+          oclDataObject * tmp2 = arg2;
+          
+          for (int i = levels-1; i >= 0; i--)
+          {
+            const int line_length = n / pow (2, i);
+            
+            const int chunk_size_idwt3 = min (line_length, chunk_size);
+            const int chunk_size_idwt3_dim0 = line_length;
+            
+            // run kernel "idwt3"
+            ProfilingInformation pi3 = {0, 0, 0, 0};
+            const oclAccessPattern tmp_ap_array [4] = {tmp1 -> APHost (), tmp1 -> APDevice (),
+                                                       tmp2 -> APHost (), tmp2 -> APDevice ()}; // save current state !!!
+            tmp1 -> APHost ().Region (0) = tmp1 -> APDevice ().Region (0) = chunk_size_idwt3_dim0 * sizeof (elem_type);
+            tmp2 -> APHost ().Region (0) = tmp2 -> APDevice ().Region (0) = chunk_size_idwt3_dim0 * sizeof (elem_type);
+            tmp1 -> APHost ().Region (1) = tmp1 -> APDevice ().Region (1) = chunk_size_idwt3;
+            tmp2 -> APHost ().Region (1) = tmp2 -> APDevice ().Region (1) = chunk_size_idwt3;
+            tmp1 -> APHost ().Region (2) = tmp1 -> APDevice ().Region (2) = line_length;
+            tmp2 -> APHost ().Region (2) = tmp2 -> APDevice ().Region (2) = line_length;
+            tmp1 -> APDevice ().RowPitch () = tmp2 -> APDevice ().RowPitch () = chunk_size_idwt3_dim0 * sizeof (elem_type);
+            tmp1 -> APDevice ().SlicePitch () = tmp2 -> APDevice ().SlicePitch () = chunk_size_idwt3_dim0 * chunk_size_idwt3 * sizeof (elem_type);
+            for (int l = 0; l < line_length; l += chunk_size_idwt3_dim0)
+            {
+              tmp1 -> APHost ().Origin (0) = tmp2 -> APHost ().Origin (0) = l * sizeof (elem_type);
+              for (int ll = 0; ll < line_length; ll += chunk_size_idwt3)
+              {
+                tmp1 -> APHost ().Origin (1) = tmp2 -> APHost ().Origin (1) = ll;
+                tmp1 -> setCPUModified (); // upload src
+                tmp2 -> setSync (); // do not upload data to result buffer
+                pi3 += ocl_basic_operator_kernel_57 ("idwt_3_alt", tmp1, lpf, hpf, tmp2, loc_mem3, chunk_size_idwt3_dim0, chunk_size_idwt3, line_length, line_length, chunk_size_idwt3_dim0, chunk_size_idwt3, num_loc_mem_elems3, lc3);
+                pi3.time_mem_down += tmp2 -> getData ();
+              }
+            }
+            vec_pi_3.push_back (pi3);
+            
+            tmp1 -> APHost () = tmp_ap_array [0]; tmp1 -> APDevice () = tmp_ap_array [1]; // reset
+            tmp2 -> APHost () = tmp_ap_array [2]; tmp2 -> APDevice () = tmp_ap_array [3]; // reset
+            
+            // run kernel "idwt_1" and "idwt_2" on slices
+            ProfilingInformation pi1 = {0, 0, 0, 0};
+            ProfilingInformation pi2 = {0, 0, 0, 0};
+            
+            const int chunk_size_idwt12 = min (line_length, chunk_size);
+            
+            tmp1 -> APHost ().Region (0) = tmp1 -> APDevice ().Region (0) = line_length * sizeof (elem_type);
+            tmp2 -> APHost ().Region (0) = tmp2 -> APDevice ().Region (0) = line_length * sizeof (elem_type);
+            tmp1 -> APHost ().Region (1) = tmp1 -> APDevice ().Region (1) = line_length;
+            tmp2 -> APHost ().Region (1) = tmp2 -> APDevice ().Region (1) = line_length;
+            tmp1 -> APHost ().Region (2) = tmp1 -> APDevice ().Region (2) = chunk_size_idwt12;
+            tmp2 -> APHost ().Region (2) = tmp2 -> APDevice ().Region (2) = chunk_size_idwt12;
+            tmp1 -> APDevice ().RowPitch () = tmp2 -> APDevice ().RowPitch () = line_length * sizeof (elem_type);
+            tmp1 -> APDevice ().SlicePitch () = tmp2 -> APDevice ().SlicePitch () = line_length * line_length * sizeof (elem_type);
+            
+            for (int l = 0; l < line_length; l += chunk_size_idwt12)
+            {
+              
+              tmp1 -> APHost ().Origin (2) = tmp2 -> APHost ().Origin (2) = l;
+              
+              tmp1 -> setCPUModified (); // upload src
+              tmp2 -> setSync (); // do not upload data to result buffer
+              
+              pi2 += ocl_basic_operator_kernel_56 ("idwt_2_alt", tmp1, lpf, hpf, tmp2, loc_mem2, line_length, line_length, chunk_size_idwt12, line_length, chunk_size_idwt12, num_loc_mem_elems2, lc2);
+              
+              tmp1 -> setSync (); // do not upload src
+              tmp2 -> setSync (); // do not upload data to dest
+              
+              pi1 += ocl_basic_operator_kernel_56 ("idwt_1_alt", tmp2, lpf, hpf, tmp1, loc_mem1, line_length, line_length, chunk_size_idwt12, line_length, chunk_size_idwt12, num_loc_mem_elems1, lc1);
+              
+              pi1.time_mem_down += tmp1 -> getData ();
+              
+            }
+            vec_pi_1.push_back (pi1);
+            vec_pi_2.push_back (pi2);
+            
+            tmp1 -> APHost ().Region (2) = tmp1 -> APDevice ().Region (2) = k; // reset
+            tmp2 -> APHost ().Region (2) = tmp2 -> APDevice ().Region (2) = k; // reset
+            tmp1 -> APHost ().Origin (2) = tmp2 -> APHost ().Origin (2) = 0; // reset
+                        
+          }
+
+          delete loc_mem1;
+          delete loc_mem2;
+          delete loc_mem3;
+          
+# ifdef __PERFORMANCE_INFO__
+          return idwt_performance (vec_pi_1, vec_pi_2, vec_pi_3, {0,0,0,0}, lc1, lc2, lc3, levels, n, m, k, fl);
+# else
+          return std::vector <PerformanceInformation> ();
+# endif
+            
+      }
       
       
 
