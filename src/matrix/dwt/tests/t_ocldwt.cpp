@@ -163,7 +163,7 @@ print_table_header (std::fstream & fs, const int iterations, const char * name_p
             setw (indent) << " idwt1 " << std::flush <<
             setw (indent) << " idwt2 " << std::flush <<
             setw (indent) << " idwt3 " << std::flush <<
-            setw (indent) << " idwt_final " << std::flush;
+            setw (indent) << " idwt_final " << std::endl;
 
 }
 
@@ -351,14 +351,14 @@ main            (int argc, char ** args)
               setw (indent) << (pi_b.time_mem_up + pi_b.time_mem_down) << std::flush <<
               setw (indent) << pi_f.parameter << std::flush <<
               setw (indent) << pi_b.parameter << std::flush <<
-              setw (indent) << vec_pi_forward [0].time_exec << std::flush <<
               setw (indent) << vec_pi_forward [1].time_exec << std::flush <<
               setw (indent) << vec_pi_forward [2].time_exec << std::flush <<
               setw (indent) << vec_pi_forward [3].time_exec << std::flush <<
-              setw (indent) << vec_pi_backwards [0].time_exec << std::flush <<
+              setw (indent) << vec_pi_forward [4].time_exec << std::flush <<
               setw (indent) << vec_pi_backwards [1].time_exec << std::flush <<
               setw (indent) << vec_pi_backwards [2].time_exec << std::flush <<
-              setw (indent) << vec_pi_backwards [3].time_exec << std::endl;
+              setw (indent) << vec_pi_backwards [3].time_exec << std::flush <<
+              setw (indent) << vec_pi_backwards [4].time_exec << std::endl;
           if (i < local_sizes.size () - 1 && (0==strcmp (name_param, "local") ? local_sizes [i+1] : global_sizes [i+1]) != sizes)
             fs << std::endl;
 # endif

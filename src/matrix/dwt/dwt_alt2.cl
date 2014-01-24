@@ -332,7 +332,7 @@ kernel void dwt_1_alt (__global A_type * arg1,
   // LOCAL MEMORY
   //////////////////
 
-  const int loc_mem_line_IN = LOC_MEM_LINE + offset;
+  const int loc_mem_line_IN = LOC_MEM_LINE + offset + 1;
   const int loc_mem_line_OUT = LOC_MEM_LINE + 1;
 
   __local A_type * input = loc_mem;

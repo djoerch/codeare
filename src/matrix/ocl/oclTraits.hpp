@@ -2209,14 +2209,14 @@
             data_size_1 += (sl_0 + ng_0 * offset) * sl_1 * sl_2;
             data_size_2 += (sl_1 + ng_1 * offset) * sl_0 * sl_2;
             data_size_3 += (sl_2 + ng_2 * offset) * sl_0 * sl_1;
-            if (i > 0)
-              data_size_final += sl_0 * sl_1 * sl_2;
+            if ((i&1))
+              data_size_final += sl_0 * sl_1 * sl_2 * 0.875;
             // local -> global
             data_size_1 += sl_0 * sl_1 * sl_2;
             data_size_2 += sl_1 * sl_0 * sl_2;
             data_size_3 += sl_2 * sl_0 * sl_1;
-            if (i > 0)
-              data_size_final += sl_0 * sl_1 * sl_2;
+            if ((i&1))
+              data_size_final += sl_0 * sl_1 * sl_2 * 0.875;
           }
          
           std::vector <PerformanceInformation> vec_perf;
@@ -2794,7 +2794,7 @@
           float effective_bw_3 = ((float)(data_size_3 * sizeof (elem_type)) * 1.0e-9f) / time_seconds_3;
           
           float time_seconds_final = pi_final.time_end - pi_final.time_start;
-          float effective_bw_final = ((float) (data_size_2 * sizeof(elem_type))*1.0e-9f) / time_seconds_final;
+          float effective_bw_final = ((float) (data_size_final * sizeof(elem_type))*1.0e-9f) / time_seconds_final;
           
           // overall bandwidth
           float time_seconds = time_seconds_1 + time_seconds_2 + time_seconds_3 + time_seconds_final;
