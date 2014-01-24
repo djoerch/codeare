@@ -20,7 +20,7 @@
 # endif
 
 # ifndef CHECKS
- # define CHECKS
+// # define CHECKS
 # endif
 
 # ifndef NON_SQUARE_GROUP
@@ -298,13 +298,11 @@ kernel void dwt_1_alt (__global A_type * arg1,
   ///////////////////
   // READING CONFIG
   ///////////////////
-  const int pad_line_length = roundUp (*n /* *line_length*/ + PADDING, ROUND_TO);
-  const int pad_slice = pad_line_length * *m /* *line_length*/;
 
   ///////////////////
   // WRITE CONFIG
   ///////////////////
-  const int slice = *n * *m; //*line_length * *line_length;
+  const int slice = *n * *m;
 
   ///////////////
   // THREAD
@@ -334,7 +332,7 @@ kernel void dwt_1_alt (__global A_type * arg1,
   // LOCAL MEMORY
   //////////////////
 
-  const int loc_mem_line_IN = LOC_MEM_LINE + offset + 1;
+  const int loc_mem_line_IN = LOC_MEM_LINE + offset;
   const int loc_mem_line_OUT = LOC_MEM_LINE + 1;
 
   __local A_type * input = loc_mem;
@@ -343,9 +341,6 @@ kernel void dwt_1_alt (__global A_type * arg1,
   //////////////////////
   // ALGORITHM
   //////////////////////
-  # ifdef NON_SQUARE_GROUP
-  const int num_mem_lines = max (lsize_0, lsize_1);
-  # endif
 
   // loop over blocks in third dimension
   for (int d2 = gid_2 * lsize_2; d2 < *chunk_size; d2 += gsize_2)
@@ -370,24 +365,16 @@ kernel void dwt_1_alt (__global A_type * arg1,
         # endif
         {
 
-          const int pad_index_base = (d2 + lid_2) * pad_slice                   // slice
-                                   + (d1 + lid_1) * pad_line_length;   // line in particular slice
+            const int index_base = (d2 + lid_2) * slice                   // slice
+                                 + (d1 + lid_1) * *n;   // line in particular slice
           
-          # ifdef NON_SQUARE_GROUP
-          for (int lines = 0; lines < num_mem_lines; lines += lsize_2 * lsize_1)
-          # endif
-          {
-        
             // local memory
-            const int line = get_local_id (1) + get_local_id (2) * get_local_size (1)
-                             # ifdef NON_SQUARE_GROUP
-                              + lines
-                             # endif
-                             ;
+            const int line = get_local_id (1) + get_local_id (2) * get_local_size (1);
+            
             __local A_type * tmp = input + line * loc_mem_line_IN;
 
             // copy
-            const int index = pad_index_base + d0 + lid_0 + PADDING;
+            const int index = index_base + d0 + lid_0 + PADDING;
 
             const int constraint = *line_length - d0 - lid_0;
             for (int i = 0; i < LOC_MEM_LINE; i += lsize_0)
@@ -395,8 +382,6 @@ kernel void dwt_1_alt (__global A_type * arg1,
                 tmp [lid_0 + i + offset] = arg1 [index + i];
             if (lid_0 < offset)
               tmp [lid_0] = arg1 [index - offset + ((d0 + lid_0 - offset) < 0 ? *line_length : 0)];
-        
-          }
         
         }
 
@@ -407,50 +392,34 @@ kernel void dwt_1_alt (__global A_type * arg1,
         
         # ifdef CHECKS
         if (d2 + lid_2 < *chunk_size
-          && d1 + lid_0 < *line_length
-          && d0 + lid_1 < *line_length)
+          && d1 + lid_0 < *line_length)
         if (2 * lid_1 < LOC_MEM_LINE
          && lid_2 * lsize_0 < lsize_2 * lsize_1
          && 2 * lid_1 + d0 < *line_length)
         # endif
         {
-                  
-          # ifdef NON_SQUARE_GROUP
-          for (int lines = 0; lines < num_mem_lines; lines += lsize_2 * lsize_0)
-          # endif
-          {
-        
+
             // local memory
-            const int line_in = get_local_id (0) + get_local_id (2) * get_local_size(0)
-                             # ifdef NON_SQUARE_GROUP
-                              + lines
-                             # endif
-                             ;
+            const int line_in = get_local_id (0) + get_local_id (2) * get_local_size(0);
+            
             __local A_type * tmp_in = input + line_in * loc_mem_line_IN;
-            __local A_type * tmp_out = output + line_in * loc_mem_line_IN;
+            __local A_type * tmp_out = output + line_in * loc_mem_line_OUT;
 
             for (int i = 0; i < LOC_MEM_LINE/2; i += lsize_1)
             {
 
-              A_type sum = 0;
+              A_type sum1 = 0, sum2 = 0;
               # pragma unroll
               for (int k = FL-1; k >= 0; k--)
               {
-                sum += tmp_in [2 * (i + lid_1) + k] * _lpf [k];
+                const A_type value = tmp_in [2 * (i + lid_1) + k];
+                sum1 += value * _lpf [k];
+                sum2 += value * _hpf [FL-1-k];
               }
-              tmp_out [i + lid_1] = sum;
-
-              A_type sum2 = 0;
-              # pragma unroll
-              for (int k = FL-1; k >= 0; k--)
-              {
-                sum2 += tmp_in [2 * (i + lid_1) + FL-1 - k] * _hpf [k];
-              }
+              tmp_out [i + lid_1] = sum1;
               tmp_out [i + lid_1 + LOC_MEM_LINE/2] = sum2;
 
             }
-
-          }
 
         }
         
@@ -461,29 +430,20 @@ kernel void dwt_1_alt (__global A_type * arg1,
         
         # ifdef CHECKS
         if (d2 + lid_2 < *chunk_size
-          && d1 + lid_1 < *line_length
-          && d0 + lid_0 < *line_length)
+          && d1 + lid_1 < *line_length)
         if (2 * lid_0 + d0 < *line_length
          && 2 * lid_0 < LOC_MEM_LINE)
         # endif
         {
           
-          # ifdef NON_SQUARE_GROUP
-          for (int lines = 0; lines < num_mem_lines; lines += lsize_2 * lsize_1)
-          # endif
-          {
-        
             // local memory
             const int line_out = get_local_id (1) + get_local_id (2) * get_local_size (1)
-                             # ifdef NON_SQUARE_GROUP
-                              + lines
-                             # endif
-                             ;
-            __local A_type * tmp_out = output + line_out * loc_mem_line_IN;
+            ;
+            __local A_type * tmp_out = output + line_out * loc_mem_line_OUT;
 
-            const int index2 = (d2 + lid_2) * pad_slice
-                             + (d1 + lid_1) * pad_line_length
-                             + d0/2 + lid_0 + PADDING;
+            const int index2 = (d2 + lid_2) * slice
+                             + (d1 + lid_1) * *n
+                             + d0/2 + lid_0;
 
             const int constraint = (*line_length - d0) / 2 - lid_0;
             for (int i = 0; i < LOC_MEM_LINE/2; i += lsize_0)
@@ -494,8 +454,6 @@ kernel void dwt_1_alt (__global A_type * arg1,
                 arg2 [index2 + i + *line_length/2] = tmp_out [lid_0 + i + LOC_MEM_LINE/2];
               }
             }
-
-          }
 
         }
         
@@ -529,13 +487,11 @@ kernel void dwt_2_alt (__global A_type * arg1,
   ///////////////////
   // READING CONFIG
   ///////////////////
-  const int pad_line_length = roundUp (*n /* *line_length */ + PADDING, ROUND_TO);
-  const int pad_slice = pad_line_length * *m; //*line_length;
 
   ///////////////////
   // WRITE CONFIG
   ///////////////////
-  const int slice = *n * *m; //*line_length * *line_length;
+  const int slice = *n * *m;
 
   ///////////////
   // THREAD
@@ -598,21 +554,21 @@ kernel void dwt_2_alt (__global A_type * arg1,
         # endif
         {
 
-        const int pad_index_base = (d2 + lid_2) * pad_slice  // slice
-                                 + (d0 + lid_0) + PADDING;   // line in particular slice
+        const int index_base = (d2 + lid_2) * slice  // slice
+                                 + (d0 + lid_0);   // line in particular slice
 
         // local memory
         const int line = get_local_id (0) + get_local_id (2) * get_local_size (0);
         __local A_type * tmp = input + line * loc_mem_line_IN;
 
         // copy
-        const int index = pad_index_base + (d1 + lid_1) * pad_line_length;
+        const int index = index_base + (d1 + lid_1) * *n;
         const int constraint = *line_length - d1 - lid_1;
         for (int i = 0; i < LOC_MEM_LINE; i += lsize_1)
           if (i < constraint)
-            tmp [lid_1 + i + offset] = arg1 [index + i * pad_line_length];
+            tmp [lid_1 + i + offset] = arg1 [index + i * *n];
         if (lid_1 < offset)
-          tmp [lid_1] = arg1 [index - offset * pad_line_length + (d1 + lid_1 - offset < 0 ? pad_slice : 0)];
+          tmp [lid_1] = arg1 [index - offset * *n + (d1 + lid_1 - offset < 0 ? slice : 0)];
 
         }
 
@@ -632,25 +588,20 @@ kernel void dwt_2_alt (__global A_type * arg1,
           // local memory
           const int line_in = get_local_id (0) + get_local_id (2) * get_local_size(0);
           __local A_type * tmp_in = input + line_in * loc_mem_line_IN;
-          __local A_type * tmp_out = output + line_in * loc_mem_line_IN;
+          __local A_type * tmp_out = output + line_in * loc_mem_line_OUT;
         
           for (int i = 0; i < LOC_MEM_LINE/2; i += lsize_1)
           {
 
-            A_type sum = 0;
+            A_type sum1 = 0, sum2 = 0;
             # pragma unroll
             for (int k = FL-1; k >= 0; k--)
             {
-              sum += tmp_in [2 * (i + lid_1) + k] * _lpf [k];
+              const A_type value = tmp_in [2 * (i + lid_1) + k];
+              sum1 += value * _lpf [k];
+              sum2 += value * _hpf [FL-1-k];
             }
-            tmp_out [i + lid_1] = sum;
-
-            A_type sum2 = 0;
-            # pragma unroll
-            for (int k = FL-1; k >= 0; k--)
-            {
-              sum2 += tmp_in [2 * (i + lid_1) + FL-1 - k] * _hpf [k];
-            }
+            tmp_out [i + lid_1] = sum1;
             tmp_out [i + lid_1 + LOC_MEM_LINE/2] = sum2;
         
           }
@@ -673,19 +624,19 @@ kernel void dwt_2_alt (__global A_type * arg1,
         
           // local memory
           const int line_out = get_local_id (0) + get_local_id (2) * get_local_size (0);
-          __local A_type * tmp_out = output + line_out * loc_mem_line_IN;
+          __local A_type * tmp_out = output + line_out * loc_mem_line_OUT;
         
           const int index2 = (d2 + lid_2) * slice
                            + (d0 + lid_0)
-                           + (d1/2 + lid_1) * *n /* *line_length*/;
+                           + (d1/2 + lid_1) * *n;
         
           const int constraint = (*line_length - d1) / 2 - lid_1;
           for (int i = 0; i < LOC_MEM_LINE/2; i += lsize_1)
           {
             if (i < constraint)
             {
-              arg2 [index2 + (i + shift + (d1/2 + lid_1 + i + shift < 0 ? *line_length/2 : 0)) * *n /* *line_length*/] = tmp_out [i + lid_1];
-              arg2 [index2 + (i + *line_length/2) * *n /* *line_length*/] = tmp_out [i + lid_1 + LOC_MEM_LINE/2];
+              arg2 [index2 + (i + shift + (d1/2 + lid_1 + i + shift < 0 ? *line_length/2 : 0)) * *n] = tmp_out [i + lid_1];
+              arg2 [index2 + (i + *line_length/2) * *n] = tmp_out [i + lid_1 + LOC_MEM_LINE/2];
             }
           }
     
@@ -722,13 +673,11 @@ kernel void dwt_3_alt (__global A_type * arg1,
   ///////////////////
   // READING CONFIG
   ///////////////////
-  const int pad_line_length = roundUp (*n /* *chunk_size_0*/ + PADDING, ROUND_TO);
-  const int pad_slice = pad_line_length * *m /* *chunk_size_1*/;
 
   ///////////////////
   // WRITE CONFIG
   ///////////////////
-  const int slice = *n * *m; //*lda * *ldb; //*chunk_size_0 * *chunk_size_1;
+  const int slice = *n * *m;
 
   ///////////////
   // THREAD
@@ -791,21 +740,21 @@ kernel void dwt_3_alt (__global A_type * arg1,
         # endif
         {
 
-        const int pad_index_base = (d1 + lid_1) * pad_line_length  // ...
-                                 + (d0 + lid_0) + PADDING;         // line in particular slice
+        const int index_base = (d1 + lid_1) * *n  // ...
+                                 + (d0 + lid_0);         // line in particular slice
 
         // local memory
         const int line = get_local_id (0) + get_local_id (1) * get_local_size (0);
         __local A_type * tmp = input + line * loc_mem_line_IN;
 
         // copy
-        const int index1 = pad_index_base + (d2 + lid_2) * pad_slice;
+        const int index1 = index_base + (d2 + lid_2) * slice;
         const int constraint = *line_length - d2 - lid_2;
         for (int i = 0; i < LOC_MEM_LINE; i += lsize_2)
           if (i < constraint)
-            tmp [lid_2 + i + offset] = arg1 [index1 + i * pad_slice];
+            tmp [lid_2 + i + offset] = arg1 [index1 + i * slice];
         if (lid_2 < offset)
-          tmp [lid_2] = arg1 [index1 - offset * pad_slice + (d2 + lid_2 - offset < 0 ? *line_length * pad_slice : 0)];
+          tmp [lid_2] = arg1 [index1 - offset * slice + (d2 + lid_2 - offset < 0 ? *line_length * slice : 0)];
 
         }
 
@@ -825,26 +774,21 @@ kernel void dwt_3_alt (__global A_type * arg1,
           // local memory
           const int line_in = get_local_id (0) + get_local_id (1) * get_local_size(0);
           __local A_type * tmp_in = input + line_in * loc_mem_line_IN;
-          __local A_type * tmp_out = output + line_in * loc_mem_line_IN;
+          __local A_type * tmp_out = output + line_in * loc_mem_line_OUT;
         
           for (int i = 0; i < LOC_MEM_LINE/2; i += lsize_2)
           {
 
-            A_type sum = 0;
+            A_type sum1 = 0, sum2 = 0;
             # pragma unroll
             for (int k = FL-1; k >= 0; k--)
             {
-              sum += tmp_in [2 * (i + lid_2) + k] * _lpf [k];
+              const A_type value = tmp_in [2 * (i + lid_2) + k];
+              sum1 += value * _lpf [k];
+              sum2 += value * _hpf [FL-1-k];
             }
-            tmp_out [i + lid_2] = sum;
-
-            sum = 0;
-            # pragma unroll
-            for (int k = FL-1; k >= 0; k--)
-            {
-              sum += tmp_in [2 * (i + lid_2) + FL-1 - k] * _hpf [k];
-            }
-            tmp_out [i + lid_2 + LOC_MEM_LINE/2] = sum;
+            tmp_out [i + lid_2] = sum1;
+            tmp_out [i + lid_2 + LOC_MEM_LINE/2] = sum2;
           
           }
 
@@ -866,9 +810,9 @@ kernel void dwt_3_alt (__global A_type * arg1,
         
           // local memory
           const int line_out = get_local_id (0) + get_local_id (1) * get_local_size (0);
-          __local A_type * tmp_out = output + line_out * loc_mem_line_IN;
+          __local A_type * tmp_out = output + line_out * loc_mem_line_OUT;
         
-          const int index2 = (d1 + lid_1) * *n//*chunk_size_0
+          const int index2 = (d1 + lid_1) * *n
                            + (d0 + lid_0)
                            + (d2/2 + lid_2) * slice;
                         
@@ -919,7 +863,7 @@ kernel void dwt_final_alt (__global A_type * arg1,
   ///////////////////
   // WRITE CONFIG
   ///////////////////
-  const int slice = *n * *n; //*line_length * *line_length;
+  const int slice = *n * *n;
 
   ///////////////
   // THREAD
@@ -968,31 +912,19 @@ kernel void dwt_final_alt (__global A_type * arg1,
         // COPY: global -> global
         //////////////
         
-        # ifdef CHECKS
         if (d2 + lid_2 < *chunk_size
           && d1 + lid_1 < *line_length
           && d0 + lid_0 < *line_length)
-        # endif
         {
 
           const int pad_index_base = (d2 + lid_2) * slice                   // slice
                                    + (d1 + lid_1) * *n;   // line in particular slice
           
-          # ifdef NON_SQUARE_GROUP
-          for (int lines = 0; lines < num_mem_lines; lines += lsize_2 * lsize_1)
-          # endif
-          {
-        
             // copy
-            const int index = pad_index_base + d0 + lid_0 + PADDING;
+            const int index = pad_index_base + d0 + lid_0;
 
-//            const int constraint = *line_length - d0 - lid_0;
-//            for (int i = 0; i < LOC_MEM_LINE; i += lsize_0)
-//              if (constraint > 0)
                 arg2 [index] = arg1 [index];
           
-          }
-        
         }
         
       } // loop over first dimension
