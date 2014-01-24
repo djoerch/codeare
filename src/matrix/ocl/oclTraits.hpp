@@ -7,7 +7,6 @@
    ** makros **
    ************/
   # define __OCL_TRAITS_HPP__
-  # define __PERFORMANCE_INFO__
   
   
 
@@ -1537,6 +1536,8 @@
           // performance
           ///////////////
 
+          std::vector <PerformanceInformation> vec_perf;
+          
 # ifdef __PERFORMANCE_INFO__
           
           const int num_groups_0 = lc.global_x / lc.local_x;
@@ -1557,9 +1558,7 @@
             // local -> global
             data_size_1 += sl_0 * sl_1 * sl_2;
           }
-         
-          std::vector <PerformanceInformation> vec_perf;
-          
+                   
           // dwt2
           float time_seconds_1 = 0,
                 time_mem_up_1 = 0,
@@ -1726,6 +1725,8 @@
           // performance
           ///////////////
 
+          std::vector <PerformanceInformation> vec_perf;
+          
 # ifdef __PERFORMANCE_INFO__
           
           const int num_groups_0 = lc.global_x / lc.local_x;
@@ -1750,8 +1751,6 @@
             data_size_3 += sl_2 * sl_0 * sl_1;
           }
          
-          std::vector <PerformanceInformation> vec_perf;
-          
           // dwt2
           float time_seconds_1 = 0,
                 time_mem_up_1 = 0,

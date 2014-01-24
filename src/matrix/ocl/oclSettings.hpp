@@ -14,6 +14,7 @@
 //  # define __USE_VIENNA_CL__
 
 
+  # define __PERFORMANCE_INFO__
 
 
   /**************
