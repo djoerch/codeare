@@ -27,8 +27,7 @@ kernel void idwt_1_alt (__global A_type * arg1,
           __global int * m,
           __global int * k,
           __constant int * line_length,
-          __constant int * chunk_size,
-          __global int * loc_mem_size)
+          __constant int * chunk_size)
 {
 
   ///////////////////
@@ -227,8 +226,7 @@ kernel void idwt_2_alt (__global A_type * arg1,
           __global int * m,
           __global int * k,
           __constant int * line_length,
-          __constant int * chunk_size,
-          __global int * loc_mem_size)
+          __constant int * chunk_size)
 {
 
   ///////////////////
@@ -428,8 +426,7 @@ kernel void idwt_3_alt (__global A_type * arg1,
           __global int * k,
           __constant int * line_length,
           __constant int * chunk_size_0,
-          __constant int * chunk_size_1,
-          __global int * loc_mem_size)
+          __constant int * chunk_size_1)
 {
 
   ///////////////////
@@ -629,8 +626,7 @@ kernel void idwt_final_alt (__global A_type * arg1,
           __global int * m,
           __global int * k,
           __constant int * line_length,
-          __constant int * chunk_size,
-          __global int * loc_mem_size)
+          __constant int * chunk_size)
 {
   
   ///////////////////

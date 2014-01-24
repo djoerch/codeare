@@ -459,6 +459,120 @@
        */
       static inline
       ProfilingInformation
+      ocl_basic_operator_kernel_10 ( const   std::string               &        kernel_name,
+                                           oclDataObject               * const         arg1,
+                                           oclDataObject               * const         arg2,
+                                           oclDataObject               * const         arg3,
+                                           oclDataObject               * const       result,
+                                           oclDataObject               * const      loc_mem,
+                                           oclDataObject               * const         arg4,
+                                           oclDataObject               * const         arg5,
+                                           oclDataObject               * const         arg6,
+                                           oclDataObject               * const         arg7,
+                                           oclDataObject               * const         arg8,
+                                     const LaunchInformation                             lc)
+      {
+
+        // number of kernel arguments
+        const int num_args = 10;
+
+        // create array of function arguments
+        oclDataObject ** args = (oclDataObject **) malloc (num_args * sizeof (oclDataObject *));
+        args [0] = arg1;
+        args [1] = arg2;
+        args [2] = arg3;
+        args [3] = result;
+        args [4] = loc_mem;
+        args [5] = arg4;
+        args [6] = arg5;
+        args [7] = arg6;
+        args [8] = arg7;
+        args [9] = arg8;
+        
+        // create function object
+        oclFunctionObject * op_obj = oclConnection :: Instance ()
+                                        -> makeFunctionObject <elem_type, scalar_type>
+                                              (kernel_name, args, num_args, oclConnection::KERNEL, oclConnection::SYNC);
+        
+        // execute function object
+        ocl_run_func_obj (op_obj, lc);
+        
+        // retrieve profiling information
+        ProfilingInformation pi = op_obj -> getProfilingInformation ();
+
+        // clear memory
+        delete op_obj;
+        free (args);
+
+        return pi;
+        
+      }
+
+
+      /**
+       * @brief                     execute specified kernel with 5 arguments and 6 scalars
+       */
+      static inline
+      ProfilingInformation
+      ocl_basic_operator_kernel_11 ( const   std::string               &        kernel_name,
+                                           oclDataObject               * const         arg1,
+                                           oclDataObject               * const         arg2,
+                                           oclDataObject               * const         arg3,
+                                           oclDataObject               * const       result,
+                                           oclDataObject               * const      loc_mem,
+                                           oclDataObject               * const         arg4,
+                                           oclDataObject               * const         arg5,
+                                           oclDataObject               * const         arg6,
+                                           oclDataObject               * const         arg7,
+                                           oclDataObject               * const         arg8,
+                                           oclDataObject               * const         arg9,
+                                     const LaunchInformation                             lc)
+      {
+
+        // number of kernel arguments
+        const int num_args = 11;
+
+        // create array of function arguments
+        oclDataObject ** args = (oclDataObject **) malloc (num_args * sizeof (oclDataObject *));
+        args [0] = arg1;
+        args [1] = arg2;
+        args [2] = arg3;
+        args [3] = result;
+        args [4] = loc_mem;
+        args [5] = arg4;
+        args [6] = arg5;
+        args [7] = arg6;
+        args [8] = arg7;
+        args [9] = arg8;
+        args [10] = arg9;
+        
+        // create function object
+        oclFunctionObject * op_obj = oclConnection :: Instance ()
+                                        -> makeFunctionObject <elem_type, scalar_type>
+                                              (kernel_name, args, num_args, oclConnection::KERNEL, oclConnection::SYNC);
+        
+        // execute function object
+        ocl_run_func_obj (op_obj, lc);
+        
+        // retrieve profiling information
+        ProfilingInformation pi = op_obj -> getProfilingInformation ();
+
+        // clear memory
+        delete op_obj;
+        free (args);
+
+        return pi;
+        
+      }
+
+
+
+
+      /**
+       * @brief                     execute specified kernel with 5 arguments and 6 scalars
+       */
+      static inline
+      ProfilingInformation
       ocl_basic_operator_kernel_56  ( const   std::string               &        kernel_name,
                                             oclDataObject               * const         arg1,
                                             oclDataObject               * const         arg2,
@@ -1811,7 +1925,7 @@
                                         oclDataObject * const  lpf,
                                         oclDataObject * const  hpf,
                                                   int           fl,
-                                            const int         levels,
+                                                  int       levels,
                                         oclDataObject * const arg2,
                                         oclDataObject * const tmp,
                                             const int         chunk_size)
@@ -1854,6 +1968,15 @@
           std::vector <ProfilingInformation> vec_pi2;
           std::vector <ProfilingInformation> vec_pi3;
           
+          ///////////
+          // allocate kernel arguments
+          ///////////
+          oclDataObject * gpu_n = new oclGPUDataObject <int> (&n, 1);
+          oclDataObject * gpu_m = new oclGPUDataObject <int> (&m, 1);
+          oclDataObject * gpu_k = new oclGPUDataObject <int> (&k, 1);
+          int line_length = 0;
+          oclDataObject * gpu_line_length = new oclGPUDataObject <int> (&line_length, 1);
+          
           //////////
           // prepare access patterns for CPU-GPU-transfers
           //////////
@@ -1879,7 +2002,8 @@
           for (int i = 0; i < levels; i++)
           {
             
-            const int line_length = n / pow (2, i);
+            line_length = n / pow (2, i);
+            gpu_line_length -> setCPUModified ();
         
             // run kernels "dwt_2" and "dwt_1" on slices
             ProfilingInformation pi = {0, 0, 0, 0};
@@ -1890,7 +2014,7 @@
             else
               tmp1 -> setSync ();
             tmp2 -> setSync (); // do NOT upload dest
-            pi += ocl_basic_operator_kernel_56 ("dwt_1_alt", tmp1, lpf, hpf, tmp2, loc_mem1, n, m, k, line_length, line_length, num_loc_mem_elems1, lc1);
+            pi += ocl_basic_operator_kernel_10 ("dwt_1_alt", tmp1, lpf, hpf, tmp2, loc_mem1, gpu_n, gpu_m, gpu_k, gpu_line_length, gpu_line_length, lc1);
                 
             // do not write to src image
             if (i == 0)
@@ -1898,7 +2022,7 @@
               
             tmp1 -> setSync (); // use results on GPU
             tmp2 -> setSync (); // use results on GPU
-            pi2 += ocl_basic_operator_kernel_56 ("dwt_2_alt", tmp2, lpf, hpf, tmp1, loc_mem2, n, m, k, line_length, line_length, num_loc_mem_elems2, lc2);
+            pi2 += ocl_basic_operator_kernel_10 ("dwt_2_alt", tmp2, lpf, hpf, tmp1, loc_mem2, gpu_n, gpu_m, gpu_k, gpu_line_length, gpu_line_length, lc2);
             vec_pi.push_back (pi);
             vec_pi2.push_back (pi2);
                         
@@ -1907,7 +2031,7 @@
 
             tmp1 -> setSync ();
             tmp2 -> setSync (); // do NOT upload dest
-            pi3 += ocl_basic_operator_kernel_56 ("dwt_3_alt", tmp1, lpf, hpf, tmp2, loc_mem3, n, m, k, line_length, line_length, line_length, lc3);
+            pi3 += ocl_basic_operator_kernel_11 ("dwt_3_alt", tmp1, lpf, hpf, tmp2, loc_mem3, gpu_n, gpu_m, gpu_k, gpu_line_length, gpu_line_length, gpu_line_length, lc3);
                 
 //            if (i != 0)
 //            {
@@ -1923,13 +2047,23 @@
             
           }
           
-          pi_final += ocl_basic_operator_kernel_56 ("dwt_final_alt", tmp, lpf, hpf, arg2, loc_mem1, n, m, k, n/pow(2,levels-1), levels, num_loc_mem_elems1, lc1);
+          oclDataObject * gpu_levels = new oclGPUDataObject <int> (&levels, 1);
+          line_length = n/pow(2,levels-1);
+          gpu_line_length -> setCPUModified ();
+          
+          pi_final += ocl_basic_operator_kernel_10 ("dwt_final_alt", tmp, lpf, hpf, arg2, loc_mem1, gpu_n, gpu_m, gpu_k, gpu_line_length, gpu_levels, lc1);
           
           pi_final.time_mem_down += arg2 -> getData ();
           
           delete loc_mem1;
           delete loc_mem2;
           delete loc_mem3;
+          
+          delete gpu_n;
+          delete gpu_m;
+          delete gpu_k;
+          delete gpu_line_length;
+          delete gpu_levels;
           
           ///////////////
           // performance
@@ -1997,6 +2131,18 @@
           std::vector <ProfilingInformation> vec_pi3;
           
           //////////
+          // kernel arguments
+          //////////
+          int line_length = 0;
+          oclDataObject * gpu_line_length = new oclGPUDataObject <int> (&line_length, 1);
+          int chunk_size_dwt12 = 0;
+          oclDataObject * gpu_chunk_size_dwt12 = new oclGPUDataObject <int> (&chunk_size_dwt12, 1);
+          int chunk_size_dwt3 = 0;
+          oclDataObject * gpu_chunk_size_dwt3 = new oclGPUDataObject <int> (&chunk_size_dwt3, 1);
+          int chunk_size_dwt3_dim0 = 0;
+          oclDataObject * gpu_chunk_size_dwt3_dim0 = new oclGPUDataObject <int> (&chunk_size_dwt3_dim0, 1);
+          
+          //////////
           // prepare access patterns for CPU-GPU-transfers
           //////////
           const int padding = 0;//fl - 2;
@@ -2022,11 +2168,14 @@
           for (int i = 0; i < levels; i++)
           {
             
-            const int line_length = n / pow (2, i);
+            line_length = n / pow (2, i);
             const int pad_line_length = roundUp (line_length + padding, roundTo);
             const int num_slices = line_length;
-            const int chunk_size_dwt12 = min (num_slices, chunk_size);
+            chunk_size_dwt12 = min (num_slices, chunk_size);
             const int ld_12 = (chunk_size < line_length ? line_length : n);
+                    
+            gpu_line_length -> setCPUModified ();
+            gpu_chunk_size_dwt12 -> setCPUModified ();
                     
             // run kernels "dwt_2" and "dwt_1" on slices
             ProfilingInformation pi = {0, 0, 0, 0};
@@ -2053,7 +2202,7 @@
               tmp1 -> setCPUModified (); // upload src
               tmp2 -> setSync (); // do NOT upload dest
               
-              pi += ocl_basic_operator_kernel_56 ("dwt_1_alt", tmp1, lpf, hpf, tmp2, loc_mem1, line_length, line_length, chunk_size_dwt12, line_length, chunk_size_dwt12, num_loc_mem_elems1, lc1);
+              pi += ocl_basic_operator_kernel_10 ("dwt_1_alt", tmp1, lpf, hpf, tmp2, loc_mem1, gpu_line_length, gpu_line_length, gpu_chunk_size_dwt12, gpu_line_length, gpu_chunk_size_dwt12, lc1);
               
               // do not write to src image
               if (i == 0)
@@ -2067,7 +2216,7 @@
               tmp1 -> setSync (); // use results on GPU
               tmp2 -> setSync (); // use results on GPU
               
-              pi2 += ocl_basic_operator_kernel_56 ("dwt_2_alt", tmp2, lpf, hpf, tmp1, loc_mem2, line_length, line_length, chunk_size_dwt12, line_length, chunk_size_dwt12, num_loc_mem_elems2, lc2);
+              pi2 += ocl_basic_operator_kernel_10 ("dwt_2_alt", tmp2, lpf, hpf, tmp1, loc_mem2, gpu_line_length, gpu_line_length, gpu_chunk_size_dwt12, gpu_line_length, gpu_chunk_size_dwt12, lc2);
 
               // download results
               pi2.time_mem_down += tmp1 -> getData ();
@@ -2091,12 +2240,15 @@
             
             // run kernel "dwt3" on beams
             ProfilingInformation pi3 = {0, 0, 0, 0};
-            const int chunk_size_dwt3 = min (line_length, chunk_size);
-            const int chunk_size_dwt3_dim0 = line_length;
+            chunk_size_dwt3 = min (line_length, chunk_size);
+            chunk_size_dwt3_dim0 = line_length;
             const int pad_chunk_size_dwt3 = roundUp (chunk_size_dwt3 + padding, roundTo);
             const int pad_chunk_size_dwt3_dim0 = roundUp (chunk_size_dwt3_dim0 + padding, roundTo);
             const int ld_3 = (chunk_size < line_length ? chunk_size_dwt3 : n);
             const int ld_3_dim0 = (chunk_size < line_length ? chunk_size_dwt3_dim0 : n);
+            
+            gpu_chunk_size_dwt3 -> setCPUModified ();
+            gpu_chunk_size_dwt3_dim0 -> setCPUModified ();
             
             const oclAccessPattern tmp_ap_array [4] = {tmp1 -> APHost (), tmp1 -> APDevice (),
                                                        tmp2 -> APHost (), tmp2 -> APDevice ()}; // save current state !!!
@@ -2134,7 +2286,7 @@
                 tmp1 -> setCPUModified (); // upload src
                 tmp2 -> setSync (); // do NOT upload dest
                 
-                pi3 += ocl_basic_operator_kernel_56 ("dwt_3_alt", tmp1, lpf, hpf, tmp2, loc_mem3, chunk_size_dwt3_dim0, chunk_size_dwt3, line_length, line_length, chunk_size_dwt3_dim0, chunk_size_dwt3, lc3);
+                pi3 += ocl_basic_operator_kernel_11 ("dwt_3_alt", tmp1, lpf, hpf, tmp2, loc_mem3, gpu_chunk_size_dwt3_dim0, gpu_chunk_size_dwt3, gpu_line_length, gpu_line_length, gpu_chunk_size_dwt3_dim0, gpu_chunk_size_dwt3, lc3);
                 
                 // download results from GPU
                 pi3.time_mem_down += tmp2 -> getData ();
@@ -2164,6 +2316,11 @@
           delete loc_mem1;
           delete loc_mem2;
           delete loc_mem3;
+          
+          delete gpu_line_length;
+          delete gpu_chunk_size_dwt12;
+          delete gpu_chunk_size_dwt3;
+          delete gpu_chunk_size_dwt3_dim0;
           
           ///////////////
           // performance
@@ -2650,6 +2807,15 @@
           /////////////
           std::vector <ProfilingInformation> vec_pi_1, vec_pi_2, vec_pi_3;
 
+          ///////////
+          // kernel arguments
+          ///////////
+          oclDataObject * gpu_n = new oclGPUDataObject <int> (&n, 1);
+          oclDataObject * gpu_m = new oclGPUDataObject <int> (&m, 1);
+          oclDataObject * gpu_k = new oclGPUDataObject <int> (&k, 1);
+          int line_length = 0;
+          oclDataObject * gpu_line_length = new oclGPUDataObject <int> (&line_length, 1);
+
           //////////
           // prepare access patterns for CPU-GPU-transfers
           //////////
@@ -2669,7 +2835,8 @@
           
           for (int i = levels-1; i >= 0; i--)
           {
-            const int line_length = n / pow (2, i);
+            line_length = n / pow (2, i);
+            gpu_line_length -> setCPUModified ();
             
             // run kernel "idwt3"
             ProfilingInformation pi3 = {0, 0, 0, 0};
@@ -2678,7 +2845,7 @@
             else
               tmp2 -> setSync ();
             tmp1 -> setSync (); // do not upload data to result buffer
-            pi3 += ocl_basic_operator_kernel_57 ("idwt_3_alt", tmp2, lpf, hpf, tmp1, loc_mem3, n, m, k, line_length, line_length, line_length, num_loc_mem_elems3, lc3);
+            pi3 += ocl_basic_operator_kernel_11 ("idwt_3_alt", tmp2, lpf, hpf, tmp1, loc_mem3, gpu_n, gpu_m, gpu_k, gpu_line_length, gpu_line_length, gpu_line_length, lc3);
             vec_pi_3.push_back (pi3);
             
             // run kernel "idwt_1" and "idwt_2" on slices
@@ -2687,16 +2854,16 @@
             
             tmp1 -> setSync (); // upload src
             tmp2 -> setSync (); // do not upload data to result buffer
-            pi2 += ocl_basic_operator_kernel_56 ("idwt_2_alt", tmp1, lpf, hpf, tmp2, loc_mem2, n, m, k, line_length, line_length, num_loc_mem_elems2, lc2);
+            pi2 += ocl_basic_operator_kernel_10 ("idwt_2_alt", tmp1, lpf, hpf, tmp2, loc_mem2, gpu_n, gpu_m, gpu_k, gpu_line_length, gpu_line_length, lc2);
             tmp1 -> setSync (); // do not upload src
             tmp2 -> setSync (); // do not upload data to dest
-            pi1 += ocl_basic_operator_kernel_56 ("idwt_1_alt", tmp2, lpf, hpf, tmp1, loc_mem1, n, m, k, line_length, line_length, num_loc_mem_elems1, lc1);
+            pi1 += ocl_basic_operator_kernel_10 ("idwt_1_alt", tmp2, lpf, hpf, tmp1, loc_mem1, gpu_n, gpu_m, gpu_k, gpu_line_length, gpu_line_length, lc1);
             vec_pi_1.push_back (pi1);
             vec_pi_2.push_back (pi2);
             
             if (i != 0)
             {
-              pi_final += ocl_basic_operator_kernel_56 ("idwt_final_alt", tmp1, lpf, hpf, tmp2, loc_mem1, n, m, k, line_length, line_length, num_loc_mem_elems1, lc1);
+              pi_final += ocl_basic_operator_kernel_10 ("idwt_final_alt", tmp1, lpf, hpf, tmp2, loc_mem1, gpu_n, gpu_m, gpu_k, gpu_line_length, gpu_line_length, lc1);
               
             }
             
@@ -2707,6 +2874,11 @@
           delete loc_mem1;
           delete loc_mem2;
           delete loc_mem3;
+          
+          delete gpu_n;
+          delete gpu_m;
+          delete gpu_k;
+          delete gpu_line_length;
           
 # ifdef __PERFORMANCE_INFO__
           return idwt_performance (vec_pi_1, vec_pi_2, vec_pi_3, pi_final, lc1, lc2, lc3, levels, n, m, k, fl);
@@ -2864,6 +3036,18 @@
           /////////////
           std::vector <ProfilingInformation> vec_pi_1, vec_pi_2, vec_pi_3;
 
+          /////////////
+          // kernel arguments
+          /////////////
+          int line_length = 0;
+          oclDataObject * gpu_line_length = new oclGPUDataObject <int> (&line_length, 1);
+          int chunk_size_idwt3 = 0;
+          oclDataObject * gpu_chunk_size_idwt3 = new oclGPUDataObject <int> (&chunk_size_idwt3, 1);
+          int chunk_size_idwt3_dim0 = 0;
+          oclDataObject * gpu_chunk_size_idwt3_dim0 = new oclGPUDataObject <int> (&chunk_size_idwt3_dim0, 1);
+          int chunk_size_idwt12 = 0;
+          oclDataObject * gpu_chunk_size_idwt12 = new oclGPUDataObject <int> (&chunk_size_idwt12, 1);
+
           //////////
           // prepare access patterns for CPU-GPU-transfers
           //////////
@@ -2881,10 +3065,14 @@
           
           for (int i = levels-1; i >= 0; i--)
           {
-            const int line_length = n / pow (2, i);
+            line_length = n / pow (2, i);
             
-            const int chunk_size_idwt3 = min (line_length, chunk_size);
-            const int chunk_size_idwt3_dim0 = line_length;
+            chunk_size_idwt3 = min (line_length, chunk_size);
+            chunk_size_idwt3_dim0 = line_length;
+            
+            gpu_line_length -> setCPUModified ();
+            gpu_chunk_size_idwt3 -> setCPUModified ();
+            gpu_chunk_size_idwt3_dim0 -> setCPUModified ();
             
             // run kernel "idwt3"
             ProfilingInformation pi3 = {0, 0, 0, 0};
@@ -2906,7 +3094,7 @@
                 tmp1 -> APHost ().Origin (1) = tmp2 -> APHost ().Origin (1) = ll;
                 tmp1 -> setCPUModified (); // upload src
                 tmp2 -> setSync (); // do not upload data to result buffer
-                pi3 += ocl_basic_operator_kernel_57 ("idwt_3_alt", tmp1, lpf, hpf, tmp2, loc_mem3, chunk_size_idwt3_dim0, chunk_size_idwt3, line_length, line_length, chunk_size_idwt3_dim0, chunk_size_idwt3, num_loc_mem_elems3, lc3);
+                pi3 += ocl_basic_operator_kernel_11 ("idwt_3_alt", tmp1, lpf, hpf, tmp2, loc_mem3, gpu_chunk_size_idwt3_dim0, gpu_chunk_size_idwt3, gpu_line_length, gpu_line_length, gpu_chunk_size_idwt3_dim0, gpu_chunk_size_idwt3, lc3);
                 pi3.time_mem_down += tmp2 -> getData ();
               }
             }
@@ -2919,7 +3107,8 @@
             ProfilingInformation pi1 = {0, 0, 0, 0};
             ProfilingInformation pi2 = {0, 0, 0, 0};
             
-            const int chunk_size_idwt12 = min (line_length, chunk_size);
+            chunk_size_idwt12 = min (line_length, chunk_size);
+            gpu_chunk_size_idwt12 -> setCPUModified ();
             
             tmp1 -> APHost ().Region (0) = tmp1 -> APDevice ().Region (0) = line_length * sizeof (elem_type);
             tmp2 -> APHost ().Region (0) = tmp2 -> APDevice ().Region (0) = line_length * sizeof (elem_type);
@@ -2938,12 +3127,12 @@
               tmp1 -> setCPUModified (); // upload src
               tmp2 -> setSync (); // do not upload data to result buffer
               
-              pi2 += ocl_basic_operator_kernel_56 ("idwt_2_alt", tmp1, lpf, hpf, tmp2, loc_mem2, line_length, line_length, chunk_size_idwt12, line_length, chunk_size_idwt12, num_loc_mem_elems2, lc2);
+              pi2 += ocl_basic_operator_kernel_10 ("idwt_2_alt", tmp1, lpf, hpf, tmp2, loc_mem2, gpu_line_length, gpu_line_length, gpu_chunk_size_idwt12, gpu_line_length, gpu_chunk_size_idwt12, lc2);
               
               tmp1 -> setSync (); // do not upload src
               tmp2 -> setSync (); // do not upload data to dest
               
-              pi1 += ocl_basic_operator_kernel_56 ("idwt_1_alt", tmp2, lpf, hpf, tmp1, loc_mem1, line_length, line_length, chunk_size_idwt12, line_length, chunk_size_idwt12, num_loc_mem_elems1, lc1);
+              pi1 += ocl_basic_operator_kernel_10 ("idwt_1_alt", tmp2, lpf, hpf, tmp1, loc_mem1, gpu_line_length, gpu_line_length, gpu_chunk_size_idwt12, gpu_line_length, gpu_chunk_size_idwt12, lc1);
               
               pi1.time_mem_down += tmp1 -> getData ();
               
@@ -2960,6 +3149,11 @@
           delete loc_mem1;
           delete loc_mem2;
           delete loc_mem3;
+
+          delete gpu_line_length;
+          delete gpu_chunk_size_idwt3;
+          delete gpu_chunk_size_idwt3_dim0;
+          delete gpu_chunk_size_idwt12;
           
 # ifdef __PERFORMANCE_INFO__
           return idwt_performance (vec_pi_1, vec_pi_2, vec_pi_3, {0,0,0,0}, lc1, lc2, lc3, levels, n, m, k, fl);

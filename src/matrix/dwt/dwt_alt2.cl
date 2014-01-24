@@ -289,8 +289,7 @@ kernel void dwt_1_alt (__global A_type * arg1,
           __global int * m,
           __global int * k,
           __constant int * line_length,
-          __constant int * chunk_size,
-          __global int * loc_mem_size)
+          __constant int * chunk_size)
 {
   
   const int shift = -offset/2;
@@ -477,8 +476,7 @@ kernel void dwt_2_alt (__global A_type * arg1,
           __global int * m,
           __global int * k,
           __constant int * line_length,
-          __constant int * chunk_size,
-          __global int * loc_mem_size)
+          __constant int * chunk_size)
 {
   
   const int shift = -offset/2;
@@ -848,8 +846,7 @@ kernel void dwt_final_alt (__global A_type * arg1,
           __global int * m,
           __global int * k,
           __constant int * line_length,
-          __constant int * num_levels,
-          __global int * loc_mem_size)
+          __constant int * num_levels)
 {
   
   ///////////////////
