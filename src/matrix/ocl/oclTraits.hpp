@@ -1910,21 +1910,23 @@
             tmp2 -> setSync (); // do NOT upload dest
             pi3 += ocl_basic_operator_kernel_56 ("dwt_3_alt", tmp1, lpf, hpf, tmp2, loc_mem3, n, m, k, line_length, line_length, line_length, lc3);
                 
-            if (i != 0)
-            {
-              pi_final += ocl_basic_operator_kernel_56 ("dwt_final_alt", tmp2, lpf, hpf, tmp1, loc_mem1, n, m, k, line_length, line_length, num_loc_mem_elems1, lc1);
-            }
-            else
-            {
+//            if (i != 0)
+//            {
+//              pi_final += ocl_basic_operator_kernel_56 ("dwt_final_alt", tmp2, lpf, hpf, tmp1, loc_mem1, n, m, k, line_length, line_length, num_loc_mem_elems1, lc1);
+//            }
+//            else
+//            {
               oclDataObject * cpy = tmp1;
               tmp1 = tmp2;
               tmp2 = cpy;
-            }
+//            }
             vec_pi3.push_back (pi3);
             
           }
           
-          pi_final.time_mem_down += tmp1 -> getData ();
+          pi_final += ocl_basic_operator_kernel_56 ("dwt_final_alt", tmp, lpf, hpf, arg2, loc_mem1, n, m, k, n/pow(2,levels-1), levels, num_loc_mem_elems1, lc1);
+          
+          pi_final.time_mem_down += arg2 -> getData ();
           
           delete loc_mem1;
           delete loc_mem2;
@@ -2695,7 +2697,7 @@
             
             if (i != 0)
             {
-              pi_final += ocl_basic_operator_kernel_56 ("dwt_final_alt", tmp1, lpf, hpf, tmp2, loc_mem1, n, m, k, line_length, line_length, num_loc_mem_elems1, lc1);
+              pi_final += ocl_basic_operator_kernel_56 ("idwt_final_alt", tmp1, lpf, hpf, tmp2, loc_mem1, n, m, k, line_length, line_length, num_loc_mem_elems1, lc1);
               
             }
             

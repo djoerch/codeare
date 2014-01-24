@@ -365,8 +365,9 @@ kernel void dwt_1_alt (__global A_type * arg1,
         # endif
         {
 
-            const int index_base = (d2 + lid_2) * slice                   // slice
-                                 + (d1 + lid_1) * *n;   // line in particular slice
+            const int index = (d2 + lid_2) * slice                   // slice
+                            + (d1 + lid_1) * *n   // line in particular slice
+                            + d0 + lid_0;
           
             // local memory
             const int line = get_local_id (1) + get_local_id (2) * get_local_size (1);
@@ -374,8 +375,6 @@ kernel void dwt_1_alt (__global A_type * arg1,
             __local A_type * tmp = input + line * loc_mem_line_IN;
 
             // copy
-            const int index = index_base + d0 + lid_0 + PADDING;
-
             const int constraint = *line_length - d0 - lid_0;
             for (int i = 0; i < LOC_MEM_LINE; i += lsize_0)
               if (i < constraint)
@@ -554,15 +553,15 @@ kernel void dwt_2_alt (__global A_type * arg1,
         # endif
         {
 
-        const int index_base = (d2 + lid_2) * slice  // slice
-                                 + (d0 + lid_0);   // line in particular slice
+        const int index = (d2 + lid_2) * slice  // slice
+                        + (d1 + lid_1) * *n
+                        + (d0 + lid_0);   // line in particular slice
 
         // local memory
         const int line = get_local_id (0) + get_local_id (2) * get_local_size (0);
         __local A_type * tmp = input + line * loc_mem_line_IN;
 
         // copy
-        const int index = index_base + (d1 + lid_1) * *n;
         const int constraint = *line_length - d1 - lid_1;
         for (int i = 0; i < LOC_MEM_LINE; i += lsize_1)
           if (i < constraint)
@@ -740,21 +739,21 @@ kernel void dwt_3_alt (__global A_type * arg1,
         # endif
         {
 
-        const int index_base = (d1 + lid_1) * *n  // ...
-                                 + (d0 + lid_0);         // line in particular slice
+        const int index = (d1 + lid_1) * *n  // ...
+                        + (d2 + lid_2) * slice
+                        + (d0 + lid_0);         // line in particular slice
 
         // local memory
         const int line = get_local_id (0) + get_local_id (1) * get_local_size (0);
         __local A_type * tmp = input + line * loc_mem_line_IN;
 
         // copy
-        const int index1 = index_base + (d2 + lid_2) * slice;
         const int constraint = *line_length - d2 - lid_2;
         for (int i = 0; i < LOC_MEM_LINE; i += lsize_2)
           if (i < constraint)
-            tmp [lid_2 + i + offset] = arg1 [index1 + i * slice];
+            tmp [lid_2 + i + offset] = arg1 [index + i * slice];
         if (lid_2 < offset)
-          tmp [lid_2] = arg1 [index1 - offset * slice + (d2 + lid_2 - offset < 0 ? *line_length * slice : 0)];
+          tmp [lid_2] = arg1 [index - offset * slice + (d2 + lid_2 - offset < 0 ? *line_length * slice : 0)];
 
         }
 
@@ -837,7 +836,6 @@ kernel void dwt_3_alt (__global A_type * arg1,
 }
 
 
-
 /**
  * @author djoergens
  */
@@ -850,16 +848,13 @@ kernel void dwt_final_alt (__global A_type * arg1,
           __global int * m,
           __global int * k,
           __constant int * line_length,
-          __constant int * chunk_size,
+          __constant int * num_levels,
           __global int * loc_mem_size)
 {
   
   ///////////////////
   // READING CONFIG
   ///////////////////
-  const int pad_line_length = roundUp (*line_length + PADDING, ROUND_TO);
-  const int pad_slice = pad_line_length * *line_length;
-
   ///////////////////
   // WRITE CONFIG
   ///////////////////
@@ -892,45 +887,80 @@ kernel void dwt_final_alt (__global A_type * arg1,
   //////////////////////
   // ALGORITHM
   //////////////////////
-  # ifdef NON_SQUARE_GROUP
-  const int num_mem_lines = max (lsize_0, lsize_1);
-  # endif
+
+  int current_line_length = *n/2;
+
+  while (current_line_length >= *line_length)
+  {
 
   // loop over blocks in third dimension
-  for (int d2 = gid_2 * lsize_2; d2 < *chunk_size; d2 += gsize_2)
+  for (int d2 = gid_2 * lsize_2; d2 < current_line_length/2; d2 += gsize_2)
   {
 
     // loop over blocks in second dimension
-    for (int d1 = gid_1 * lsize_1; d1 < *line_length; d1 += gsize_1)
+    for (int d1 = gid_1 * lsize_1; d1 < current_line_length/2; d1 += gsize_1)
     {
 
       // loop over blocks in first dimension
-      for (int d0 = gid_0 * lsize_0; d0 < *line_length; d0 += gsize_0)
+      for (int d0 = gid_0 * lsize_0; d0 < current_line_length/2; d0 += gsize_0)
       {
 
         //////////////
         // COPY: global -> global
         //////////////
         
-        if (d2 + lid_2 < *chunk_size
-          && d1 + lid_1 < *line_length
-          && d0 + lid_0 < *line_length)
+        if (d2 + lid_2 < current_line_length/2
+          && d1 + lid_1 < current_line_length/2
+          && d0 + lid_0 < current_line_length/2)
         {
 
-          const int pad_index_base = (d2 + lid_2) * slice                   // slice
-                                   + (d1 + lid_1) * *n;   // line in particular slice
-          
-            // copy
-            const int index = pad_index_base + d0 + lid_0;
+          const int index0 = (d2 + lid_2) * slice                   // slice
+                           + (d1 + lid_1) * *n   // line in particular slice
+                           + d0 + lid_0;
+          const int index1 = (d2 + lid_2 + current_line_length/2) * slice                   // slice
+                           + (d1 + lid_1) * *n   // line in particular slice
+                           + d0 + lid_0;
+          const int index2 = (d2 + lid_2) * slice                   // slice
+                           + (d1 + lid_1 + current_line_length/2) * *n   // line in particular slice
+                           + d0 + lid_0;
+          const int index3 = (d2 + lid_2 + current_line_length/2) * slice                   // slice
+                           + (d1 + lid_1 + current_line_length/2) * *n   // line in particular slice
+                           + d0 + lid_0;
+          const int index4 = (d2 + lid_2) * slice                   // slice
+                           + (d1 + lid_1) * *n   // line in particular slice
+                           + d0 + lid_0 + current_line_length/2;
+          const int index5 = (d2 + lid_2 + current_line_length/2) * slice                   // slice
+                           + (d1 + lid_1) * *n   // line in particular slice
+                           + d0 + lid_0 + current_line_length/2;
+          const int index6 = (d2 + lid_2) * slice                   // slice
+                           + (d1 + lid_1 + current_line_length/2) * *n   // line in particular slice
+                           + d0 + lid_0 + current_line_length/2;
+          const int index7 = (d2 + lid_2 + current_line_length/2) * slice                   // slice
+                           + (d1 + lid_1 + current_line_length/2) * *n   // line in particular slice
+                           + d0 + lid_0 + current_line_length/2;
 
-                arg2 [index] = arg1 [index];
+          // copy
+  // first level (only for EVEN number of levels)
+  if (((*num_levels) & 1) == 0 && current_line_length == *line_length)
+            arg2 [index0] = arg1 [index0];
+          arg2 [index1] = arg1 [index1];
+          arg2 [index2] = arg1 [index2];
+          arg2 [index3] = arg1 [index3];
+          arg2 [index4] = arg1 [index4];
+          arg2 [index5] = arg1 [index5];
+          arg2 [index6] = arg1 [index6];
+          arg2 [index7] = arg1 [index7];
           
         }
-        
+
       } // loop over first dimension
 
     } // loop over second dimension
 
   } // loop over third dimension
+
+  current_line_length /= 4;
+
+  }
 
 }

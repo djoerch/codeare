@@ -86,7 +86,7 @@ kernel void idwt_1_alt (__global A_type * arg1,
       for (int d0 = gid_0 * iLOC_MEM_LINE/2; d0 < *line_length/2; d0 += ng_0 * iLOC_MEM_LINE/2)
       {
 
-        const int current_line_length = min (iLOC_MEM_LINE, *line_length - 2 * d0);
+        const int half_current_line_length = min (iLOC_MEM_LINE, *line_length - 2 * d0)/2;
 
         //////////////
         // READ: global -> local
@@ -99,29 +99,28 @@ kernel void idwt_1_alt (__global A_type * arg1,
         # endif
         {
 
-          const int index_base = (d2 + lid_2) * slice                   // slice
-                               + (d1 + lid_1) * *n;           // line in particular slice
+          const int index = (d2 + lid_2) * slice                   // slice
+                          + (d1 + lid_1) * *n           // line in particular slice
+                          + d0 + lid_0;
           
-            // local memory
-            const int line = get_local_id (1) + get_local_id (2) * get_local_size (1);
-            
-            __local A_type * tmp = input + line * loc_mem_line_IN;
+          // local memory
+          const int line = get_local_id (1) + get_local_id (2) * get_local_size (1);
 
-            // copy
-            const int index = index_base + d0 + lid_0;
+          __local A_type * tmp = input + line * loc_mem_line_IN;
 
-            const int constraint = *line_length/2 - d0 - lid_0;
-            for (int i = 0; i < iLOC_MEM_LINE/2; i += lsize_0)
-              if (i < constraint)
-              {
-                tmp [lid_0 + i + i_offset] = arg1 [index + i];
-                tmp [lid_0 + i + i_offset + iLOC_MEM_LINE/2] = arg1 [index + i + *line_length/2];
-              }
-            if (lid_0 < i_offset)
+          // copy
+          const int constraint = *line_length/2 - d0 - lid_0;
+          for (int i = 0; i < iLOC_MEM_LINE/2; i += lsize_0)
+            if (i < constraint)
             {
-              tmp [lid_0] = arg1 [index - i_offset + ((d0 + lid_0 - i_offset) < 0 ? *line_length/2 : 0)];
-              tmp [lid_0 + i_offset + iLOC_MEM_LINE/2 + current_line_length/2] = arg1 [index + current_line_length/2 + ((d0 + lid_0 + current_line_length/2 + 1) > *line_length/2 ? 0 : *line_length/2)];
+              tmp [lid_0 + i + i_offset] = arg1 [index + i];
+              tmp [lid_0 + i + i_offset + iLOC_MEM_LINE/2] = arg1 [index + i + *line_length/2];
             }
+          if (lid_0 < i_offset)
+          {
+            tmp [lid_0] = arg1 [index - i_offset + ((d0 + lid_0 - i_offset) < 0 ? *line_length/2 : 0)];
+            tmp [lid_0 + i_offset + iLOC_MEM_LINE/2 + half_current_line_length] = arg1 [index + half_current_line_length + ((d0 + lid_0 + half_current_line_length + 1) > *line_length/2 ? 0 : *line_length/2)];
+          }
                 
         }
 
@@ -287,7 +286,7 @@ kernel void idwt_2_alt (__global A_type * arg1,
       for (int d1 = gid_1 * iLOC_MEM_LINE/2; d1 < *line_length/2; d1 += ng_1 * iLOC_MEM_LINE/2)
       {
 
-        const int current_line_length = min (iLOC_MEM_LINE, *line_length - 2 * d1);
+        const int half_current_line_length = min (iLOC_MEM_LINE, *line_length - 2 * d1) / 2;
 
         //////////////
         // READ: global -> local
@@ -300,8 +299,9 @@ kernel void idwt_2_alt (__global A_type * arg1,
         # endif
         {
 
-          const int index_base = (d2 + lid_2) * slice                   // slice
-                               + (d0 + lid_0);           // line in particular slice
+          const int index = (d2 + lid_2) * slice                   // slice
+                          + (d0 + lid_0)           // line in particular slice
+                          + (d1 + lid_1) * *n;
           
           // local memory
           const int line = get_local_id (0) + get_local_id (2) * get_local_size (0);
@@ -309,8 +309,6 @@ kernel void idwt_2_alt (__global A_type * arg1,
           __local A_type * tmp = input + line * loc_mem_line_IN;
 
           // copy
-          const int index = index_base + (d1 + lid_1) * *n;
-
           const int constraint = *line_length/2 - d1 - lid_1;
           for (int i = 0; i < iLOC_MEM_LINE/2; i += lsize_1)
             if (i < constraint)
@@ -321,7 +319,7 @@ kernel void idwt_2_alt (__global A_type * arg1,
           if (lid_1 < i_offset)
           {
             tmp [lid_1] = arg1 [index - i_offset * *n + ((d1 + lid_1 - i_offset) < 0 ? *line_length/2 : 0) * *n];
-            tmp [lid_1 + i_offset + iLOC_MEM_LINE/2 + current_line_length/2] = arg1 [index + current_line_length/2 * *n + ((d1 + lid_1 + current_line_length/2 + 1) > *line_length/2 ? 0 : *line_length/2) * *n];
+            tmp [lid_1 + i_offset + iLOC_MEM_LINE/2 + half_current_line_length] = arg1 [index + half_current_line_length * *n + ((d1 + lid_1 + half_current_line_length + 1) > *line_length/2 ? 0 : *line_length/2) * *n];
           }
         
         }
@@ -489,7 +487,7 @@ kernel void idwt_3_alt (__global A_type * arg1,
       for (int d2 = gid_2 * iLOC_MEM_LINE/2; d2 < *line_length/2; d2 += ng_2 * iLOC_MEM_LINE/2)
       {
 
-        const int current_line_length = min (iLOC_MEM_LINE, *line_length - 2 * d2);
+        const int half_current_line_length = min (iLOC_MEM_LINE, *line_length - 2 * d2) / 2;
 
         //////////////
         // READ: global -> local
@@ -523,7 +521,7 @@ kernel void idwt_3_alt (__global A_type * arg1,
           if (lid_2 < i_offset)
           {
             tmp [lid_2] = arg1 [index - i_offset * slice + ((d2 + lid_2 - i_offset) < 0 ? *line_length/2 : 0) * slice];
-            tmp [lid_2 + i_offset + iLOC_MEM_LINE/2 + current_line_length/2] = arg1 [index + current_line_length/2 * slice + ((d2 + lid_2 + current_line_length/2 + 1) > *line_length/2 ? 0 : *line_length/2) * slice];
+            tmp [lid_2 + i_offset + iLOC_MEM_LINE/2 + half_current_line_length] = arg1 [index + half_current_line_length * slice + ((d2 + lid_2 + half_current_line_length + 1) > *line_length/2 ? 0 : *line_length/2) * slice];
           }
         
         }
@@ -608,6 +606,103 @@ kernel void idwt_3_alt (__global A_type * arg1,
             }
           }
 
+        }
+        
+      } // loop over first dimension
+
+    } // loop over second dimension
+
+  } // loop over third dimension
+
+}
+
+
+/**
+ * @author djoergens
+ */
+kernel void idwt_final_alt (__global A_type * arg1,
+          __constant B_type * _lpf,
+          __constant B_type * _hpf,
+          __global A_type * arg2,
+          __local A_type * loc_mem,
+          __constant int * n,
+          __global int * m,
+          __global int * k,
+          __constant int * line_length,
+          __constant int * chunk_size,
+          __global int * loc_mem_size)
+{
+  
+  ///////////////////
+  // READING CONFIG
+  ///////////////////
+  const int pad_line_length = roundUp (*line_length + PADDING, ROUND_TO);
+  const int pad_slice = pad_line_length * *line_length;
+
+  ///////////////////
+  // WRITE CONFIG
+  ///////////////////
+  const int slice = *n * *n;
+
+  ///////////////
+  // THREAD
+  ///////////////
+  const int lid_0 = get_local_id (0);
+  const int lid_1 = get_local_id (1);
+  const int lid_2 = get_local_id (2);
+
+  ///////////////
+  // WORK GROUP
+  ///////////////
+  const int gid_0 = get_group_id (0);
+  const int gid_1 = get_group_id (1);
+  const int gid_2 = get_group_id (2);
+  const int lsize_0 = get_local_size (0);
+  const int lsize_1 = get_local_size (1);
+  const int lsize_2 = get_local_size (2);
+
+  //////////////
+  // GLOBAL
+  //////////////
+  const int gsize_0 = get_global_size (0);
+  const int gsize_1 = get_global_size (1);
+  const int gsize_2 = get_global_size (2);
+
+  //////////////////////
+  // ALGORITHM
+  //////////////////////
+  # ifdef NON_SQUARE_GROUP
+  const int num_mem_lines = max (lsize_0, lsize_1);
+  # endif
+
+  // loop over blocks in third dimension
+  for (int d2 = gid_2 * lsize_2; d2 < *chunk_size; d2 += gsize_2)
+  {
+
+    // loop over blocks in second dimension
+    for (int d1 = gid_1 * lsize_1; d1 < *line_length; d1 += gsize_1)
+    {
+
+      // loop over blocks in first dimension
+      for (int d0 = gid_0 * lsize_0; d0 < *line_length; d0 += gsize_0)
+      {
+
+        //////////////
+        // COPY: global -> global
+        //////////////
+        
+        if (d2 + lid_2 < *chunk_size
+          && d1 + lid_1 < *line_length
+          && d0 + lid_0 < *line_length)
+        {
+
+          const int index = (d2 + lid_2) * slice                   // slice
+                          + (d1 + lid_1) * *n   // line in particular slice
+                          + d0 + lid_0;
+          
+          // copy
+          arg2 [index] = arg1 [index];
+          
         }
         
       } // loop over first dimension

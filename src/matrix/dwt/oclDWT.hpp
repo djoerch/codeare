@@ -118,6 +118,7 @@ class oclDWT {
             oclConnection :: Instance () -> setThreadConfig (std::string ("dwt_3_alt"), lc_3_alt);
             oclConnection :: Instance () -> setThreadConfig (std::string ("idwt3"), lc3);
             oclConnection :: Instance () -> setThreadConfig (std::string ("idwt_3_alt"), lc_3_alt);
+            oclConnection :: Instance () -> setThreadConfig (std::string ("idwt_final_alt"), lc_1_alt);
             LaunchInformation lc_1 (lc3.local_z, lc3.local_y, lc3.local_x, lc3.global_z, lc3.global_y, lc3.global_x);
             LaunchInformation lc_2 (lc3.local_x, lc3.local_z, lc3.local_y, lc3.global_x, lc3.global_z, lc3.global_y);
             oclConnection :: Instance () -> setThreadConfig (std::string ("dwt_1"), lc_1);
