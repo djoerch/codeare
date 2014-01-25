@@ -146,6 +146,9 @@ modify_kernel        ( std::string const &       source,
       const clProgram       getProgram        () const { return ocl_precision_trait <T, S> :: getProgram (this); }
       
       
+      const int getGlobalMemSize () const;
+
+      
       /****************************************
        ** functions for OpenCL functionality **
        ****************************************/
