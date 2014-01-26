@@ -297,8 +297,8 @@ main            (int argc, char ** args)
 
         for (int j = 1; j < iterations; j++)
         {
-            std::vector <PerformanceInformation> vec_tmp_1 = dwt.Trafo (mat_out_dwt_recon, mat_out_dwt);
-            std::vector <PerformanceInformation> vec_tmp_2 = dwt.Adjoint (mat_out_dwt, mat_out_dwt_recon);
+            std::vector <PerformanceInformation> vec_tmp_1 = dwt.Trafo (mat_out_dwt_recon, mat_out_dwt, chunk_size);
+            std::vector <PerformanceInformation> vec_tmp_2 = dwt.Adjoint (mat_out_dwt, mat_out_dwt_recon, chunk_size);
 # ifdef __PERFORMANCE_INFO__
             for (int k = 0; k < vec_tmp_1.size(); k++)
               vec_pi_forward [k] += vec_tmp_1 [k];
