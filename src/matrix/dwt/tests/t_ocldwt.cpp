@@ -136,18 +136,21 @@ print_table_header (std::fstream & fs, const int iterations, const char * name_p
   
     // headline of table
     fs << " ##";
-    if (strcmp (name_param, "local") == 0)
+//    if (strcmp (name_param, "local") == 0)
     {
       fs               << " global_size_x  --" << std::flush <<
          setw (indent) << " global_size_y  --" << std::flush <<
          setw (indent) << " global_size_z  --" << std::flush;
     }
-    else if (strcmp (name_param, "global") == 0)
+//    else if (strcmp (name_param, "global") == 0)
     {
       fs << setw (indent)   << " local_size_x  --" << std::flush <<
             setw (indent)   << " local_size_y  --" << std::flush <<
             setw (indent)   << " local_size_z  --" << std::flush;
     }
+    fs << setw (indent-2) << "  fl " << std::flush <<
+       << setw (indent-2) << "  scale " << std::flush <<
+       << setw (indent-2) << "  sl " << std::flush;
     fs << setw (indent-2) << "  time exec (f)  --" << std::flush <<
           setw (indent-2) << "  time exec (b)  --" << std::flush <<
           setw (indent-2) << "  time mem  --" << std::flush <<
@@ -342,9 +345,18 @@ main            (int argc, char ** args)
 //          std::cout << pi2 << std::endl;
 //          std::cout << " -------------- " << std::endl;
 
-          fs << setw (indent-5) << (strcmp (name_param, "local")?pi_f.lc.local_x:pi_f.lc.global_x) << std::flush <<
-              setw (indent) << (strcmp (name_param, "local")?pi_f.lc.local_y:pi_f.lc.global_y) << std::flush <<
-              setw (indent) << (strcmp (name_param, "local")?pi_f.lc.local_z:pi_f.lc.global_z) << std::flush <<
+//          fs << setw (indent-5) << (strcmp (name_param, "local")?pi_f.lc.local_x:pi_f.lc.global_x) << std::flush <<
+//              setw (indent) << (strcmp (name_param, "local")?pi_f.lc.local_y:pi_f.lc.global_y) << std::flush <<
+//              setw (indent) << (strcmp (name_param, "local")?pi_f.lc.local_z:pi_f.lc.global_z) << std::flush <<
+            fs << setw (indent-5) << pi_f.lc.global_x << std::flush <<
+              setw (indent) << pi_f.lc.global_y << std::flush <<
+              setw (indent) << pi_f.lc.global_z << std::flush <<
+              setw (indent) << pi_f.lc.local_x << std::flush <<
+              setw (indent) << pi_f.lc.local_y << std::flush <<
+              setw (indent) << pi_f.lc.local_z << std::flush <<
+              setw (indent) << wl_mem << std::flush <<
+              setw (indent) << wl_scale << std::flush <<
+              setw (indent) << mat_in.Dim (0) <<
               setw (indent) << pi_f.time_exec << std::flush <<
               setw (indent) << pi_b.time_exec << std::flush <<
               setw (indent) << (pi_f.time_mem_up + pi_f.time_mem_down) << std::flush <<
