@@ -149,8 +149,8 @@ print_table_header (std::fstream & fs, const int iterations, const char * name_p
             setw (indent)   << " local_size_z  --" << std::flush;
     }
     fs << setw (indent-2) << "  fl " << std::flush <<
-       << setw (indent-2) << "  scale " << std::flush <<
-       << setw (indent-2) << "  sl " << std::flush;
+          setw (indent-2) << "  scale " << std::flush <<
+          setw (indent-2) << "  sl " << std::flush;
     fs << setw (indent-2) << "  time exec (f)  --" << std::flush <<
           setw (indent-2) << "  time exec (b)  --" << std::flush <<
           setw (indent-2) << "  time mem  --" << std::flush <<
