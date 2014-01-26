@@ -298,6 +298,17 @@ init_program_kernels    (oclConnection * const con, const std::vector <std::stri
 }
 
 
+const int
+oclConnection::
+getGlobalMemSize () const
+{
+
+  cl_ulong global_mem_size;
+  print_optional (" ** device max global memory: %d Bytes", (m_devs [0].getInfo (CL_DEVICE_GLOBAL_MEM_SIZE, &global_mem_size), global_mem_size), VERB_NONE);
+
+  return global_mem_size;
+
+}
 
 
 // constructor

@@ -45,7 +45,7 @@
 # define LC LaunchInformation (16, 16, 1, 256, 256, 1)
 
 
-# define PINNED
+//# define PINNED
 
 
 # include "Matrix.hpp"
@@ -250,13 +250,13 @@ class oclDWT {
             const int buffer_size = m.Dim (2) == 1
                                   ? m.Size ()
                                   : max ((res.Dim (0) + padding) * res.Dim (1) * chunk_size, res.Dim (2) * (chunk_size + padding) * chunk_size);
-            
+
 # ifdef PINNED
             /* pinned mem usage */
             oclCPUDataObject <T> * p_pinned_res = (oclCPUDataObject <T> *) oclOperations <T> :: make_CPU_Obj (&res[0], res.Size ());
             memcpy (p_pinned_res->getPinnedPointer (), &m.Container()[0], res.Size() * sizeof (T));
 # endif
-            
+
             /* TODO: call kernel */
             oclDataWrapper <T> * p_ocl_m   = oclOperations <T> :: make_GPU_Obj (
                     # ifdef PINNED
@@ -290,7 +290,12 @@ class oclDWT {
                                                    p_ocl_res);
             else
               if (_kv == ONE_D)
-                vec_perf = oclOperations <T, RT> :: ocl_operator_dwt3_alt (p_ocl_m, m.Dim(0), m.Dim(1), m.Dim(2),
+                if (m.Dim (0) * m.Dim (1) * m.Dim (2) * 2 * sizeof (T) > oclConnection :: Instance () -> getGlobalMemSize ())
+                  vec_perf = oclOperations <T, RT> :: ocl_operator_dwt3_alt_cs (p_ocl_m, m.Dim(0), m.Dim(1), m.Dim(2),
+                                                     p_ocl_lpf, p_ocl_hpf, _fl, _max_level - _min_level,
+                                                     p_ocl_res, p_ocl_tmp, chunk_size);
+                else
+                  vec_perf = oclOperations <T, RT> :: ocl_operator_dwt3_alt (p_ocl_m, m.Dim(0), m.Dim(1), m.Dim(2),
                                                      p_ocl_lpf, p_ocl_hpf, _fl, _max_level - _min_level,
                                                      p_ocl_res, p_ocl_tmp, chunk_size);
               else
@@ -309,7 +314,7 @@ class oclDWT {
             delete p_ocl_tmp;
             delete p_ocl_lpf;
             delete p_ocl_hpf;
-            
+
             std::cout << " overall (Trafo): " << time << " s " << std::endl;
             
             return vec_perf;
@@ -376,8 +381,8 @@ class oclDWT {
             // call either 2D or 3D implementation of IDWT
             std::vector <PerformanceInformation> vec_perf;
             double time = omp_get_wtime ();
-            
-# ifndef PINNED
+
+# ifndef PINNED            
             res = m; // needed for 3D version !!!
 # endif
             
@@ -387,9 +392,14 @@ class oclDWT {
                                                    p_ocl_res);
             else
               if (_kv == ONE_D)
-                vec_perf = oclOperations <T, RT> :: ocl_operator_idwt3_alt (p_ocl_tmp, m.Dim(0), m.Dim(1), m.Dim(2),
-                                                     p_ocl_lpf, p_ocl_hpf, _fl, _max_level - _min_level,
-                                                     p_ocl_res, chunk_size);
+                if (m.Dim(0) * m.Dim(1) * m.Dim(2) * 2 * sizeof (T) > oclConnection :: Instance () -> getGlobalMemSize ())
+                  vec_perf = oclOperations <T, RT> :: ocl_operator_idwt3_alt_cs (p_ocl_tmp, m.Dim(0), m.Dim(1), m.Dim(2),
+                                                       p_ocl_lpf, p_ocl_hpf, _fl, _max_level - _min_level,
+                                                       p_ocl_res, chunk_size);
+                else
+                  vec_perf = oclOperations <T, RT> :: ocl_operator_idwt3_alt (p_ocl_tmp, m.Dim(0), m.Dim(1), m.Dim(2),
+                                                       p_ocl_lpf, p_ocl_hpf, _fl, _max_level - _min_level,
+                                                       p_ocl_res, chunk_size);
               else
                 vec_perf = oclOperations <T, RT> :: ocl_operator_idwt3 (p_ocl_tmp, m.Dim(0), m.Dim(1), m.Dim(2),
                                                      p_ocl_lpf, p_ocl_hpf, _fl, _max_level - _min_level,
