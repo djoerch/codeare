@@ -1942,18 +1942,19 @@
           // dynamically allocate local memory
           ////////////////
                     
-          const int loc_mem_line = 64 + fl-2 + 1;
+          const int loc_mem_line_in = 64 + fl-2 + 1;
+          const int loc_mem_line_out = 64 + 1;
           
           // dwt_1
-          const int num_loc_mem_elems1 = loc_mem_line * 2 * max (lc1.local_x, lc1.local_y) * lc1.local_z;
+          const int num_loc_mem_elems1 = (loc_mem_line_in + loc_mem_line_out) * max (lc1.local_x, lc1.local_y) * lc1.local_z;
           oclDataObject * loc_mem1 = new oclLocalMemObject <elem_type> (num_loc_mem_elems1);
           
           // dwt_2
-          const int num_loc_mem_elems2 = loc_mem_line * 2 * lc2.local_x * lc2.local_z;
+          const int num_loc_mem_elems2 = (loc_mem_line_in + loc_mem_line_out) * lc2.local_x * lc2.local_z;
           oclDataObject * loc_mem2 = new oclLocalMemObject <elem_type> (num_loc_mem_elems2);
           
           // dwt_3
-          const int num_loc_mem_elems3 = loc_mem_line * 2 * lc3.local_x * lc3.local_y;
+          const int num_loc_mem_elems3 = (loc_mem_line_in + loc_mem_line_out) * lc3.local_x * lc3.local_y;
           oclDataObject * loc_mem3 = new oclLocalMemObject <elem_type> (num_loc_mem_elems3);
           
           std::cout << " loc_mem1 (dwt_1_alt): " << num_loc_mem_elems1 * sizeof (elem_type) << " Bytes " << std::endl;
@@ -2104,18 +2105,19 @@
           // dynamically allocate local memory
           ////////////////
                     
-          const int loc_mem_line = 64 + fl-2 + 1;
+          const int loc_mem_line_in = 64 + fl-2 + 1;
+          const int loc_mem_line_out = 64 + 1;
           
           // dwt_1
-          const int num_loc_mem_elems1 = loc_mem_line * 2 * max (lc1.local_x, lc1.local_y) * lc1.local_z;
+          const int num_loc_mem_elems1 = (loc_mem_line_in + loc_mem_line_out) * max (lc1.local_x, lc1.local_y) * lc1.local_z;
           oclDataObject * loc_mem1 = new oclLocalMemObject <elem_type> (num_loc_mem_elems1);
           
           // dwt_2
-          const int num_loc_mem_elems2 = loc_mem_line * 2 * lc2.local_x * lc2.local_z;
+          const int num_loc_mem_elems2 = (loc_mem_line_in + loc_mem_line_out) * lc2.local_x * lc2.local_z;
           oclDataObject * loc_mem2 = new oclLocalMemObject <elem_type> (num_loc_mem_elems2);
           
           // dwt_3
-          const int num_loc_mem_elems3 = loc_mem_line * 2 * lc3.local_x * lc3.local_y;
+          const int num_loc_mem_elems3 = (loc_mem_line_in + loc_mem_line_out) * lc3.local_x * lc3.local_y;
           oclDataObject * loc_mem3 = new oclLocalMemObject <elem_type> (num_loc_mem_elems3);
           
           std::cout << " loc_mem1 (dwt_1_alt): " << num_loc_mem_elems1 * sizeof (elem_type) << " Bytes " << std::endl;
@@ -2783,18 +2785,19 @@
           // dynamically allocate local memory
           /////////////
           
-          const int loc_mem_line = 64 + 2 * (fl-1);
+          const int loc_mem_line_in = 64 + 2 * (fl-1);
+          const int loc_mem_line_out = 64 + 1; 
           
           // idwt1
-          const int num_loc_mem_elems1 = 2 * loc_mem_line * lc1.local_y * lc1.local_z;
+          const int num_loc_mem_elems1 = (loc_mem_line_in + loc_mem_line_out) * lc1.local_y * lc1.local_z;
           oclDataObject * loc_mem1 = new oclLocalMemObject <elem_type> (num_loc_mem_elems1);
 
           // idwt2
-          const int num_loc_mem_elems2 = 2 * loc_mem_line * lc2.local_x * lc2.local_z;
+          const int num_loc_mem_elems2 = (loc_mem_line_in + loc_mem_line_out) * lc2.local_x * lc2.local_z;
           oclDataObject * loc_mem2 = new oclLocalMemObject <elem_type> (num_loc_mem_elems2);
           
           // idwt3
-          const int num_loc_mem_elems3 = 2 * loc_mem_line * lc3.local_x * lc3.local_y;
+          const int num_loc_mem_elems3 = (loc_mem_line_in + loc_mem_line_out) * lc3.local_x * lc3.local_y;
           oclDataObject * loc_mem3 = new oclLocalMemObject <elem_type> (num_loc_mem_elems3);
           
           std::cout << " local_mem (idwt_1_alt): " << num_loc_mem_elems1 * sizeof (elem_type) << " Bytes " << std::endl;
@@ -3012,18 +3015,19 @@
           // dynamically allocate local memory
           /////////////
           
-          const int loc_mem_line = 64 + 2 * (fl-1);
+          const int loc_mem_line_in = 64 + 2 * (fl-1);
+          const int loc_mem_line_out = 64 + 1;
           
           // idwt1
-          const int num_loc_mem_elems1 = 2 * loc_mem_line * lc1.local_y * lc1.local_z;
+          const int num_loc_mem_elems1 = (loc_mem_line_in + loc_mem_line_out) * lc1.local_y * lc1.local_z;
           oclDataObject * loc_mem1 = new oclLocalMemObject <elem_type> (num_loc_mem_elems1);
 
           // idwt2
-          const int num_loc_mem_elems2 = 2 * loc_mem_line * lc2.local_x * lc2.local_z;
+          const int num_loc_mem_elems2 = (loc_mem_line_in + loc_mem_line_out) * lc2.local_x * lc2.local_z;
           oclDataObject * loc_mem2 = new oclLocalMemObject <elem_type> (num_loc_mem_elems2);
           
           // idwt3
-          const int num_loc_mem_elems3 = 2 * loc_mem_line * lc3.local_x * lc3.local_y;
+          const int num_loc_mem_elems3 = (loc_mem_line_in + loc_mem_line_out) * lc3.local_x * lc3.local_y;
           oclDataObject * loc_mem3 = new oclLocalMemObject <elem_type> (num_loc_mem_elems3);
           
           std::cout << " local_mem (idwt_1_alt): " << num_loc_mem_elems1 * sizeof (elem_type) << " Bytes " << std::endl;
