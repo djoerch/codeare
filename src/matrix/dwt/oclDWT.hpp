@@ -44,8 +44,8 @@
 # define OPENCL_GLOBAL_SIZE 256
 # define LC LaunchInformation (16, 16, 1, 256, 256, 1)
 
-
-//# define PINNED
+//# define CHUNKS
+# define PINNED
 
 
 # include "Matrix.hpp"
@@ -255,6 +255,8 @@ class oclDWT {
             /* pinned mem usage */
             oclCPUDataObject <T> * p_pinned_res = (oclCPUDataObject <T> *) oclOperations <T> :: make_CPU_Obj (&res[0], res.Size ());
             memcpy (p_pinned_res->getPinnedPointer (), &m.Container()[0], res.Size() * sizeof (T));
+# else
+            res = m;
 # endif
 
             /* TODO: call kernel */
@@ -290,14 +292,15 @@ class oclDWT {
                                                    p_ocl_res);
             else
               if (_kv == ONE_D)
-                if (m.Dim (0) * m.Dim (1) * m.Dim (2) * 2 * sizeof (T) > oclConnection :: Instance () -> getGlobalMemSize ())
-                  vec_perf = oclOperations <T, RT> :: ocl_operator_dwt3_alt_cs (p_ocl_m, m.Dim(0), m.Dim(1), m.Dim(2),
+# ifdef CHUNKS
+                  vec_perf = oclOperations <T, RT> :: ocl_operator_dwt3_alt_cs (p_ocl_tmp, m.Dim(0), m.Dim(1), m.Dim(2),
                                                      p_ocl_lpf, p_ocl_hpf, _fl, _max_level - _min_level,
                                                      p_ocl_res, p_ocl_tmp, chunk_size);
-                else
-                  vec_perf = oclOperations <T, RT> :: ocl_operator_dwt3_alt (p_ocl_m, m.Dim(0), m.Dim(1), m.Dim(2),
+# else
+                  vec_perf = oclOperations <T, RT> :: ocl_operator_dwt3_alt (p_ocl_tmp, m.Dim(0), m.Dim(1), m.Dim(2),
                                                      p_ocl_lpf, p_ocl_hpf, _fl, _max_level - _min_level,
                                                      p_ocl_res, p_ocl_tmp, chunk_size);
+# endif
               else
                 vec_perf = oclOperations <T, RT> :: ocl_operator_dwt3 (p_ocl_m, m.Dim(0), m.Dim(1), m.Dim(2),
                                                      p_ocl_lpf, p_ocl_hpf, _fl, _max_level - _min_level,
@@ -392,14 +395,15 @@ class oclDWT {
                                                    p_ocl_res);
             else
               if (_kv == ONE_D)
-                if (m.Dim(0) * m.Dim(1) * m.Dim(2) * 2 * sizeof (T) > oclConnection :: Instance () -> getGlobalMemSize ())
+# ifdef CHUNKS
                   vec_perf = oclOperations <T, RT> :: ocl_operator_idwt3_alt_cs (p_ocl_tmp, m.Dim(0), m.Dim(1), m.Dim(2),
                                                        p_ocl_lpf, p_ocl_hpf, _fl, _max_level - _min_level,
                                                        p_ocl_res, chunk_size);
-                else
+# else
                   vec_perf = oclOperations <T, RT> :: ocl_operator_idwt3_alt (p_ocl_tmp, m.Dim(0), m.Dim(1), m.Dim(2),
                                                        p_ocl_lpf, p_ocl_hpf, _fl, _max_level - _min_level,
                                                        p_ocl_res, chunk_size);
+# endif
               else
                 vec_perf = oclOperations <T, RT> :: ocl_operator_idwt3 (p_ocl_tmp, m.Dim(0), m.Dim(1), m.Dim(2),
                                                      p_ocl_lpf, p_ocl_hpf, _fl, _max_level - _min_level,
