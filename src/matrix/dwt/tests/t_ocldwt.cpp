@@ -2,7 +2,7 @@
  ** makros **
  ************/
 # ifndef ELEM_TYPE
- # define ELEM_TYPE float
+ # define ELEM_TYPE cxfl
 # endif
 
 
@@ -153,7 +153,8 @@ print_table_header (std::fstream & fs, const int iterations, const char * name_p
           setw (indent-2) << "  sl " << std::flush;
     fs << setw (indent-2) << "  time exec (f)  --" << std::flush <<
           setw (indent-2) << "  time exec (b)  --" << std::flush <<
-          setw (indent-2) << "  time mem  --" << std::flush <<
+          setw (indent-2) << "  time mem up  --" << std::flush <<
+          setw (indent-2) << "  time mem down --" << std::flush <<
           setw (indent)   << "  bandwidth (f) --" << std::flush <<
           setw (indent)   << "  bandwidth (b) --" << std::flush <<
 //          setw (indent-2) << "  g2l (f) --" << std::flush <<
@@ -166,7 +167,16 @@ print_table_header (std::fstream & fs, const int iterations, const char * name_p
             setw (indent) << " idwt1 " << std::flush <<
             setw (indent) << " idwt2 " << std::flush <<
             setw (indent) << " idwt3 " << std::flush <<
-            setw (indent) << " idwt_final " << std::endl;
+            setw (indent) << " idwt_final " << std::flush <<
+            setw (indent) << " dwt1 (bw) " << std::flush <<
+            setw (indent) << " dwt2 (bw) " << std::flush <<
+            setw (indent) << " dwt3 (bw) " << std::flush <<
+            setw (indent) << " dwt_final (bw) " << std::flush <<
+            setw (indent) << " idwt1 (bw) " << std::flush <<
+            setw (indent) << " idwt2 (bw) " << std::flush <<
+            setw (indent) << " idwt3 (bw) " << std::flush <<
+            setw (indent) << " idwt_final (bw) " << std::endl;
+            
 
 }
 
@@ -370,7 +380,15 @@ main            (int argc, char ** args)
               setw (indent) << vec_pi_backwards [1].time_exec << std::flush <<
               setw (indent) << vec_pi_backwards [2].time_exec << std::flush <<
               setw (indent) << vec_pi_backwards [3].time_exec << std::flush <<
-              setw (indent) << vec_pi_backwards [4].time_exec << std::endl;
+              setw (indent) << vec_pi_backwards [4].time_exec << std::flush <<
+              setw (indent) << vec_pi_forward [1].parameter << std::flush <<
+              setw (indent) << vec_pi_forward [2].parameter << std::flush <<
+              setw (indent) << vec_pi_forward [3].parameter << std::flush <<
+              setw (indent) << vec_pi_forward [4].parameter << std::flush <<
+              setw (indent) << vec_pi_backwards [1].parameter << std::flush <<
+              setw (indent) << vec_pi_backwards [2].parameter << std::flush <<
+              setw (indent) << vec_pi_backwards [3].parameter << std::flush <<
+              setw (indent) << vec_pi_backwards [4].parameter << std::endl;
           if (i < local_sizes.size () - 1 && (0==strcmp (name_param, "local") ? local_sizes [i+1] : global_sizes [i+1]) != sizes)
             fs << std::endl;
 # endif
