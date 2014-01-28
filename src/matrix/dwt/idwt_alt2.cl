@@ -63,7 +63,7 @@ kernel void idwt_1_alt (__global A_type * arg1,
   // LOCAL MEMORY
   //////////////////
 
-  const int loc_mem_line_IN = iLOC_MEM_LINE + 2 * i_offset;
+  const int loc_mem_line_IN = iLOC_MEM_LINE + 2 * i_offset + 1;
   const int loc_mem_line_OUT = iLOC_MEM_LINE + 1;
 
   __local A_type * input = loc_mem;
@@ -262,7 +262,7 @@ kernel void idwt_2_alt (__global A_type * arg1,
   // LOCAL MEMORY
   //////////////////
 
-  const int loc_mem_line_IN = iLOC_MEM_LINE + 2 * i_offset;
+  const int loc_mem_line_IN = iLOC_MEM_LINE + 2 * i_offset + 1;
   const int loc_mem_line_OUT = iLOC_MEM_LINE + 1;
 
   __local A_type * input = loc_mem;
@@ -462,7 +462,7 @@ kernel void idwt_3_alt (__global A_type * arg1,
   // LOCAL MEMORY
   //////////////////
 
-  const int loc_mem_line_IN = iLOC_MEM_LINE + 2 * i_offset;
+  const int loc_mem_line_IN = iLOC_MEM_LINE + 2 * i_offset + 1;
   const int loc_mem_line_OUT = iLOC_MEM_LINE + 1;
 
   __local A_type * input = loc_mem;

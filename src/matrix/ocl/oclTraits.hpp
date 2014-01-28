@@ -2420,6 +2420,11 @@
           // dwt_final
           float time_seconds_final = pi_final.time_end - pi_final.time_start;
           float effective_bw_final = (data_size_final * sizeof (elem_type) * 1.0e-9f) / time_seconds_final;
+          if (time_seconds_final < 1.0e-6)
+          {
+            data_size_final = 0;
+            effective_bw_final = 0;
+          }
 
           float effective_bw = ((data_size_1 + data_size_2 + data_size_3 + data_size_final) * sizeof (elem_type) * 1.0e-9f) / (time_seconds_1 + time_seconds_2 + time_seconds_3 + time_seconds_final);
           float time_seconds = time_seconds_1 + time_seconds_2 + time_seconds_3 + time_seconds_final;
@@ -2785,7 +2790,7 @@
           // dynamically allocate local memory
           /////////////
           
-          const int loc_mem_line_in = 64 + 2 * (fl-1);
+          const int loc_mem_line_in = 64 + 2 * (fl-1) + 1;
           const int loc_mem_line_out = 64 + 1; 
           
           // idwt1
@@ -2970,6 +2975,11 @@
           
           float time_seconds_final = pi_final.time_end - pi_final.time_start;
           float effective_bw_final = ((float) (data_size_final * sizeof(elem_type))*1.0e-9f) / time_seconds_final;
+          if (time_seconds_final < 1.0e-6)
+          {
+            data_size_final = 0;
+            effective_bw_final = 0;
+          }
           
           // overall bandwidth
           float time_seconds = time_seconds_1 + time_seconds_2 + time_seconds_3 + time_seconds_final;
@@ -3015,7 +3025,7 @@
           // dynamically allocate local memory
           /////////////
           
-          const int loc_mem_line_in = 64 + 2 * (fl-1);
+          const int loc_mem_line_in = 64 + 2 * (fl-1) + 1;
           const int loc_mem_line_out = 64 + 1;
           
           // idwt1
